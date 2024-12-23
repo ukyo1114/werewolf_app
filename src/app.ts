@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 dotenv.config({
-  path: `.env.${process.env.NODE_ENV || 'development'}`,
+  path: `.env.${process.env.NODE_ENV || 'dev'}`,
 });
 
 import express, { Request, Response, NextFunction } from 'express';
@@ -9,6 +9,7 @@ import createError from 'http-errors';
 // import path from 'path';
 
 import connectDB from './utils/connectDB';
+import verifyEmailRoutes from './routes/verifyEmailRoutes';
 // import errorHandler from './middleware/errorHandler';
 
 const app = express();
@@ -24,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
   res.sendFile(path.join(__dirname, 'public', 'robots.txt'));
 }); */
 
-// app.use('/api/user', userRoutes);
+app.use('/api/verify-email', verifyEmailRoutes);
 
 app.get('*', (req: Request, res: Response) => {
   res.status(200).send();

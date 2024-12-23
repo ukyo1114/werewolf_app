@@ -1,16 +1,17 @@
 import mongoose from 'mongoose';
+import { database } from '../config/messages';
 
 const connectDB = async (): Promise<void> => {
   try {
     if (process.env.NODE_ENV !== 'test') {
       const mongoURI = process.env.MONGO_URI;
       if (!mongoURI) {
-        throw new Error('MONGO_URI is not defined.');
+        throw new Error(database.URI_NOT_DEFINED);
       }
       await mongoose.connect(mongoURI);
-      console.log('Connected to MongoDB');
+      console.log(database.CONNECT_SUCCESS);
     } else {
-      console.log('Skipping database connection in test environment.');
+      console.log(database.CONNECT_SKIPPED);
     }
   } catch (err) {
     console.error(`Error: ${err instanceof Error ? err.message : err}`);
