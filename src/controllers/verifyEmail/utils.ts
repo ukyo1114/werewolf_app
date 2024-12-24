@@ -1,21 +1,13 @@
 import nodemailer from 'nodemailer';
 import { errors } from '../../config/messages';
 
-const transporter = nodemailer.createTransport({
-  service: 'Gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
 interface IEmailContent {
   subject: string;
   text: string;
   html: string;
 }
 
-const mailContent = {
+export const mailContent = {
   registerUser: (verificationToken: string): IEmailContent => {
     // TODO: ユーザー登録用リンクを設定
     const link = `${process.env.SERVER_URL}/api/user/register?token=${verificationToken}`;
@@ -48,15 +40,23 @@ const mailContent = {
   },
 };
 
-const sendMail = async (
+export const sendMail = async (
   email: string,
   verificationToken: string,
-  mode: keyof typeof mailContent,
+  action: keyof typeof mailContent,
 ): Promise<void> => {
-  const config: IEmailContent = mailContent[mode](verificationToken);
+  const config: IEmailContent = mailContent[action](verificationToken);
+
+  const transporter = nodemailer.createTransport({
+    service: 'Gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
 
   const mailOptions = {
-    from: process.env.EMAIL_USER, // TODO: 宛名を設定
+    from: process.env.EMAIL_USER,
     to: email,
     ...config,
   };
@@ -67,5 +67,3 @@ const sendMail = async (
     throw new Error(errors.EMAIL_SEND_FAILED);
   }
 };
-
-export default sendMail;

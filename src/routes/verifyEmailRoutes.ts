@@ -1,9 +1,10 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { validation } from '../config/messages';
+import { errors, validation } from '../config/messages';
 
 import validateRequest from '../middleware/validateRequest';
-// TODO: コントローラー関数をインポート
+import { sendVerificationEmail } from '../controllers/verifyEmail/controller';
+import protect from '../middleware/protect';
 
 const router = express.Router();
 
@@ -13,27 +14,28 @@ const validateEmail = body('email')
   .trim()
   .normalizeEmail();
 
-// TODO: トークンの検証を追加
+const validateToken = body('token').isJWT().withMessage(errors.INVALID_TOKEN);
 
 router.post(
   '/register-user',
   [validateEmail],
   validateRequest,
-  // sendVerificationEmail("registerUser")
+  sendVerificationEmail('registerUser'),
 );
 
 router.post(
   '/change-email',
-  [validateEmail], // TODO: トークンの検証を追加
+  [validateEmail, validateToken],
   validateRequest,
-  // sendVerificationEmail("change-email")
+  protect,
+  sendVerificationEmail('changeEmail'),
 );
 
 router.post(
   '/forgot-password',
   [validateEmail],
   validateRequest,
-  // sendVerificationEmail("forgot-password")
+  sendVerificationEmail('forgotPassword'),
 );
 
 export default router;

@@ -40,7 +40,14 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // グローバルエラーハンドリングミドルウェア
-// app.use(errorHandler);
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
+    message: err.message,
+    // errors: err.errors || null,
+    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+  });
+});
 
 // サーバーの起動
 const port: number = parseInt(process.env.PORT || '5000', 10);

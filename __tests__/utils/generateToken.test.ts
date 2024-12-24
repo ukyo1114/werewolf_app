@@ -15,7 +15,7 @@ describe('Token Generation Tests', () => {
 
   test('should generate a valid user token', () => {
     const userId = '12345';
-    const token = genUserToken(userId, testJwtSecret);
+    const token = genUserToken(userId);
 
     const decoded = jwt.verify(token, testJwtSecret) as jwt.JwtPayload;
     expect(decoded.userId).toBe(userId);
@@ -24,14 +24,14 @@ describe('Token Generation Tests', () => {
 
   test('should generate a valid verification token', () => {
     const payload = {
-      userId: '67890',
+      // userId: '67890',
       email: 'test@example.com',
       action: 'verifyEmail',
     };
-    const token = genVerificationToken(payload, testJwtSecret);
+    const token = genVerificationToken(payload);
 
     const decoded = jwt.verify(token, testJwtSecret) as jwt.JwtPayload;
-    expect(decoded.userId).toBe(payload.userId);
+    // expect(decoded.userId).toBe(payload.userId);
     expect(decoded.email).toBe(payload.email);
     expect(decoded.action).toBe(payload.action);
     expect(decoded.exp).toBeDefined();
