@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { errors } from '../config/messages';
 
 interface VerificationTokenPayload {
+  userId?: string;
   email: string;
   action: string;
 }
@@ -14,9 +15,10 @@ export const genUserToken = (userId: string): string => {
 };
 
 export const genVerificationToken = ({
+  userId,
   email,
   action,
 }: VerificationTokenPayload): string => {
-  const payload = { email, action };
+  const payload = { userId, email, action };
   return jwt.sign(payload, jwtSecret, { expiresIn: '1d' });
 };

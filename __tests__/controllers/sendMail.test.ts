@@ -1,7 +1,7 @@
 jest.mock('nodemailer');
 
 import nodemailer from 'nodemailer';
-import { sendMail } from '../../src/controllers/verifyEmail/utils';
+import { sendMail } from '../../src/controllers/verifyEmailController/utils';
 
 describe('sendMail', () => {
   let sendMailMock: jest.Mock;

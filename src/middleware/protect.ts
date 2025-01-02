@@ -21,7 +21,7 @@ const protect = asyncHandler(
     const token = header.split(' ')[1];
     const decoded = decodeToken(token);
 
-    const user = await User.findById(decoded.id).select('_id').lean();
+    const user = await User.findById(decoded.userId).select('_id').lean();
     if (!user) throw new AppError(401, errors.USER_NOT_FOUND);
 
     req.userId = user._id.toString();

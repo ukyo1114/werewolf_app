@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import { errors, validation } from '../config/messages';
 
 import validateRequest from '../middleware/validateRequest';
-import { sendVerificationEmail } from '../controllers/verifyEmail/controller';
+import { sendVerificationEmail } from '../controllers/verifyEmailController/controller';
 import protect from '../middleware/protect';
 
 const router = express.Router();
@@ -14,8 +14,6 @@ const validateEmail = body('email')
   .trim()
   .normalizeEmail();
 
-const validateToken = body('token').isJWT().withMessage(errors.INVALID_TOKEN);
-
 router.post(
   '/register-user',
   [validateEmail],
@@ -25,7 +23,7 @@ router.post(
 
 router.post(
   '/change-email',
-  [validateEmail, validateToken],
+  [validateEmail],
   validateRequest,
   protect,
   sendVerificationEmail('changeEmail'),

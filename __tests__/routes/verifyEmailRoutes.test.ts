@@ -1,5 +1,5 @@
-jest.mock('../../src/controllers/verifyEmail/utils', () => ({
-  ...jest.requireActual('../../src/controllers/verifyEmail/utils'),
+jest.mock('../../src/controllers/verifyEmailController/utils', () => ({
+  ...jest.requireActual('../../src/controllers/verifyEmailController/utils'),
   sendMail: jest.fn().mockResolvedValue(undefined),
 }));
 

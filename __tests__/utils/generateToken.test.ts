@@ -24,14 +24,28 @@ describe('Token Generation Tests', () => {
 
   test('should generate a valid verification token', () => {
     const payload = {
-      // userId: '67890',
+      userId: '67890',
       email: 'test@example.com',
       action: 'verifyEmail',
     };
     const token = genVerificationToken(payload);
 
     const decoded = jwt.verify(token, testJwtSecret) as jwt.JwtPayload;
-    // expect(decoded.userId).toBe(payload.userId);
+    expect(decoded.userId).toBe(payload.userId);
+    expect(decoded.email).toBe(payload.email);
+    expect(decoded.action).toBe(payload.action);
+    expect(decoded.exp).toBeDefined();
+  });
+
+  test('should generate a valid verification token without userId', () => {
+    const payload = {
+      email: 'test@example.com',
+      action: 'verifyEmail',
+    };
+    const token = genVerificationToken(payload);
+
+    const decoded = jwt.verify(token, testJwtSecret) as jwt.JwtPayload;
+    expect(decoded.userId).toBe(undefined);
     expect(decoded.email).toBe(payload.email);
     expect(decoded.action).toBe(payload.action);
     expect(decoded.exp).toBeDefined();

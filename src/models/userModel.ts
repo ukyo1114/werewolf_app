@@ -1,7 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-interface IUser extends Document {
+interface User extends Document {
+  _id: string;
   user_name: string;
   email: string;
   password: string;
@@ -12,7 +13,7 @@ interface IUser extends Document {
   updatedAt: Date;
 }
 
-const userSchema = new Schema<IUser>(
+const userSchema = new Schema<User>(
   {
     user_name: {
       type: String,
@@ -45,7 +46,7 @@ userSchema.methods.matchPassword = async function (
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-userSchema.pre<IUser>('save', async function (next) {
+userSchema.pre<User>('save', async function (next) {
   if (!this.isModified('password')) return next;
 
   const salt = await bcrypt.genSalt(10);

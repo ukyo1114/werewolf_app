@@ -4,12 +4,14 @@ dotenv.config({
 });
 
 import express, { Request, Response, NextFunction } from 'express';
+import cors from 'cors';
 import http from 'http';
 import createError from 'http-errors';
 // import path from 'path';
 
 import connectDB from './utils/connectDB';
 import verifyEmailRoutes from './routes/verifyEmailRoutes';
+import userRoutes from './routes/userRoutes';
 // import errorHandler from './middleware/errorHandler';
 
 const app = express();
@@ -25,7 +27,18 @@ app.use(express.urlencoded({ extended: true }));
   res.sendFile(path.join(__dirname, 'public', 'robots.txt'));
 }); */
 
+// CORS設定
+const corsOptions: cors.CorsOptions = {
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  methods: ['GET', 'POST', 'PUT'],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
+// エンドポイント
 app.use('/api/verify-email', verifyEmailRoutes);
+app.use('/api/user', userRoutes);
 
 app.get('*', (req: Request, res: Response) => {
   res.status(200).send();
