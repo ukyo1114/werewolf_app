@@ -4,7 +4,7 @@ import { errors } from '../config/messages';
 
 const decodeToken = (token: string): JwtPayload => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
     return decoded as JwtPayload;
   } catch (error) {
     throw new AppError(401, errors.INVALID_TOKEN);

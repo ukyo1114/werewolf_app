@@ -1,14 +1,15 @@
 import express from 'express';
-import { body, param, ValidationChain } from 'express-validator';
+import { body } from 'express-validator';
 
-import { errors, validation } from '../config/messages';
+import { validation } from '../config/messages';
 import validateRequest from '../middleware/validateRequest';
 import {
   registerUser,
   login,
   updateProfile,
-  changePassword,
   updateEmail,
+  changePassword,
+  resetPassword,
 } from '../controllers/userController/controller';
 import protect from '../middleware/protect';
 
@@ -29,10 +30,15 @@ const validateUserNameOptional = body('userName')
   .escape();
 
 const validateEmail = body('email')
+  .notEmpty()
   .isEmail()
   .withMessage(validation.INVALID_EMAIL)
   .trim()
   .normalizeEmail();
+
+const validatePic = body('pic')
+  .matches(/^data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+/=]+$/)
+  .withMessage(validation.INVALID_PIC);
 
 const validatePassword = (password: string) =>
   body(password)
@@ -57,7 +63,7 @@ router.post(
 
 router.put(
   '/profile',
-  [validateUserNameOptional],
+  [validateUserNameOptional, validatePic],
   validateRequest,
   protect,
   updateProfile,
@@ -67,10 +73,17 @@ router.get('/email/:token', updateEmail);
 
 router.put(
   '/password',
-  [validatePassword('newPassword')],
+  [validatePassword('currentPassword'), validatePassword('newPassword')],
   validateRequest,
   protect,
   changePassword,
+);
+
+router.put(
+  '/reset-password',
+  [validatePassword('password')],
+  validateRequest,
+  resetPassword,
 );
 
 export default router;

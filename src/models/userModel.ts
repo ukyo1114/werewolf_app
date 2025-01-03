@@ -1,8 +1,8 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-interface User extends Document {
-  _id: string;
+interface IUser extends Document {
+  _id: Types.ObjectId;
   user_name: string;
   email: string;
   password: string;
@@ -13,7 +13,7 @@ interface User extends Document {
   updatedAt: Date;
 }
 
-const userSchema = new Schema<User>(
+const userSchema = new Schema<IUser>(
   {
     user_name: {
       type: String,
@@ -46,7 +46,7 @@ userSchema.methods.matchPassword = async function (
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-userSchema.pre<User>('save', async function (next) {
+userSchema.pre<IUser>('save', async function (next) {
   if (!this.isModified('password')) return next;
 
   const salt = await bcrypt.genSalt(10);

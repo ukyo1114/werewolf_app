@@ -14,10 +14,12 @@ export const errors = {
   EMAIL_NOT_FOUND: 'メールアドレスが登録されていません。',
   WRONG_PASSWORD: 'パスワードが間違っています。',
   NO_UPDATE_DATA: '更新するデータがありません。',
+  SERVER_ERROR: 'サーバーエラーが発生しました。',
 };
 
 export const validation = {
   INVALID_EMAIL: '有効なメールアドレスを入力してください。',
   USER_NAME_LENGTH: 'ユーザー名は1文字以上20文字以内で入力してください。',
   PASSWORD_LENGTH: 'パスワードは8文字以上128文字以内で入力してください。',
+  INVALID_PIC: '画像の形式が無効です。',
 };

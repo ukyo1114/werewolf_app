@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { errors, validation } from '../config/messages';
+import { validation } from '../config/messages';
 
 import validateRequest from '../middleware/validateRequest';
 import { sendVerificationEmail } from '../controllers/verifyEmailController/controller';
@@ -9,6 +9,7 @@ import protect from '../middleware/protect';
 const router = express.Router();
 
 const validateEmail = body('email')
+  .notEmpty()
   .isEmail()
   .withMessage(validation.INVALID_EMAIL)
   .trim()

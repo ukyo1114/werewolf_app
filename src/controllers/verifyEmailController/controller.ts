@@ -2,22 +2,40 @@ import { Request, Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import { mailContent, sendMail } from './utils';
 import { genVerificationToken } from '../../utils/generateToken';
+import User from '../../models/userModel';
+import AppError from '../../utils/AppError';
+import { errors } from '../../config/messages';
 
-interface CustomRequest extends Request {
+interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
+  extends Request<TParams, any, TBody, TQuery> {
   userId?: string;
 }
 
-// TODO: action === registerUser || changeEmailのときデータベースチェックを追加してメールアドレスの重複を回避
-export const sendVerificationEmail = (action: keyof typeof mailContent) =>
-  asyncHandler(async (req: CustomRequest, res: Response): Promise<void> => {
-    const userId = req.userId;
-    const { email }: { email: string } = req.body;
-    const verificationToken: string = genVerificationToken({
-      userId,
-      email,
-      action,
-    });
-    await sendMail(email, verificationToken, action);
+interface IEmail {
+  email: string;
+}
 
-    res.status(202).send();
-  });
+export const sendVerificationEmail = (action: keyof typeof mailContent) =>
+  asyncHandler(
+    async (req: CustomRequest<IEmail>, res: Response): Promise<void> => {
+      const userId = req.userId;
+      const { email } = req.body;
+
+      // NOTE: メールアドレスの重複をチェック
+      if (action === 'registerUser' || action === 'changeEmail') {
+        const emailExists = await User.exists({ email });
+        if (emailExists)
+          throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
+      }
+
+      const verificationToken: string = genVerificationToken({
+        userId,
+        email,
+        action,
+      });
+
+      await sendMail(email, verificationToken, action);
+
+      res.status(202).send();
+    },
+  );

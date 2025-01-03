@@ -11,7 +11,7 @@ interface EmailContent {
 export const mailContent = {
   registerUser: (verificationToken: string): EmailContent => {
     // TODO: ユーザー登録用リンクを設定
-    const link = `${process.env.SERVER_URL}/api/user/register?token=${verificationToken}`;
+    const link = `${process.env.SERVER_URL}/api/user/register/${verificationToken}`;
 
     return {
       subject: 'メールアドレスの確認',

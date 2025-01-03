@@ -5,6 +5,7 @@ import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 import User from '../../models/userModel';
 import { genUserToken } from '../../utils/generateToken';
+import uploadPicture from './utils';
 
 interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
   extends Request<TParams, any, TBody, TQuery> {
@@ -34,6 +35,11 @@ interface IUpdateEmail {
 interface IChangePassword {
   currentPassword: string;
   newPassword: string;
+}
+
+interface IResetPassword {
+  password: string;
+  token: string;
 }
 
 export const registerUser = asyncHandler(
@@ -84,14 +90,14 @@ export const login = asyncHandler(
 // TODO: 更新を通知する処理を追加
 export const updateProfile = asyncHandler(
   async (req: CustomRequest<IUpdateProfile>, res: Response): Promise<void> => {
-    const userId = req.userId;
+    const userId = req.userId!;
     const { userName, pic } = req.body;
 
     if (!userName && !pic) throw new AppError(400, errors.NO_UPDATE_DATA);
 
     // TODO: ユーザーがゲーム中の場合エラーを返す
 
-    // if (pic) await uploadPicture(userId, pic);
+    if (pic) await uploadPicture({ userId, pic });
     if (userName) await User.findByIdAndUpdate(userId, { user_name: userName });
 
     res.status(200).send();
@@ -131,6 +137,25 @@ export const changePassword = asyncHandler(
     }
 
     user.password = newPassword;
+    await user.save();
+
+    res.status(200).send();
+  },
+);
+
+export const resetPassword = asyncHandler(
+  async (req: CustomRequest<IResetPassword>, res: Response): Promise<void> => {
+    const { password, token } = req.body;
+
+    const { email, action } = decodeToken(token);
+    if (action !== 'forgotPassword') {
+      throw new AppError(401, errors.INVALID_TOKEN);
+    }
+
+    const user = await User.findOne({ email }).select('password');
+    if (!user) throw new AppError(400, errors.USER_NOT_FOUND);
+
+    user.password = password;
     await user.save();
 
     res.status(200).send();
