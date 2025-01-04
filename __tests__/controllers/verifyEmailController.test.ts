@@ -30,10 +30,10 @@ describe('sendMail', () => {
       to: email,
       subject: 'メールアドレスの確認',
       text: expect.stringContaining(
-        `${process.env.SERVER_URL}/api/user/register?token=${verificationToken}`,
+        `${process.env.SERVER_URL}/api/user/register/${verificationToken}`,
       ),
       html: expect.stringContaining(
-        `${process.env.SERVER_URL}/api/user/register?token=${verificationToken}`,
+        `${process.env.SERVER_URL}/api/user/register/${verificationToken}`,
       ),
     });
   });

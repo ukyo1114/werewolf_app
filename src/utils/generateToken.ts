@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { errors } from '../config/messages';
 
-interface VerificationTokenPayload {
+interface IVerificationTokenPayload {
   userId?: string;
   email: string;
   action: string;
@@ -18,7 +18,7 @@ export const genVerificationToken = ({
   userId,
   email,
   action,
-}: VerificationTokenPayload): string => {
+}: IVerificationTokenPayload): string => {
   const payload = { userId, email, action };
   return jwt.sign(payload, jwtSecret, { expiresIn: '1d' });
 };

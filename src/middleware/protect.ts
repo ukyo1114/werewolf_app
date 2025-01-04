@@ -4,7 +4,7 @@ import asyncHandler from 'express-async-handler';
 import User from '../models/userModel';
 import AppError from '../utils/AppError';
 import { errors } from '../config/messages';
-import decodeToken from '../utils/decodeToken';
+import { decodeToken } from '../utils/decodeToken';
 
 interface CustomRequest extends Request {
   userId?: string;

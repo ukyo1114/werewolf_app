@@ -37,6 +37,7 @@ const validateEmail = body('email')
   .normalizeEmail();
 
 const validatePic = body('pic')
+  .optional()
   .matches(/^data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+/=]+$/)
   .withMessage(validation.INVALID_PIC);
 

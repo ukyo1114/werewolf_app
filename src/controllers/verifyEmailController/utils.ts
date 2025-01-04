@@ -2,14 +2,14 @@ import nodemailer from 'nodemailer';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 
-interface EmailContent {
+interface IEmailContent {
   subject: string;
   text: string;
   html: string;
 }
 
 export const mailContent = {
-  registerUser: (verificationToken: string): EmailContent => {
+  registerUser: (verificationToken: string): IEmailContent => {
     // TODO: ユーザー登録用リンクを設定
     const link = `${process.env.SERVER_URL}/api/user/register/${verificationToken}`;
 
@@ -19,7 +19,7 @@ export const mailContent = {
       html: `<p>以下のリンクをクリックしてメールアドレスを確認してください:</p><a href="${link}">確認リンク</a>`,
     };
   },
-  changeEmail: (verificationToken: string): EmailContent => {
+  changeEmail: (verificationToken: string): IEmailContent => {
     // TODO: メールアドレス変更完了用リンクを設定
     const link = `${process.env.SERVER_URL}/api/verify-email/complete-change/${verificationToken}`;
 
@@ -29,7 +29,7 @@ export const mailContent = {
       html: `<p>以下のリンクをクリックしてパスワードを再設定してください:</p><a href="${link}">確認リンク</a>`,
     };
   },
-  forgotPassword: (verificationToken: string): EmailContent => {
+  forgotPassword: (verificationToken: string): IEmailContent => {
     // TODO: パスワード再設定用リンクを設定
     const link = `${process.env.SERVER_URL}/api/user/reset-password/${verificationToken}`;
 
@@ -46,7 +46,7 @@ export const sendMail = async (
   verificationToken: string,
   action: keyof typeof mailContent,
 ): Promise<void> => {
-  const config: EmailContent = mailContent[action](verificationToken);
+  const config: IEmailContent = mailContent[action](verificationToken);
 
   const transporter = nodemailer.createTransport({
     service: 'Gmail',

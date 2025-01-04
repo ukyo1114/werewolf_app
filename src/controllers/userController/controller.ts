@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import asyncHandler from 'express-async-handler';
-import decodeToken from '../../utils/decodeToken';
+import { decodeToken } from '../../utils/decodeToken';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 import User from '../../models/userModel';
@@ -118,7 +118,7 @@ export const updateEmail = asyncHandler(
     if (emailExists) throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
 
     const user = await User.findByIdAndUpdate(userId, { email });
-    if (!user) throw new AppError(400, errors.USER_NOT_FOUND);
+    if (!user) throw new AppError(401, errors.USER_NOT_FOUND);
 
     res.status(200).send(); // TODO: 認証完了ページを送信
   },
@@ -153,7 +153,7 @@ export const resetPassword = asyncHandler(
     }
 
     const user = await User.findOne({ email }).select('password');
-    if (!user) throw new AppError(400, errors.USER_NOT_FOUND);
+    if (!user) throw new AppError(401, errors.USER_NOT_FOUND);
 
     user.password = password;
     await user.save();
