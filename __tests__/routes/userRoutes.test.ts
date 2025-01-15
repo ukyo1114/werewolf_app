@@ -5,35 +5,19 @@ import { decodeToken } from '../../src/utils/decodeToken';
 
 import express from 'express';
 import request from 'supertest';
-import mongoose from 'mongoose';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import userRoutes from '../../src/routes/userRoutes';
-import {
+/* import {
   registerUser,
   login,
   updateProfile,
   changePassword,
   resetPassword,
-} from '../../src/controllers/userController/controller';
+} from '../../src/controllers/userController/controller'; */
 import User from '../../src/models/userModel';
 
 const app = express();
 app.use(express.json());
 app.use(userRoutes);
-
-let mongoServer: MongoMemoryServer;
-
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
-
-  await mongoose.connect(uri);
-});
-
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-});
 
 describe('registerUser', () => {
   const mockToken = 'mockToken';
@@ -41,8 +25,9 @@ describe('registerUser', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     await User.deleteMany({});
+
     await User.create({
-      user_name: 'testUser',
+      userName: 'testUser',
       email: 'already-registered@example.com',
       password: 'password123',
       pic: null,
@@ -144,7 +129,7 @@ describe('registerUser', () => {
 describe('login', () => {
   beforeAll(async () => {
     await User.create({
-      user_name: 'testUser',
+      userName: 'testUser',
       email: 'test@example.com',
       password: 'password123',
       pic: null,
@@ -193,7 +178,7 @@ describe('updateProfile', () => {
     jest.clearAllMocks();
     await User.deleteMany({});
     const user = await User.create({
-      user_name: 'testUser',
+      userName: 'testUser',
       email: 'already-registered@example.com',
       password: 'password123',
       pic: null,
@@ -252,7 +237,7 @@ describe('updateEmail', () => {
     jest.clearAllMocks();
     await User.deleteMany({});
     const user = await User.create({
-      user_name: 'testUser',
+      userName: 'testUser',
       email: 'already-registered@example.com',
       password: 'password123',
       pic: null,
@@ -325,7 +310,7 @@ describe('changePassword', () => {
     jest.clearAllMocks();
     await User.deleteMany({});
     const user = await User.create({
-      user_name: 'testUser',
+      userName: 'testUser',
       email: 'already-registered@example.com',
       password: 'password123',
       pic: null,
@@ -390,7 +375,7 @@ describe('resetPassword', () => {
     jest.clearAllMocks();
     await User.deleteMany({});
     const user = await User.create({
-      user_name: 'testUser',
+      userName: 'testUser',
       email: 'already-registered@example.com',
       password: 'password123',
       pic: null,

@@ -39,7 +39,7 @@ describe('POST /register-user', () => {
       .post('/register-user')
       .send({ email: 'test@example.com' });
 
-    console.log(response);
+    // console.log(response);
 
     expect(response.status).toBe(400);
     // expect(response.body.message).toBe(errors.EMAIL_ALREADY_REGISTERED);

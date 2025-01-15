@@ -55,7 +55,7 @@ export const registerUser = asyncHandler(
     if (emailExists) throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
 
     await User.create({
-      user_name: userName,
+      userName,
       email,
       password,
       pic: null,
@@ -78,7 +78,7 @@ export const login = asyncHandler(
 
     const user = {
       userId: dbUser._id.toString(),
-      userName: dbUser.user_name,
+      userName: dbUser.userName,
       pic: dbUser.pic,
       token: genUserToken(dbUser._id.toString()),
     };
@@ -98,7 +98,7 @@ export const updateProfile = asyncHandler(
     // TODO: ユーザーがゲーム中の場合エラーを返す
 
     if (pic) await uploadPicture({ userId, pic });
-    if (userName) await User.findByIdAndUpdate(userId, { user_name: userName });
+    if (userName) await User.findByIdAndUpdate(userId, { userName });
 
     res.status(200).send();
   },
