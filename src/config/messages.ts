@@ -23,3 +23,11 @@ export const validation = {
   PASSWORD_LENGTH: 'パスワードは8文字以上128文字以内で入力してください。',
   INVALID_PIC: '画像の形式が無効です。',
 };
+
+export const gameError = {
+  INVALID_VOTE: '投票が無効です。',
+  INVALID_FORTUNE: '占い先が無効です。',
+  INVALID_GUARD: '護衛先が無効です。',
+  INVALID_ATTACK: '襲撃先が無効です。',
+  // VOTE_HISTORY_NOT_FOUND: '投票履歴が取得できません。',
+};

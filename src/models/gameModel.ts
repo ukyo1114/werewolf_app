@@ -7,8 +7,8 @@ interface IGame extends Document {
     | 'running'
     | 'villagersWin'
     | 'werewolvesWin'
-    | 'villageAbandoned'
-    | 'foxesWin';
+    | 'foxesWin'
+    | 'villageAbandoned';
   numberOfPlayers: number;
   createdAt: Date;
   updatedAt: Date;
@@ -30,8 +30,8 @@ const gameSchema = new Schema<IGame>(
         'running',
         'villagersWin',
         'werewolvesWin',
-        'villageAbandoned',
         'foxesWin',
+        'villageAbandoned',
       ],
     },
     numberOfPlayers: {
