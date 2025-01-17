@@ -4,16 +4,19 @@ import PhaseManager from './PhaseManager';
 import AppError from '../utils/AppError';
 import { gameError } from '../config/messages';
 
-// Vote result structure: Day -> Votee -> Voters
-interface IVoteResult {
-  [key: string]: { [key: string]: string[] };
+// Vote history structure: Day -> Votee -> Voters
+interface IVotesByVotee {
+  [key: string]: string[];
+}
+interface IVoteHistory {
+  [key: string]: IVotesByVotee;
 }
 
 export default class VoteManager {
   public votes: { [key: string]: string } = {};
   public players: PlayerManager;
   public phase: PhaseManager;
-  public voteResult: IVoteResult = {};
+  public voteHistory: IVoteHistory = {};
 
   constructor(playerManager: PlayerManager, phaseManager: PhaseManager) {
     this.players = playerManager;
@@ -58,12 +61,10 @@ export default class VoteManager {
     return countBy(voteeArray);
   }
 
-  genVoteResult() {
+  genVoteHistory() {
     const { currentDay } = this.phase;
 
-    const votesByVotee: {
-      [key: string]: string[];
-    } = {};
+    const votesByVotee: IVotesByVotee = {};
 
     // 投票を得票者 -> 投票者リストに変換
     for (const [voter, votee] of Object.entries(this.votes)) {
@@ -73,7 +74,7 @@ export default class VoteManager {
       votesByVotee[votee].push(voter);
     }
 
-    this.voteResult[currentDay] = votesByVotee;
+    this.voteHistory[currentDay] = votesByVotee;
 
     // 投票をリセット
     this.votes = {};

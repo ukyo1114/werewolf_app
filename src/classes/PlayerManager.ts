@@ -1,6 +1,8 @@
 import { shuffle } from 'lodash';
 import GameUser from '../models/gameUserModel';
 import { Role, roleConfig } from '../config/roles';
+import AppError from '../utils/AppError';
+import { gameError } from '../config/messages';
 
 type Status = 'alive' | 'dead';
 
@@ -9,15 +11,17 @@ interface IUser {
   userName: string;
 }
 
+interface IPlayer {
+  userId: string;
+  userName: string;
+  status: Status;
+  role: Role;
+}
+
 export default class PlayerManager {
   public gameId: string;
   public players: {
-    [key: string]: {
-      userId: string;
-      userName: string;
-      status: Status;
-      role: Role;
-    };
+    [key: string]: IPlayer;
   } = {};
 
   constructor(gameId: string, users: IUser[]) {
@@ -59,13 +63,27 @@ export default class PlayerManager {
     }
   }
 
-  kill(userId: string) {
-    const player = this.players[userId];
-
-    if (player) {
-      // userGroups[this.gameId].users.get(playerId)?.eventEmitter.emit("kill");
+  kill(users: string[]) {
+    users.forEach((userId) => {
+      const player = this.players[userId];
       player.status = 'dead';
-    }
+    });
+
+    // TODO: チャンネルインスタンスにイベントを送信
+  }
+
+  killFoxes(): string[] {
+    const foxes: string[] = Object.values(this.players)
+      .filter(
+        (user) =>
+          (user.role === 'fox' || user.role === 'immoralist') &&
+          user.status === 'alive',
+      )
+      .map((user) => user.userId);
+
+    this.kill(foxes);
+
+    return foxes;
   }
 
   getPlayerState(userId: string) {
@@ -107,5 +125,15 @@ export default class PlayerManager {
     }
 
     return playerState;
+  }
+
+  findPlayerByRole(role: Role): IPlayer {
+    const player = Object.values(this.players).find(
+      (user) => user.role === role,
+    );
+
+    if (!player) throw new AppError(500, gameError.PLAYER_NOT_FOUND);
+
+    return player;
   }
 }
