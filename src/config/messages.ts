@@ -29,6 +29,11 @@ export const gameError = {
   INVALID_FORTUNE: '占い先が無効です。',
   INVALID_GUARD: '護衛先が無効です。',
   INVALID_ATTACK: '襲撃先が無効です。',
-  // VOTE_HISTORY_NOT_FOUND: '投票履歴が取得できません。',
-  PLAYER_NOT_FOUND: 'プレイヤーが見つかりません',
+  VOTE_HISTORY_NOT_FOUND: '投票履歴が取得できません。',
+  FORTUNE_RESULT_NOT_FOUND: '占い結果が取得できません。',
+  MEDIUM_RESULT_NOT_FOUND: '霊能結果が取得できません。',
+
+  GUARD_HISTORY_NOT_FOUND: '護衛履歴が取得できません。',
+  ATTACK_HISTORY_NOT_FOUND: '襲撃履歴が取得できません。',
+  PLAYER_NOT_FOUND: 'プレイヤーが見つかりません。',
 };

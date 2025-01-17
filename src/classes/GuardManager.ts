@@ -4,7 +4,7 @@ import PhaseManager from './PhaseManager';
 import AppError from '../utils/AppError';
 import { gameError } from '../config/messages';
 
-// Fortune result structure: Day -> Target
+// Guard history structure: Day -> Target
 interface IGuardHistory {
   [key: string]: string;
 }
@@ -20,7 +20,7 @@ export default class GuardManager {
     this.phaseManager = phaseManager;
   }
 
-  receiveFortuneRequest(playerId: string, targetId: string) {
+  receiveGuradRequest(playerId: string, targetId: string) {
     const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[playerId];
     const target = this.playerManager.players[targetId];
@@ -65,7 +65,7 @@ export default class GuardManager {
     const player = this.playerManager.players[userId];
 
     if (player?.role !== 'hunter' || currentPhase === 'pre') {
-      throw new AppError(403, gameError.FORTUNE_RESULT_NOT_FOUND);
+      throw new AppError(403, gameError.GUARD_HISTORY_NOT_FOUND);
     }
 
     return this.guardHistory;

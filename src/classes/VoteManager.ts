@@ -14,19 +14,19 @@ interface IVoteHistory {
 
 export default class VoteManager {
   public votes: { [key: string]: string } = {};
-  public players: PlayerManager;
-  public phase: PhaseManager;
+  public playerManager: PlayerManager;
+  public phaseManager: PhaseManager;
   public voteHistory: IVoteHistory = {};
 
   constructor(playerManager: PlayerManager, phaseManager: PhaseManager) {
-    this.players = playerManager;
-    this.phase = phaseManager;
+    this.playerManager = playerManager;
+    this.phaseManager = phaseManager;
   }
 
   receiveVote(voterId: string, voteeId: string) {
-    const { currentPhase } = this.phase;
-    const player = this.players.players[voterId];
-    const target = this.players.players[voteeId];
+    const { currentPhase } = this.phaseManager;
+    const player = this.playerManager.players[voterId];
+    const target = this.playerManager.players[voteeId];
 
     if (
       player?.status !== 'alive' ||
@@ -49,6 +49,8 @@ export default class VoteManager {
       .filter(([_, count]) => count === maxVotes)
       .map(([votee]) => votee);
 
+    this.genVoteHistory();
+
     // 配列からランダムに選んだプレイヤーを返す
     return sample(executionTargets)!;
   }
@@ -62,7 +64,7 @@ export default class VoteManager {
   }
 
   genVoteHistory() {
-    const { currentDay } = this.phase;
+    const { currentDay } = this.phaseManager;
 
     const votesByVotee: IVotesByVotee = {};
 
@@ -78,5 +80,15 @@ export default class VoteManager {
 
     // 投票をリセット
     this.votes = {};
+  }
+
+  getVoteHistory(userId: string): IVoteHistory {
+    const { currentPhase } = this.phaseManager;
+
+    if (currentPhase === 'pre') {
+      throw new AppError(403, gameError.VOTE_HISTORY_NOT_FOUND);
+    }
+
+    return this.voteHistory;
   }
 }
