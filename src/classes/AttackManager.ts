@@ -1,6 +1,6 @@
 import { sample } from 'lodash';
-import PlayerManager from './PlayerManager';
 import PhaseManager from './PhaseManager';
+import PlayerManager from './PlayerManager';
 import GuardManager from './GuardManager';
 import AppError from '../utils/AppError';
 import { gameError } from '../config/messages';
@@ -12,18 +12,18 @@ interface IAttackHistory {
 
 export default class AttackManager {
   public attackRequest: string | null = null;
-  public playerManager: PlayerManager;
   public phaseManager: PhaseManager;
+  public playerManager: PlayerManager;
   public guardManager: GuardManager;
   public attackHistory: IAttackHistory = {};
 
   constructor(
-    playerManager: PlayerManager,
     phaseManager: PhaseManager,
+    playerManager: PlayerManager,
     guardManager: GuardManager,
   ) {
-    this.playerManager = playerManager;
     this.phaseManager = phaseManager;
+    this.playerManager = playerManager;
     this.guardManager = guardManager;
   }
 
@@ -53,10 +53,13 @@ export default class AttackManager {
     const attackTarget = this.playerManager.players[attackTargetId];
     if (attackTarget.role === 'fox') return null;
 
-    const guardResult = this.guardManager.guard(attackTargetId);
-    if (guardResult) return null;
+    const hunter = this.playerManager.findPlayerByRole('hunter');
+    if (hunter?.status === 'alive') {
+      const guardResult = this.guardManager.guard(attackTargetId);
+      if (guardResult) return null;
+    }
 
-    this.playerManager.kill([attackTargetId]);
+    this.playerManager.kill(attackTargetId);
 
     this.attackRequest = null;
 

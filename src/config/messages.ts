@@ -37,3 +37,28 @@ export const gameError = {
   ATTACK_HISTORY_NOT_FOUND: '襲撃履歴が取得できません。',
   PLAYER_NOT_FOUND: 'プレイヤーが見つかりません。',
 };
+
+export const gameMaster = {
+  PREPARATION:
+    '村の中に人狼が紛れ込んでしまいましたわ。きゃー。みなさんでぎゃふんと言わせちゃいましょうね。',
+  MORNING:
+    'ふわぁー。おはようございますわ。今日も一日はりきっていきましょうね。',
+  NIGHT:
+    'わおーん。しずかな夜に狼の遠吠えが響いていますわね。ではおやすみなさいませ。',
+  EXECUTION: (player: string) =>
+    `投票の結果、【${player}】さんが処刑されましたわ。これでよかったのかしら。しくしく。`,
+  KILL_IMMORALIST: (players: string[]) =>
+    `${players.map((player) => `【${player}】`).join('、')}さんが狐の後を追って死亡しました。`,
+  ATTACK: (players: string[]) =>
+    players.length > 0
+      ? `もぐもぐ。${players.map((player) => `【${player}】`).join('、')}】さんが昨夜襲撃されましたわ。`
+      : 'あら、昨夜は誰も犠牲にならなかったようですわ。ラッキーでしたわね。',
+  VILLAGERS_WIN:
+    '村に平和が戻りました。めでたしめでたし。村人チームの勝利ですわ。',
+  WEREWOLVES_WIN:
+    '人狼は村をほろぼすと、次の標的を求めて去っていきました。ぱちぱち。人狼チームの勝利ですわ。',
+  FOXES_WIN: '狐の勝利',
+  VILLAGE_ABANDONED:
+    '投票者がいなかった為、この村は廃村になってしまいました。また遊んでくださいね。',
+  TIME_REDUCTION: '時短', // 時短実装後に変更
+};

@@ -1,12 +1,12 @@
-import { shuffle } from 'lodash';
+import { shuffle, mapValues, omit } from 'lodash';
 import GameUser from '../models/gameUserModel';
 import { Role, roleConfig } from '../config/roles';
 import AppError from '../utils/AppError';
 import { gameError } from '../config/messages';
 
-type Status = 'alive' | 'dead';
+export type Status = 'alive' | 'dead';
 
-interface IUser {
+export interface IUser {
   userId: string;
   userName: string;
 }
@@ -48,7 +48,6 @@ export default class PlayerManager {
 
   async registerPlayerInDB() {
     const gameId = this.gameId;
-
     const users = Object.values(this.players).map((user) => ({
       gameId,
       userId: user.userId,
@@ -63,27 +62,11 @@ export default class PlayerManager {
     }
   }
 
-  kill(users: string[]) {
-    users.forEach((userId) => {
-      const player = this.players[userId];
-      player.status = 'dead';
-    });
+  kill(userId: string) {
+    const player = this.players[userId];
+    player.status = 'dead';
 
     // TODO: チャンネルインスタンスにイベントを送信
-  }
-
-  killFoxes(): string[] {
-    const foxes: string[] = Object.values(this.players)
-      .filter(
-        (user) =>
-          (user.role === 'fox' || user.role === 'immoralist') &&
-          user.status === 'alive',
-      )
-      .map((user) => user.userId);
-
-    this.kill(foxes);
-
-    return foxes;
   }
 
   getPlayerState(userId: string) {
@@ -135,5 +118,31 @@ export default class PlayerManager {
     if (!player) throw new AppError(500, gameError.PLAYER_NOT_FOUND);
 
     return player;
+  }
+
+  getImmoralists(): IPlayer[] {
+    return Object.values(this.players).filter(
+      (user) => user.role === 'immoralist' && user.status === 'alive',
+    );
+  }
+
+  getLivingPlayers(): IPlayer[] {
+    return Object.values(this.players).filter(
+      (user) => user.status === 'alive',
+    );
+  }
+
+  getPlayers() {
+    const players = mapValues(this.players, (user) => omit(user, 'userName'));
+
+    return players;
+  }
+
+  getPlayersWithoutRole() {
+    const players = mapValues(this.players, (user) =>
+      omit(user, ['userName', 'role']),
+    );
+
+    return players;
   }
 }

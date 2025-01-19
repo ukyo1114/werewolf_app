@@ -1,26 +1,26 @@
 import { sample } from 'lodash';
-import PlayerManager from './PlayerManager';
 import PhaseManager from './PhaseManager';
+import PlayerManager from './PlayerManager';
 import AppError from '../utils/AppError';
 import { gameError } from '../config/messages';
 
-// Fortune result structure: Day -> Target -> Result
-interface IFortuneResult {
+// Devine result structure: Day -> Target -> Result
+interface IDevineResult {
   [key: string]: { [key: string]: string };
 }
 
-export default class FortuneManager {
-  public fortuneRequest: string | null = null;
-  public playerManager: PlayerManager;
+export default class DevineManager {
+  public devineRequest: string | null = null;
   public phaseManager: PhaseManager;
-  public fortuneResult: IFortuneResult = {};
+  public playerManager: PlayerManager;
+  public devineResult: IDevineResult = {};
 
-  constructor(playerManager: PlayerManager, phaseManager: PhaseManager) {
-    this.playerManager = playerManager;
+  constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
     this.phaseManager = phaseManager;
+    this.playerManager = playerManager;
   }
 
-  receiveFortuneRequest(playerId: string, targetId: string) {
+  receiveDevineRequest(playerId: string, targetId: string) {
     const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[playerId];
     const target = this.playerManager.players[targetId];
@@ -34,39 +34,37 @@ export default class FortuneManager {
     )
       throw new AppError(400, gameError.INVALID_FORTUNE);
 
-    this.fortuneRequest = targetId;
+    this.devineRequest = targetId;
   }
 
-  fortune(): string | null {
+  devine(): string {
     const { currentDay } = this.phaseManager;
-    const seer = this.playerManager.findPlayerByRole('seer');
 
-    if (seer?.status !== 'alive') return null;
+    const DevineTargetId: string =
+      this.devineRequest || this.getRandomDevineTarget();
+    const devineTarget = this.playerManager.players[DevineTargetId];
 
-    const targetId: string =
-      this.fortuneRequest || this.getRandomFortuneTarget();
-    const target = this.playerManager.players[targetId];
-
-    this.fortuneResult[currentDay] = {
-      [targetId]: target.role !== 'werewolf' ? 'villagers' : 'werewolves',
+    this.devineResult[currentDay] = {
+      [DevineTargetId]:
+        devineTarget.role !== 'werewolf' ? 'villagers' : 'werewolves',
     };
 
-    this.fortuneRequest = null;
+    this.devineRequest = null;
 
     // 狐の呪殺判定用にtargetId を返す
-    return targetId;
+    return DevineTargetId;
   }
 
-  getRandomFortuneTarget(): string {
+  getRandomDevineTarget(): string {
     const players = this.playerManager.players;
-    const fortuneTargets = Object.values(players)
+    const devineTargets = Object.values(players)
       .filter((user) => user.status === 'alive' && user.role !== 'seer')
       .map((user) => user.userId);
 
-    return sample(fortuneTargets)!;
+    return sample(devineTargets)!;
   }
 
-  getFortuneResult(userId: string): IFortuneResult {
+  getDevineResult(userId: string): IDevineResult {
     const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[userId];
 
@@ -74,6 +72,6 @@ export default class FortuneManager {
       throw new AppError(403, gameError.FORTUNE_RESULT_NOT_FOUND);
     }
 
-    return this.fortuneResult;
+    return this.devineResult;
   }
 }

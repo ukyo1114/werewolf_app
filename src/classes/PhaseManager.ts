@@ -1,12 +1,7 @@
-import { EventEmitter } from 'events';
+import EventEmitter from 'events';
+import { Result } from './GameManager';
 
-type CurrentPhase = 'pre' | 'day' | 'night' | 'finished';
-type Result =
-  | 'running'
-  | 'villagersWin'
-  | 'werewolvesWin'
-  | 'foxesWin'
-  | 'villageAbandoned';
+export type CurrentPhase = 'pre' | 'day' | 'night' | 'finished';
 
 interface IResult {
   value: Result;

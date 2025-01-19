@@ -1,6 +1,6 @@
 import { max, sample, countBy } from 'lodash';
-import PlayerManager from './PlayerManager';
 import PhaseManager from './PhaseManager';
+import PlayerManager from './PlayerManager';
 import AppError from '../utils/AppError';
 import { gameError } from '../config/messages';
 
@@ -14,13 +14,13 @@ interface IVoteHistory {
 
 export default class VoteManager {
   public votes: { [key: string]: string } = {};
-  public playerManager: PlayerManager;
   public phaseManager: PhaseManager;
+  public playerManager: PlayerManager;
   public voteHistory: IVoteHistory = {};
 
-  constructor(playerManager: PlayerManager, phaseManager: PhaseManager) {
-    this.playerManager = playerManager;
+  constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
     this.phaseManager = phaseManager;
+    this.playerManager = playerManager;
   }
 
   receiveVote(voterId: string, voteeId: string) {

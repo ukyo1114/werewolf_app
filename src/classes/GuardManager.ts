@@ -1,6 +1,6 @@
 import { sample } from 'lodash';
-import PlayerManager from './PlayerManager';
 import PhaseManager from './PhaseManager';
+import PlayerManager from './PlayerManager';
 import AppError from '../utils/AppError';
 import { gameError } from '../config/messages';
 
@@ -11,13 +11,13 @@ interface IGuardHistory {
 
 export default class GuardManager {
   public guardRequest: string | null = null;
-  public playerManager: PlayerManager;
   public phaseManager: PhaseManager;
+  public playerManager: PlayerManager;
   public guardHistory: IGuardHistory = {};
 
-  constructor(playerManager: PlayerManager, phaseManager: PhaseManager) {
-    this.playerManager = playerManager;
+  constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
     this.phaseManager = phaseManager;
+    this.playerManager = playerManager;
   }
 
   receiveGuradRequest(playerId: string, targetId: string) {
@@ -39,9 +39,6 @@ export default class GuardManager {
 
   guard(attackTargetId: string): boolean {
     const { currentDay } = this.phaseManager;
-    const hunter = this.playerManager.findPlayerByRole('hunter');
-
-    if (hunter?.status !== 'alive') return false;
 
     const guardTargetId = this.guardRequest || this.getRandomGuardTarget();
     this.guardHistory[currentDay] = guardTargetId;

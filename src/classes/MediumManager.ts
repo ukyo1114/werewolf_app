@@ -1,5 +1,5 @@
-import PlayerManager from './PlayerManager';
 import PhaseManager from './PhaseManager';
+import PlayerManager from './PlayerManager';
 import AppError from '../utils/AppError';
 import { gameError } from '../config/messages';
 
@@ -9,20 +9,17 @@ interface IMediumResult {
 }
 
 export default class MediumManager {
-  public playerManager: PlayerManager;
   public phaseManager: PhaseManager;
+  public playerManager: PlayerManager;
   public mediumResult: IMediumResult = {};
 
-  constructor(playerManager: PlayerManager, phaseManager: PhaseManager) {
-    this.playerManager = playerManager;
+  constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
     this.phaseManager = phaseManager;
+    this.playerManager = playerManager;
   }
 
   medium(targetId: string) {
     const { currentDay } = this.phaseManager;
-    const medium = this.playerManager.findPlayerByRole('medium');
-
-    if (medium?.status !== 'alive') return;
 
     const target = this.playerManager.players[targetId];
 
