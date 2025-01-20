@@ -1,4 +1,4 @@
-import { shuffle, mapValues, omit } from 'lodash';
+import { shuffle, mapValues, omit, pick } from 'lodash';
 import GameUser from '../models/gameUserModel';
 import { Role, roleConfig } from '../config/roles';
 import AppError from '../utils/AppError';
@@ -142,6 +142,15 @@ export default class PlayerManager {
     const players = mapValues(this.players, (user) =>
       omit(user, ['userName', 'role']),
     );
+
+    return players;
+  }
+
+  getPlayersForDB() {
+    const players = Object.values(this.players).map((user) => ({
+      gameId: this.gameId,
+      ...pick(user, ['userId', 'role']),
+    }));
 
     return players;
   }

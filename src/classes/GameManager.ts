@@ -1,4 +1,5 @@
 import EventEmitter from 'events';
+import { games } from './GameInstanceManager';
 import PhaseManager, { CurrentPhase } from './PhaseManager';
 import PlayerManager, { Status, IUser } from './PlayerManager';
 import VoteManager from './VoteManager';
@@ -146,7 +147,7 @@ export default class GameManager {
     try {
       await Game.findByIdAndUpdate(this.gameId, { result: this.result.value });
 
-      // delete games[this.gameId];
+      delete games[this.gameId];
     } catch (error) {
       console.error(`Failed to end game ${this.gameId}:`, error);
     }

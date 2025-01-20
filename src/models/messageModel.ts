@@ -1,11 +1,13 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
-interface IMessage extends Document {
+export type MessageType = 'normal' | 'werewolf' | 'spectator';
+
+export interface IMessage extends Document {
   _id: Types.ObjectId;
   channelId: Types.ObjectId;
   userId: Types.ObjectId;
   message: string;
-  messageType: 'normal' | 'werewolf' | 'spectator';
+  messageType: MessageType;
   createdAt: Date;
   updatedAt: Date;
 }

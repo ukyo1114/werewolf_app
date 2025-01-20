@@ -15,6 +15,10 @@ export const errors = {
   WRONG_PASSWORD: 'パスワードが間違っています。',
   NO_UPDATE_DATA: '更新するデータがありません。',
   SERVER_ERROR: 'サーバーエラーが発生しました。',
+  CHANNEL_ACCESS_FORBIDDEN: 'チャンネルを利用できません。',
+  MESSAGE_SENDING_FORBIDDEN: 'メッセージの送信が禁止されています。',
+  GAME_NOT_FOUND: 'ゲームが見つかりません。',
+  CHANNEL_NOT_FOUND: 'チャンネルが見つかりません。',
 };
 
 export const validation = {
