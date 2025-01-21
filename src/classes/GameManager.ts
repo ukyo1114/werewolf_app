@@ -146,6 +146,7 @@ export default class GameManager {
   async handleGameEnd() {
     try {
       await Game.findByIdAndUpdate(this.gameId, { result: this.result.value });
+      this.eventEmitter.removeAllListeners();
 
       delete games[this.gameId];
     } catch (error) {

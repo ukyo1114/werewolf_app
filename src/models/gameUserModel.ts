@@ -24,6 +24,7 @@ const gameUserSchema = new Schema<IGameUser>(
     gameId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
+      index: true,
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
