@@ -46,7 +46,7 @@ export default class PlayerManager {
     });
   }
 
-  async registerPlayerInDB() {
+  async registerPlayersInDB() {
     const gameId = this.gameId;
     const users = Object.values(this.players).map((user) => ({
       gameId,
@@ -132,7 +132,7 @@ export default class PlayerManager {
     );
   }
 
-  getPlayers() {
+  getPlayersWithRole() {
     const players = mapValues(this.players, (user) => omit(user, 'userName'));
 
     return players;
@@ -142,15 +142,6 @@ export default class PlayerManager {
     const players = mapValues(this.players, (user) =>
       omit(user, ['userName', 'role']),
     );
-
-    return players;
-  }
-
-  getPlayersForDB() {
-    const players = Object.values(this.players).map((user) => ({
-      gameId: this.gameId,
-      ...pick(user, ['userId', 'role']),
-    }));
 
     return players;
   }

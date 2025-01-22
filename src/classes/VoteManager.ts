@@ -82,7 +82,7 @@ export default class VoteManager {
     this.votes = {};
   }
 
-  getVoteHistory(userId: string): IVoteHistory {
+  getVoteHistory(): IVoteHistory {
     const { currentPhase } = this.phaseManager;
 
     if (currentPhase === 'pre') {

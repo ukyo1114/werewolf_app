@@ -251,7 +251,7 @@ export default class GameManager {
 
     let users;
     if (currentPhase === 'finished') {
-      gameState.users = this.playerManager.getPlayers();
+      gameState.users = this.playerManager.getPlayersWithRole();
     } else {
       gameState.users = this.playerManager.getPlayersWithoutRole();
     }

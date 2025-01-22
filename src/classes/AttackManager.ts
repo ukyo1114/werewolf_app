@@ -49,6 +49,7 @@ export default class AttackManager {
     const attackTargetId = this.attackRequest || this.getRandomAttackTarget();
 
     this.attackHistory[currentDay] = attackTargetId;
+    this.attackRequest = null;
 
     const attackTarget = this.playerManager.players[attackTargetId];
     if (attackTarget.role === 'fox') return null;
@@ -60,8 +61,6 @@ export default class AttackManager {
     }
 
     this.playerManager.kill(attackTargetId);
-
-    this.attackRequest = null;
 
     return attackTargetId;
   }

@@ -1,6 +1,5 @@
 import User from '../models/userModel';
 import Game from '../models/gameModel';
-import GameUser from '../models/gameUserModel';
 import { games } from './GameInstanceManager';
 import GameManager from './GameManager';
 
@@ -76,8 +75,7 @@ export default class EntryManager {
       games[gameId] = new GameManager(this.channelId, gameId, users);
 
       // プレイヤー情報をデータベースに登録
-      const players = games[gameId].playerManager.getPlayersForDB();
-      await GameUser.insertMany(players);
+      await games[gameId].playerManager.registerPlayersInDB();
 
       // 各プレイヤーに通知
       const socketIds = Object.values(this.users).map((user) => user.socketId);
