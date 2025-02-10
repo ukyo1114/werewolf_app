@@ -6,6 +6,7 @@ describe('User Model Test', () => {
       userName: 'testuser',
       email: 'test@example.com',
       password: 'securepassword',
+      isGuest: false,
     };
 
     const user = await User.create(userData);

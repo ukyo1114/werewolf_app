@@ -9,7 +9,6 @@ export interface IMessage extends Document {
   message: string;
   messageType: MessageType;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 const messageSchema = new Schema<IMessage>(
@@ -37,7 +36,7 @@ const messageSchema = new Schema<IMessage>(
     },
   },
   {
-    timestamps: true,
+    timestamps: { createdAt: true, updatedAt: false },
   },
 );
 

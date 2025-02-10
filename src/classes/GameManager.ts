@@ -157,15 +157,17 @@ export default class GameManager {
   async execution() {
     const executionTargetId = this.voteManager.getExecutionTarget();
 
+    // 処刑対象がいない場合廃村に
     if (!executionTargetId) return await this.villageAbandoned();
 
+    // 処刑を行いメッセージを送信
     const executionTarget = this.playerManager.players[executionTargetId];
-
     this.playerManager.kill(executionTargetId);
     await this.sendMessage(gameMaster.EXECUTION(executionTarget.userName));
 
     if (executionTarget.role === 'fox') this.killImmoralists();
 
+    // 霊能処理
     const medium = this.playerManager.findPlayerByRole('medium');
     if (medium?.status === 'alive') {
       this.mediumManager.medium(executionTargetId);

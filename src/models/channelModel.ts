@@ -8,6 +8,7 @@ interface IChannel extends Document {
   password_enabled: boolean;
   password: string | undefined;
   channelAdmin: Types.ObjectId;
+  denyGuests: boolean;
   matchPassword(enteredPassword: string): Promise<boolean>;
   isModified: (path: string) => boolean;
   createdAt: Date;
@@ -38,6 +39,11 @@ const channelSchema = new Schema<IChannel>(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: 'User',
+    },
+    denyGuests: {
+      type: Boolean,
+      default: false,
+      requierd: true,
     },
   },
   {

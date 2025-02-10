@@ -4,9 +4,10 @@ import bcrypt from 'bcryptjs';
 interface IUser extends Document {
   _id: Types.ObjectId;
   userName: string;
-  email: string;
-  password: string;
+  email?: string;
+  password?: string;
   pic: string;
+  isGuest: boolean;
   matchPassword(enteredPassword: string): Promise<boolean>;
   isModified: (path: string) => boolean;
   createdAt: Date;
@@ -22,12 +23,12 @@ const userSchema = new Schema<IUser>(
     },
     email: {
       type: String,
-      required: true,
       unique: true,
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     },
-    password: { type: String, required: true, minlength: 8 },
+    password: { type: String, minlength: 8 },
     pic: { type: String },
+    isGuest: { type: Boolean, default: true, required: true },
 
     // TODO: 将来的にゲームの戦績を記録するフィールドを追加予定
     // - totalGames: 総試合数
@@ -47,10 +48,13 @@ userSchema.methods.matchPassword = async function (
 };
 
 userSchema.pre<IUser>('save', async function (next) {
-  if (!this.isModified('password')) return next;
+  if (!this.isModified('password') || this.isGuest) return next;
 
   const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+
+  if (this.password) {
+    this.password = await bcrypt.hash(this.password, salt);
+  }
 
   next();
 });

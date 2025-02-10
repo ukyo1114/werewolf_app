@@ -41,7 +41,6 @@ describe('Message Model Test', () => {
     expect(message.userId.toString()).toBe(userId);
     expect(message.message).toBe('テスト用メッセージ');
     expect(message.createdAt).toBeDefined();
-    expect(message.updatedAt).toBeDefined();
   });
 
   it('必須項目が未入力の場合、メッセージの作成に失敗する', async () => {

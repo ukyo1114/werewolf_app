@@ -31,6 +31,7 @@ describe('registerUser', () => {
       email: 'already-registered@example.com',
       password: 'password123',
       pic: null,
+      isGuest: false,
     });
   });
 
@@ -133,6 +134,7 @@ describe('login', () => {
       email: 'test@example.com',
       password: 'password123',
       pic: null,
+      isGuest: false,
     });
   });
 
@@ -182,6 +184,7 @@ describe('updateProfile', () => {
       email: 'already-registered@example.com',
       password: 'password123',
       pic: null,
+      isGuest: false,
     });
     userId = user._id.toString();
   });
@@ -241,6 +244,7 @@ describe('updateEmail', () => {
       email: 'already-registered@example.com',
       password: 'password123',
       pic: null,
+      isGuest: false,
     });
     userId = user._id.toString();
   });
@@ -314,6 +318,7 @@ describe('changePassword', () => {
       email: 'already-registered@example.com',
       password: 'password123',
       pic: null,
+      isGuest: false,
     });
     userId = user._id.toString();
   });
@@ -379,6 +384,7 @@ describe('resetPassword', () => {
       email: 'already-registered@example.com',
       password: 'password123',
       pic: null,
+      isGuest: false,
     });
     userId = user._id.toString();
   });

@@ -59,6 +59,7 @@ export const registerUser = asyncHandler(
       email,
       password,
       pic: null,
+      isGuest: false,
     });
 
     res.status(201).send();
