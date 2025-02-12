@@ -2,27 +2,16 @@ import EventEmitter from 'events';
 import ChannelUserManager, {
   IChannelUser,
 } from '../../src/classes/ChannelUserManager';
+import { mockUserId } from '../../jest.setup';
 
-describe('test ChannelUserManager', () => {
-  const mockUserId = 'mockUserId';
-  const mockSocketId = 'mockSocketId';
-  const mockUser: IChannelUser = {
-    userId: mockUserId,
-    socketId: mockSocketId,
-    status: 'normal',
-  };
-  /*   const channelUser: {
-    [key: string]: ChannelUserManager;
-  } = {};
+const mockSocketId = 'mockSocketId';
+const mockUser: IChannelUser = {
+  userId: mockUserId,
+  socketId: mockSocketId,
+  status: 'normal',
+};
 
-  beforeEach(() => {
-    channelUser[mockUserId] = new ChannelUserManager(mockUser);
-  });
-
-  afterAll(() => {
-    delete channelUser[mockUserId];
-  }); */
-
+describe('ChannelUserManager', () => {
   it('正しい形式で初期化されること', () => {
     const spyRegisterListners = jest.spyOn(
       ChannelUserManager.prototype,
@@ -37,18 +26,7 @@ describe('test ChannelUserManager', () => {
     expect(spyRegisterListners).toHaveBeenCalled();
   });
 
-  it('イベントリスナーが登録されること', () => {
-    const user = new ChannelUserManager(mockUser);
-    const mockOn = jest.spyOn(user.eventEmitter, 'on');
-
-    user.registerListners();
-
-    expect(mockOn).toHaveBeenCalledWith('kill', expect.any(Function));
-
-    mockOn.mockRestore();
-  });
-
-  it('killイベントを受け取るとstatusがspectatorへと変化すること', () => {
+  it('killイベントを受け取りステータスが変化すること', () => {
     const user = new ChannelUserManager(mockUser);
 
     expect(user.status).toBe('normal');

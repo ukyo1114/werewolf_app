@@ -1,32 +1,20 @@
-import { ObjectId } from 'mongodb';
 import { games } from '../../src/classes/GameInstanceManager';
 import GameManager from '../../src/classes/GameManager';
 import ChannelManager from '../../src/classes/ChannelManager';
-import { IUser } from '../../src/classes/PlayerManager';
-import Game from '../../src/models/gameModel';
 import ChannelUser from '../../src/models/channelUserModel';
 import GameUser from '../../src/models/gameUserModel';
+import {
+  mockUserId,
+  mockChannelId,
+  mockGameId,
+  mockUsers,
+} from '../../jest.setup';
 
-const mockUser = new ObjectId().toString();
 const mockSocketId = 'mockSocketId';
-const mockChannelId = new ObjectId().toString();
-const mockGameId = new ObjectId().toString();
-const mockUsers: IUser[] = [
-  { userId: new ObjectId().toString(), userName: 'Alice' },
-  { userId: new ObjectId().toString(), userName: 'Bob' },
-  { userId: new ObjectId().toString(), userName: 'Charlie' },
-  { userId: new ObjectId().toString(), userName: 'Diana' },
-  { userId: new ObjectId().toString(), userName: 'Eve' },
-  { userId: new ObjectId().toString(), userName: 'Frank' },
-  { userId: new ObjectId().toString(), userName: 'Grace' },
-  { userId: new ObjectId().toString(), userName: 'Hank' },
-  { userId: new ObjectId().toString(), userName: 'Ivy' },
-  { userId: new ObjectId().toString(), userName: 'Jack' },
-];
 
 beforeAll(async () => {
-  await ChannelUser.create({ channelId: mockChannelId, userId: mockUser });
-  await GameUser.create({ gameId: mockGameId, userId: mockUser });
+  await ChannelUser.create({ channelId: mockChannelId, userId: mockUserId });
+  await GameUser.create({ gameId: mockGameId, userId: mockUserId });
 });
 
 beforeEach(() => {
@@ -77,11 +65,11 @@ describe('test ChannelManager', () => {
     // ユーザーがゲーム内にいない
     it('通常のチャンネルでユーザーがチャンネルに参加できる', async () => {
       const channel = new ChannelManager(mockChannelId);
-      await channel.userJoind(mockUser, mockSocketId);
+      await channel.userJoind(mockUserId, mockSocketId);
 
-      const user = channel.users[mockUser];
+      const user = channel.users[mockUserId];
 
-      expect(user.userId).toBe(mockUser);
+      expect(user.userId).toBe(mockUserId);
       expect(user.socketId).toBe(mockSocketId);
       expect(user.status).toBe('normal');
     });

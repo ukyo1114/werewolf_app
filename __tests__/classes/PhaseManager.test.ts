@@ -1,23 +1,9 @@
 import { EventEmitter } from 'events';
 import { games } from '../../src/classes/GameInstanceManager';
 import GameManager from '../../src/classes/GameManager';
-import { IUser } from '../../src/classes/PlayerManager';
 import PhaseManager from '../../src/classes/PhaseManager';
+import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
 
-const mockChannelId = 'mockChannelId';
-const mockGameId = 'mockGameId';
-const mockUsers: IUser[] = [
-  { userId: 'user1', userName: 'Alice' },
-  { userId: 'user2', userName: 'Bob' },
-  { userId: 'user3', userName: 'Charlie' },
-  { userId: 'user4', userName: 'Diana' },
-  { userId: 'user5', userName: 'Eve' },
-  { userId: 'user6', userName: 'Frank' },
-  { userId: 'user7', userName: 'Grace' },
-  { userId: 'user8', userName: 'Hank' },
-  { userId: 'user9', userName: 'Ivy' },
-  { userId: 'user10', userName: 'Jack' },
-];
 const startTimerSpy = jest.spyOn(PhaseManager.prototype, 'startTimer');
 const nextPhaseSpy = jest.spyOn(PhaseManager.prototype, 'nextPhase');
 const consoleErrorSpy = jest.spyOn(console, 'error');

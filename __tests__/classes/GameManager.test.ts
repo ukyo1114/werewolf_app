@@ -1,28 +1,14 @@
 import { EventEmitter } from 'events';
 import { games } from '../../src/classes/GameInstanceManager';
 import GameManager from '../../src/classes/GameManager';
-import PlayerManager, { IUser } from '../../src/classes/PlayerManager';
+import PlayerManager from '../../src/classes/PlayerManager';
 import PhaseManager from '../../src/classes/PhaseManager';
 import VoteManager from '../../src/classes/VoteManager';
 import DevineManager from '../../src/classes/DevineManager';
 import MediumManager from '../../src/classes/MediumManager';
 import GuardManager from '../../src/classes/GuardManager';
 import AttackManager from '../../src/classes/AttackManager';
-
-const mockChannelId = 'mockChannelId';
-const mockGameId = 'mockGameId';
-const mockUsers: IUser[] = [
-  { userId: 'user1', userName: 'Alice' },
-  { userId: 'user2', userName: 'Bob' },
-  { userId: 'user3', userName: 'Charlie' },
-  { userId: 'user4', userName: 'Diana' },
-  { userId: 'user5', userName: 'Eve' },
-  { userId: 'user6', userName: 'Frank' },
-  { userId: 'user7', userName: 'Grace' },
-  { userId: 'user8', userName: 'Hank' },
-  { userId: 'user9', userName: 'Ivy' },
-  { userId: 'user10', userName: 'Jack' },
-];
+import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
 
 describe('test GameManager', () => {
   beforeEach(() => {

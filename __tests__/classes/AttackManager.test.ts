@@ -1,24 +1,8 @@
-import { ObjectId } from 'mongodb';
 import { games } from '../../src/classes/GameInstanceManager';
 import GameManager from '../../src/classes/GameManager';
-import { IUser } from '../../src/classes/PlayerManager';
 import AppError from '../../src/utils/AppError';
 import { gameError } from '../../src/config/messages';
-
-const mockChannelId = 'mockChannelId';
-const mockGameId = new ObjectId().toString();
-const mockUsers: IUser[] = [
-  { userId: new ObjectId().toString(), userName: 'Alice' },
-  { userId: new ObjectId().toString(), userName: 'Bob' },
-  { userId: new ObjectId().toString(), userName: 'Charlie' },
-  { userId: new ObjectId().toString(), userName: 'Diana' },
-  { userId: new ObjectId().toString(), userName: 'Eve' },
-  { userId: new ObjectId().toString(), userName: 'Frank' },
-  { userId: new ObjectId().toString(), userName: 'Grace' },
-  { userId: new ObjectId().toString(), userName: 'Hank' },
-  { userId: new ObjectId().toString(), userName: 'Ivy' },
-  { userId: new ObjectId().toString(), userName: 'Jack' },
-];
+import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
 
 describe('test AttackManager', () => {
   beforeEach(() => {
@@ -34,6 +18,14 @@ describe('test AttackManager', () => {
   });
 
   describe('recieveAttackRequest', () => {
+    /*
+     ** 正しいリクエストが受け付けられること
+     ** 次の場合にエラーを返すこと
+     ** ・夜フェーズでないとき
+     ** ・リクエストしたプレイヤーが人狼でない、又は生存中でないとき
+     ** ・対象プレイヤーが人狼である、又は生存中でないとき
+     */
+
     it('襲撃リクエストが正しく受け付けられること', () => {
       const game = games[mockGameId];
       const phaseManager = game.phaseManager;
@@ -112,6 +104,14 @@ describe('test AttackManager', () => {
   });
 
   describe('attack', () => {
+    /*
+     ** リクエストされた対象が襲撃されること
+     ** リクエストされていなかった場合ランダムに選ばれた対象が襲撃されること
+     ** 護衛判定が正しく行われること
+     ** 護衛が成功した場合襲撃が失敗すること
+     ** 護衛対象が狐だった場合襲撃が失敗すること
+     */
+
     it('正しく襲撃処理が行われ、リクエストがリセットされること', () => {
       const game = games[mockGameId];
       const phaseManager = game.phaseManager;
@@ -182,6 +182,12 @@ describe('test AttackManager', () => {
   });
 
   describe('getAttackHistory', () => {
+    /*
+     ** 襲撃履歴が取得できること
+     ** 次の場合にエラーを返すこと
+     ** ・取得するプレイヤーが人狼でない、又は開始前フェーズの時
+     */
+
     it('襲撃履歴が正しい形式で返されること', () => {
       const game = games[mockGameId];
       const phaseManager = game.phaseManager;

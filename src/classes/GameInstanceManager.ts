@@ -4,7 +4,7 @@ export const games: {
   [key: string]: GameManager;
 } = {};
 
-export const isUserInGame = (userId: string) => {
+export const checkIsUserInGame = (userId: string) => {
   return Object.values(games).some(
     (game) =>
       userId in game.playerManager.players && game.result.value === 'running',

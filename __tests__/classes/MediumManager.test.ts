@@ -1,25 +1,8 @@
-import { ObjectId } from 'mongodb';
 import { games } from '../../src/classes/GameInstanceManager';
 import GameManager from '../../src/classes/GameManager';
-import { IUser } from '../../src/classes/PlayerManager';
 import AppError from '../../src/utils/AppError';
 import { gameError } from '../../src/config/messages';
-import { random } from 'lodash';
-
-const mockChannelId = 'mockChannelId';
-const mockGameId = new ObjectId().toString();
-const mockUsers: IUser[] = [
-  { userId: new ObjectId().toString(), userName: 'Alice' },
-  { userId: new ObjectId().toString(), userName: 'Bob' },
-  { userId: new ObjectId().toString(), userName: 'Charlie' },
-  { userId: new ObjectId().toString(), userName: 'Diana' },
-  { userId: new ObjectId().toString(), userName: 'Eve' },
-  { userId: new ObjectId().toString(), userName: 'Frank' },
-  { userId: new ObjectId().toString(), userName: 'Grace' },
-  { userId: new ObjectId().toString(), userName: 'Hank' },
-  { userId: new ObjectId().toString(), userName: 'Ivy' },
-  { userId: new ObjectId().toString(), userName: 'Jack' },
-];
+import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
 
 describe('test MediumManager', () => {
   beforeEach(() => {

@@ -27,7 +27,7 @@ const channelSchema = new Schema<IChannel>(
       required: true,
       maxlength: 2000,
     },
-    password_enabled: { type: Boolean, required: true },
+    password_enabled: { type: Boolean, default: false, required: true },
     password: {
       type: String,
       required() {
