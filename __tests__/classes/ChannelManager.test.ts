@@ -1,6 +1,9 @@
+import { ObjectId } from 'mongodb';
 import { games } from '../../src/classes/GameInstanceManager';
 import GameManager from '../../src/classes/GameManager';
 import ChannelManager from '../../src/classes/ChannelManager';
+import ChannelUserManager from '../../src/classes/ChannelUserManager';
+import { channels } from '../../src/classes/ChannelInstanceManager';
 import ChannelUser from '../../src/models/channelUserModel';
 import GameUser from '../../src/models/gameUserModel';
 import {
@@ -9,6 +12,8 @@ import {
   mockGameId,
   mockUsers,
 } from '../../jest.setup';
+import AppError from '../../src/utils/AppError';
+import { errors } from '../../src/config/messages';
 
 const mockSocketId = 'mockSocketId';
 
@@ -38,7 +43,7 @@ afterAll(() => {
 
 describe('test ChannelManager', () => {
   describe('constructor', () => {
-    it('通常のチャンネルが正しく初期化されること', () => {
+    it('通常のチャンネルでで正しく初期化されること', () => {
       const channel = new ChannelManager(mockChannelId);
 
       expect(channel.channelId).toBe(mockChannelId);
@@ -46,7 +51,7 @@ describe('test ChannelManager', () => {
       expect(channel.game).toBeUndefined();
     });
 
-    it('ゲーム用チャンネルが正しく初期化されること', () => {
+    it('ゲーム用チャンネルで正しく初期化されること', () => {
       const game = games[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
 
@@ -57,15 +62,9 @@ describe('test ChannelManager', () => {
   });
 
   describe('userJoined', () => {
-    // ゲーム用のチャンネル
-    // 通常のチャンネルでデータベースエラー
-    // ゲーム用のチャンネルでデータベースエラー
-    // ユーザーが人狼
-    // ユーザーが死亡
-    // ユーザーがゲーム内にいない
     it('通常のチャンネルでユーザーがチャンネルに参加できる', async () => {
       const channel = new ChannelManager(mockChannelId);
-      await channel.userJoind(mockUserId, mockSocketId);
+      await channel.userJoined(mockUserId, mockSocketId);
 
       const user = channel.users[mockUserId];
 
@@ -74,20 +73,338 @@ describe('test ChannelManager', () => {
       expect(user.status).toBe('normal');
     });
 
+    it('通常のチャンネルでデータベースに登録されていないユーザーが参加しようとするとエラーになる', async () => {
+      const channel = new ChannelManager(mockChannelId);
+      const nonExistingUser = new ObjectId().toString();
+
+      await expect(() =>
+        channel.userJoined(nonExistingUser, mockSocketId),
+      ).rejects.toThrow(new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN));
+    });
+
     it('ゲーム用のチャンネルでユーザーがチャンネルに参加できる', async () => {
       const game = games[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
+      game.playerManager.players = {
+        [mockUserId]: {
+          userId: mockUserId,
+          userName: 'mockUser',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
 
-      const playerId = game.playerManager.findPlayerByRole('villager').userId;
-      await GameUser.create({ gameId: mockGameId, userId: playerId });
+      await channel.userJoined(mockUserId, mockSocketId);
 
-      await channel.userJoind(playerId, mockSocketId);
+      const user = channel.users[mockUserId];
 
-      const user = channel.users[playerId];
-
-      expect(user.userId).toBe(playerId);
+      expect(user.userId).toBe(mockUserId);
       expect(user.socketId).toBe(mockSocketId);
       expect(user.status).toBe('normal');
+    });
+
+    it('ゲーム用のチャンネルでデータベースに登録されていないユーザーが参加しようとするとエラーになる', async () => {
+      const game = games[mockGameId];
+      const channel = new ChannelManager(mockGameId, game);
+      const nonExistingUser = new ObjectId().toString();
+
+      await expect(() =>
+        channel.userJoined(nonExistingUser, mockSocketId),
+      ).rejects.toThrow(new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN));
+    });
+
+    it('ユーザーが人狼のとき', async () => {
+      const game = games[mockGameId];
+      const channel = new ChannelManager(mockGameId, game);
+      game.playerManager.players = {
+        [mockUserId]: {
+          userId: mockUserId,
+          userName: 'werewolf',
+          status: 'alive',
+          role: 'werewolf',
+        },
+      };
+
+      await channel.userJoined(mockUserId, mockSocketId);
+
+      const user = channel.users[mockUserId];
+
+      expect(user.userId).toBe(mockUserId);
+      expect(user.socketId).toBe(mockSocketId);
+      expect(user.status).toBe('werewolf');
+    });
+
+    it('ユーザーが死亡しているとき', async () => {
+      const game = games[mockGameId];
+      const channel = new ChannelManager(mockGameId, game);
+      game.playerManager.players = {
+        [mockUserId]: {
+          userId: mockUserId,
+          userName: 'villager',
+          status: 'dead',
+          role: 'villager',
+        },
+      };
+
+      await channel.userJoined(mockUserId, mockSocketId);
+
+      const user = channel.users[mockUserId];
+
+      expect(user.userId).toBe(mockUserId);
+      expect(user.socketId).toBe(mockSocketId);
+      expect(user.status).toBe('spectator');
+    });
+
+    it('ユーザーがゲームに参加していないとき', async () => {
+      const game = games[mockGameId];
+      const channel = new ChannelManager(mockGameId, game);
+
+      await channel.userJoined(mockUserId, mockSocketId);
+
+      const user = channel.users[mockUserId];
+
+      expect(user.userId).toBe(mockUserId);
+      expect(user.socketId).toBe(mockSocketId);
+      expect(user.status).toBe('spectator');
+    });
+  });
+
+  describe('test userLeft', () => {
+    it('ユーザーが退出', async () => {
+      channels[mockChannelId] = new ChannelManager(mockChannelId);
+      const channel = channels[mockChannelId];
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+        user2: new ChannelUserManager({
+          userId: 'user2',
+          socketId: 'user2',
+          status: 'normal',
+        }),
+      };
+
+      channel.userLeft('user1');
+
+      expect(channel.users).not.toHaveProperty('user1');
+      expect(channel.users).toHaveProperty('user2');
+    });
+
+    it('最期のユーザーが退出するとchannelオブジェクトを削除する', () => {
+      channels[mockChannelId] = new ChannelManager(mockChannelId);
+      const channel = channels[mockChannelId];
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+      };
+
+      channel.userLeft('user1');
+
+      expect(channels).not.toHaveProperty('mockChannelId');
+    });
+
+    it('存在しないユーザーを削除しようとしてもエラーにならない', () => {
+      channels[mockChannelId] = new ChannelManager(mockChannelId);
+      const channel = channels[mockChannelId];
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+      };
+
+      expect(() => channel.userLeft('nonExistentUser')).not.toThrow();
+    });
+
+    it('チャンネルがchannelsに登録されていなくてもエラーにならない', () => {
+      const channel = new ChannelManager(mockChannelId);
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+      };
+
+      expect(() => channel.userLeft('user1')).not.toThrow();
+    });
+  });
+
+  describe('test getSendMesageType', () => {
+    it('ユーザーがチャンネルにいない場合エラーを返す', () => {
+      const channel = new ChannelManager(mockChannelId);
+
+      expect(() => channel.getSendMessageType(mockUserId)).toThrow(
+        new AppError(403, errors.MESSAGE_SENDING_FORBIDDEN),
+      );
+    });
+
+    it('通常のチャンネルのときnormalを返す', () => {
+      const channel = new ChannelManager(mockChannelId);
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+      };
+
+      const sendMessageType = channel.getSendMessageType('user1');
+
+      expect(sendMessageType).toBe('normal');
+    });
+
+    it('finishedフェーズのときnormalを返す', () => {
+      const game = games[mockGameId];
+      const channel = new ChannelManager(mockGameId, game);
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+      };
+      game.phaseManager.currentPhase = 'finished';
+
+      const sendMessageType = channel.getSendMessageType('user1');
+
+      expect(sendMessageType).toBe('normal');
+    });
+
+    it('ユーザーがspectatorのときspectatorを返す', () => {
+      const game = games[mockGameId];
+      const channel = new ChannelManager(mockGameId, game);
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'spectator',
+        }),
+      };
+      game.phaseManager.currentPhase = 'day';
+
+      const sendMessageType = channel.getSendMessageType('user1');
+
+      expect(sendMessageType).toBe('spectator');
+    });
+
+    it('nightフェーズでないときnormalを返す', () => {
+      const game = games[mockGameId];
+      const channel = new ChannelManager(mockGameId, game);
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+      };
+      game.phaseManager.currentPhase = 'day';
+
+      const sendMessageType = channel.getSendMessageType('user1');
+
+      expect(sendMessageType).toBe('normal');
+    });
+
+    it('nightフェーズのとき人狼にはwerewolfを返す', () => {
+      const game = games[mockGameId];
+      const channel = new ChannelManager(mockGameId, game);
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'werewolf',
+        }),
+      };
+      game.phaseManager.currentPhase = 'night';
+
+      const sendMessageType = channel.getSendMessageType('user1');
+
+      expect(sendMessageType).toBe('werewolf');
+    });
+
+    it('nightフェーズのとき人狼以外にはエラーを返す', () => {
+      const game = games[mockGameId];
+      const channel = new ChannelManager(mockGameId, game);
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+      };
+      game.phaseManager.currentPhase = 'night';
+
+      expect(() => channel.getSendMessageType('user1')).toThrow(
+        new AppError(403, errors.MESSAGE_SENDING_FORBIDDEN),
+      );
+    });
+  });
+
+  describe('test getMessageReceivers', () => {
+    it('メッセージタイプがnormalのときnullを返す', () => {
+      const channel = new ChannelManager(mockChannelId);
+
+      const messageReceivers = channel.getMessageReceivers('normal');
+
+      expect(messageReceivers).toBe(null);
+    });
+
+    it('メッセージタイプがspectatorのとき観戦者を返す', () => {
+      const game = games[mockGameId];
+      const channel = new ChannelManager(mockGameId, game);
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+        user2: new ChannelUserManager({
+          userId: 'user2',
+          socketId: 'user2',
+          status: 'werewolf',
+        }),
+        user3: new ChannelUserManager({
+          userId: 'user3',
+          socketId: 'user3',
+          status: 'spectator',
+        }),
+      };
+
+      const messageReceivers = channel.getMessageReceivers('spectator');
+
+      expect(messageReceivers).toEqual(['user3']);
+    });
+
+    it('メッセージタイプがwerewolfのとき人狼と観戦者を返す', () => {
+      const game = games[mockGameId];
+      const channel = new ChannelManager(mockGameId, game);
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+        user2: new ChannelUserManager({
+          userId: 'user2',
+          socketId: 'user2',
+          status: 'werewolf',
+        }),
+        user3: new ChannelUserManager({
+          userId: 'user3',
+          socketId: 'user3',
+          status: 'spectator',
+        }),
+      };
+
+      const messageReceivers = channel.getMessageReceivers('werewolf');
+
+      expect(messageReceivers).toEqual(['user3', 'user2']);
     });
   });
 });

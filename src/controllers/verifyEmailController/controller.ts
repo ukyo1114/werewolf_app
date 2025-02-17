@@ -21,9 +21,10 @@ export const sendVerificationEmail = (action: keyof typeof mailContent) =>
       const userId = req.userId;
       const { email } = req.body;
 
-      // NOTE: メールアドレスの重複をチェック
+      // メールアドレスの重複をチェック
       if (action === 'registerUser' || action === 'changeEmail') {
         const emailExists = await User.exists({ email });
+
         if (emailExists)
           throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
       }

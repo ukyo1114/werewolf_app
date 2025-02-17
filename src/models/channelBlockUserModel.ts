@@ -13,6 +13,7 @@ const channelBlockUserSchema = new Schema<IChannelBlockUser>(
     channelId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
+      index: true,
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,

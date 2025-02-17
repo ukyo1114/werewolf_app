@@ -12,6 +12,7 @@ import createError from 'http-errors';
 import connectDB from './utils/connectDB';
 import verifyEmailRoutes from './routes/verifyEmailRoutes';
 import userRoutes from './routes/userRoutes';
+import blockRoutes from './routes/blockRoutes';
 // import errorHandler from './middleware/errorHandler';
 
 const app = express();
@@ -39,6 +40,7 @@ app.use(cors(corsOptions));
 // エンドポイント
 app.use('/api/verify-email', verifyEmailRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/block', blockRoutes);
 
 app.get('*', (req: Request, res: Response) => {
   res.status(200).send();

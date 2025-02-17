@@ -21,7 +21,7 @@ export default class ChannelManager {
     this.game = game;
   }
 
-  async userJoind(userId: string, socketId: string) {
+  async userJoined(userId: string, socketId: string) {
     const channelId = this.channelId;
     const game = this.game;
 

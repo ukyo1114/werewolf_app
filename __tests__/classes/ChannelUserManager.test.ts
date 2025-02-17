@@ -12,7 +12,7 @@ const mockUser: IChannelUser = {
 };
 
 describe('ChannelUserManager', () => {
-  it('正しい形式で初期化されること', () => {
+  it('The instance is initialized correctly', () => {
     const spyRegisterListners = jest.spyOn(
       ChannelUserManager.prototype,
       'registerListners',
@@ -26,7 +26,7 @@ describe('ChannelUserManager', () => {
     expect(spyRegisterListners).toHaveBeenCalled();
   });
 
-  it('killイベントを受け取りステータスが変化すること', () => {
+  it('The status changes due to the kill event', () => {
     const user = new ChannelUserManager(mockUser);
 
     expect(user.status).toBe('normal');

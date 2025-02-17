@@ -19,6 +19,10 @@ export const errors = {
   MESSAGE_SENDING_FORBIDDEN: 'メッセージの送信が禁止されています。',
   GAME_NOT_FOUND: 'ゲームが見つかりません。',
   CHANNEL_NOT_FOUND: 'チャンネルが見つかりません。',
+  PERMISSION_DENIED: '権限がありません。',
+  USER_ALREADY_BLOCKED: 'ユーザーが既にブロックされています。',
+  USER_NOT_BLOCKED: 'ユーザーはブロックされていません',
+  DENIED_SELF_BLOCK: '自分自身をブロックすることはできません。',
 };
 
 export const validation = {
@@ -26,6 +30,8 @@ export const validation = {
   USER_NAME_LENGTH: 'ユーザー名は1文字以上20文字以内で入力してください。',
   PASSWORD_LENGTH: 'パスワードは8文字以上128文字以内で入力してください。',
   INVALID_PIC: '画像の形式が無効です。',
+  INVALID_CHANNEL_ID: 'チャンネルIDが無効です。',
+  INVALID_SELECTED_USER: '選択されたユーザーが無効です。',
 };
 
 export const gameError = {
