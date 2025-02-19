@@ -21,7 +21,7 @@ beforeEach(async () => {
   const channel = await Channel.create({
     channelName: 'testChannel',
     channelDescription: 'testDescription',
-    password_enabled: true,
+    passwordEnabled: true,
     password: 'securepassword',
     channelAdmin: userId,
   });
@@ -33,7 +33,7 @@ describe('Channel Model Test', () => {
     const channelData = {
       channelName: 'testChannel',
       channelDescription: 'testDescription',
-      password_enabled: true,
+      passwordEnabled: true,
       password: 'securepassword',
       channelAdmin: userId,
     };
@@ -51,7 +51,7 @@ describe('Channel Model Test', () => {
     const channelData = {
       channelName: 'testChannel',
       channelDescription: 'testDescription',
-      password_enabled: false,
+      passwordEnabled: false,
       password: 'パスワード設定が無効の場合undefinedとなる',
       channelAdmin: userId,
     };
@@ -69,7 +69,7 @@ describe('Channel Model Test', () => {
     const invalidData = {
       channelName: 'testChannel',
       channelDescription: 'testDescription',
-      password_enabled: true,
+      passwordEnabled: true,
       password: undefined,
       channelAdmin: userId,
     };
@@ -91,17 +91,16 @@ describe('Channel Model Test', () => {
   });
 
   it('既存のチャンネルのパスワードを無効にする', async () => {
-    const channel =
-      await Channel.findById(channelId).select('password_enabled');
+    const channel = await Channel.findById(channelId).select('passwordEnabled');
     expect(channel).not.toBeNull();
 
-    channel!.password_enabled = false;
+    channel!.passwordEnabled = false;
     await channel!.save();
 
     const updatedChannel = await Channel.findById(channelId);
     expect(updatedChannel).not.toBeNull();
 
-    expect(updatedChannel!.password_enabled).toBe(false);
+    expect(updatedChannel!.passwordEnabled).toBe(false);
     expect(updatedChannel!.password).toBeUndefined();
   });
 
@@ -109,12 +108,12 @@ describe('Channel Model Test', () => {
     const channel = await Channel.create({
       channelName: 'testChannel',
       channelDescription: 'testDescription',
-      password_enabled: false,
+      passwordEnabled: false,
       channelAdmin: userId,
     });
     expect(channel).not.toBeNull();
 
-    channel!.password_enabled = true;
+    channel!.passwordEnabled = true;
 
     await expect(channel!.save()).rejects.toThrow();
   });

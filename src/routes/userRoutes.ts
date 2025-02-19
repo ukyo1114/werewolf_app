@@ -45,7 +45,7 @@ const validatePassword = (password: string) =>
   body(password)
     .trim()
     .notEmpty()
-    .isLength({ min: 8, max: 128 })
+    .isLength({ min: 8, max: 64 })
     .withMessage(validation.PASSWORD_LENGTH);
 
 router.post(

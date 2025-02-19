@@ -23,15 +23,24 @@ export const errors = {
   USER_ALREADY_BLOCKED: 'ユーザーが既にブロックされています。',
   USER_NOT_BLOCKED: 'ユーザーはブロックされていません',
   DENIED_SELF_BLOCK: '自分自身をブロックすることはできません。',
+  USER_BLOCKED: 'ブロックされています。',
+  GUEST_CREATE_CHANNEL_DENIED:
+    'ゲストアカウントではチャンネルを作成できません。',
+  GUEST_ENTRY_DENIED: 'ゲストアカウントでは入室できません。',
+  ADMIN_LEAVE_DENIED: '管理者は退出できません。',
+  USER_ALREADY_LEFT: 'ユーザーは既に退出済みです。',
 };
 
 export const validation = {
   INVALID_EMAIL: '有効なメールアドレスを入力してください。',
   USER_NAME_LENGTH: 'ユーザー名は1文字以上20文字以内で入力してください。',
-  PASSWORD_LENGTH: 'パスワードは8文字以上128文字以内で入力してください。',
+  PASSWORD_LENGTH: 'パスワードは8文字以上64文字以内で入力してください。',
   INVALID_PIC: '画像の形式が無効です。',
   INVALID_CHANNEL_ID: 'チャンネルIDが無効です。',
   INVALID_SELECTED_USER: '選択されたユーザーが無効です。',
+  CHANNEL_NAME_LENGTH: 'チャンネル名は1文字以上20文字以内で入力してください。',
+  CHANNEL_DESCRIPTION_LENGTH:
+    '説明文は1文字以上2000文字以内で入力してください。',
 };
 
 export const gameError = {

@@ -5,7 +5,7 @@ interface IChannel extends Document {
   _id: Types.ObjectId;
   channelName: string;
   channelDescription: string;
-  password_enabled: boolean;
+  passwordEnabled: boolean;
   password: string | undefined;
   channelAdmin: Types.ObjectId;
   denyGuests: boolean;
@@ -27,11 +27,11 @@ const channelSchema = new Schema<IChannel>(
       required: true,
       maxlength: 2000,
     },
-    password_enabled: { type: Boolean, default: false, required: true },
+    passwordEnabled: { type: Boolean, default: false, required: true },
     password: {
       type: String,
       required() {
-        return this.password_enabled;
+        return this.passwordEnabled;
       },
       minlength: 8,
     },
@@ -59,7 +59,7 @@ channelSchema.methods.matchPassword = async function (
 
 channelSchema.pre<IChannel>('save', async function (next) {
   // パスワード設定を無効にする場合、パスワードを削除
-  if (!this.password_enabled) {
+  if (!this.passwordEnabled) {
     this.password = undefined;
     return next();
   }

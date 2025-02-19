@@ -19,7 +19,7 @@ beforeAll(async () => {
   const channel = await Channel.create({
     channelName: 'testChannel',
     channelDescription: 'testDescription',
-    password_enabled: true,
+    passwordEnabled: true,
     password: 'securepassword',
     channelAdmin: userId,
   });

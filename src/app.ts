@@ -13,6 +13,7 @@ import connectDB from './utils/connectDB';
 import verifyEmailRoutes from './routes/verifyEmailRoutes';
 import userRoutes from './routes/userRoutes';
 import blockRoutes from './routes/blockRoutes';
+import channelRoutes from './routes/channelRoutes';
 // import errorHandler from './middleware/errorHandler';
 
 const app = express();
@@ -41,6 +42,7 @@ app.use(cors(corsOptions));
 app.use('/api/verify-email', verifyEmailRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/block', blockRoutes);
+app.use('/api/channel', channelRoutes);
 
 app.get('*', (req: Request, res: Response) => {
   res.status(200).send();
