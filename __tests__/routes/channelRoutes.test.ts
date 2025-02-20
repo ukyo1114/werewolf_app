@@ -47,7 +47,7 @@ afterEach(() => {
 });
 
 describe('/list', () => {
-  beforeEach(async () => {
+  afterEach(async () => {
     await Promise.all([
       await Channel.deleteMany({}),
       await ChannelUser.deleteMany({}),
@@ -264,7 +264,7 @@ describe('/create', () => {
         password: undefined,
         denyGuests: false,
       },
-      'Invalid value',
+      validation.CHANNEL_NAME_LENGTH,
     ],
     [
       'チャンネル名が長すぎる',
@@ -278,9 +278,9 @@ describe('/create', () => {
       validation.CHANNEL_NAME_LENGTH,
     ],
     [
-      'チャンネル名がnull',
+      'チャンネル名がundefined',
       {
-        channelName: null,
+        channelName: undefined,
         channelDescription: 'testDescription',
         passwordEnabled: false,
         password: undefined,
@@ -297,7 +297,7 @@ describe('/create', () => {
         password: undefined,
         denyGuests: false,
       },
-      'Invalid value',
+      validation.CHANNEL_DESCRIPTION_LENGTH,
     ],
     [
       '説明文が長すぎる',
@@ -309,6 +309,28 @@ describe('/create', () => {
         denyGuests: false,
       },
       validation.CHANNEL_DESCRIPTION_LENGTH,
+    ],
+    [
+      '説明文がundefined',
+      {
+        channelName: 'testChannel',
+        channelDescription: undefined,
+        passwordEnabled: false,
+        password: undefined,
+        denyGuests: false,
+      },
+      'Invalid value',
+    ],
+    [
+      'パスワード有効化がundefined',
+      {
+        channelName: 'testChannel',
+        channelDescription: 'testDescription',
+        passwordEnabled: undefined,
+        password: '12345678',
+        denyGuests: false,
+      },
+      'Invalid value',
     ],
     [
       'パスワードが短すぎる',
@@ -332,6 +354,17 @@ describe('/create', () => {
       },
       validation.PASSWORD_LENGTH,
     ],
+    [
+      'パスワードがundefined',
+      {
+        channelName: 'testChannel',
+        channelDescription: 'testDescription',
+        passwordEnabled: true,
+        password: undefined,
+        denyGuests: false,
+      },
+      validation.PASSWORD_LENGTH,
+    ],
   ])('%s', async (_, requestBody, errorMessage) => {
     (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
 
@@ -345,16 +378,307 @@ describe('/create', () => {
   });
 });
 
-/* describe("/settings, /join, /left", () => {
+/**
+ * 各設定の変更
+ * 管理者でないとき
+ * チャンネルが見つからないとき
+ * ユーザーが見つからない時
+ */
+describe('/settings, /join, /left', () => {
   let testChannelId: string;
+  let passwordChannelId: string;
 
-  beforeAll(async () => {
-    const testChannel = await Channel.create({
-      channelName: 'testChannel',
-      channelDescription: 'testDescription',
-      channelAdmin: testUserId,
-    })
-    
+  beforeEach(async () => {
+    const [testChannel, passwordChannel] = await Promise.all([
+      Channel.create({
+        channelName: 'testChannel',
+        channelDescription: 'testDescription',
+        channelAdmin: testUserId,
+      }),
+      Channel.create({
+        channelName: 'passwordChannel',
+        channelDescription: 'testDescription',
+        password: 'testPassword',
+        passwordEnabled: true,
+        channelAdmin: testUserId,
+      }),
+    ]);
+
     testChannelId = testChannel._id.toString();
+    passwordChannelId = passwordChannel._id.toString();
   });
-}); */
+
+  afterEach(async () => {
+    await Promise.all([
+      await Channel.deleteMany({}),
+      await ChannelUser.deleteMany({}),
+      await ChannelBlockUser.deleteMany({}),
+    ]);
+  });
+
+  describe('/settings', () => {
+    it('チャンネル名を変更', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        channelName: 'channgedChannel',
+        passwordEnabled: false,
+      };
+
+      await request(app)
+        .put(`/api/channel/settings/${testChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const testChannel = await Channel.findById(testChannelId);
+
+      expect(testChannel?.channelName).toBe(requestBody.channelName);
+    });
+
+    it('説明文を変更', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        channelDescription: 'channgeDescription',
+        passwordEnabled: false,
+      };
+
+      await request(app)
+        .put(`/api/channel/settings/${testChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const testChannel = await Channel.findById(testChannelId);
+
+      expect(testChannel?.channelDescription).toBe(
+        requestBody.channelDescription,
+      );
+    });
+
+    it('パスワードを設定', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        password: 'testPassword',
+        passwordEnabled: true,
+      };
+
+      await request(app)
+        .put(`/api/channel/settings/${testChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const testChannel = await Channel.findById(testChannelId);
+
+      expect(testChannel?.password).toMatch(/^\$2[abxy]\$.{56}$/);
+      expect(testChannel?.passwordEnabled).toBe(true);
+    });
+
+    it('パスワードを変更する', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        password: 'changedPassword',
+        passwordEnabled: true,
+      };
+
+      const passwordChannel = await Channel.findById(passwordChannelId);
+      const passwordBeforeChange = passwordChannel?.password;
+
+      await request(app)
+        .put(`/api/channel/settings/${passwordChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const testChannel = await Channel.findById(passwordChannelId);
+
+      expect(testChannel?.password).toMatch(/^\$2[abxy]\$.{56}$/);
+      expect(testChannel?.password).not.toBe(passwordBeforeChange);
+      expect(testChannel?.passwordEnabled).toBe(true);
+    });
+
+    it('パスワードを送信しなければパスワードが変更されない', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        passwordEnabled: true,
+      };
+
+      const passwordChannel = await Channel.findById(passwordChannelId);
+      const passwordBeforeChange = passwordChannel?.password;
+
+      await request(app)
+        .put(`/api/channel/settings/${passwordChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const testChannel = await Channel.findById(passwordChannelId);
+
+      expect(testChannel?.password).toBe(passwordBeforeChange);
+      expect(testChannel?.passwordEnabled).toBe(true);
+    });
+
+    it('パスワードを有効化しなければパスワードを送信しても設定されない', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        password: 'testPassword',
+        passwordEnabled: false,
+      };
+
+      await request(app)
+        .put(`/api/channel/settings/${testChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const testChannel = await Channel.findById(testChannelId);
+
+      expect(testChannel?.password).toBeUndefined();
+      expect(testChannel?.passwordEnabled).toBe(false);
+    });
+
+    it('パスワードを送信しなければパスワードが有効化されない', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        passwordEnabled: true,
+      };
+
+      await request(app)
+        .put(`/api/channel/settings/${testChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const testChannel = await Channel.findById(testChannelId);
+
+      expect(testChannel?.password).toBeUndefined();
+      expect(testChannel?.passwordEnabled).toBe(false);
+    });
+
+    it('パスワードを削除', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        passwordEnabled: false,
+      };
+
+      await request(app)
+        .put(`/api/channel/settings/${passwordChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const passwordChannel = await Channel.findById(passwordChannelId);
+
+      expect(passwordChannel?.password).toBeUndefined();
+      expect(passwordChannel?.passwordEnabled).toBe(false);
+    });
+
+    it('パスワードを無効化すればパスワードを送信しても設定されない', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        password: 'testPassword',
+        passwordEnabled: false,
+      };
+
+      await request(app)
+        .put(`/api/channel/settings/${passwordChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const passwordChannel = await Channel.findById(passwordChannelId);
+
+      expect(passwordChannel?.password).toBeUndefined();
+      expect(passwordChannel?.passwordEnabled).toBe(false);
+    });
+
+    it('ゲスト許可を変更', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        passwordEnabled: false,
+        denyGuests: true,
+      };
+
+      await request(app)
+        .put(`/api/channel/settings/${testChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const testChannel = await Channel.findById(testChannelId);
+
+      expect(testChannel?.denyGuests).toBe(true);
+    });
+
+    test.each([
+      [
+        'チャンネル名が空',
+        {
+          channelName: '',
+          passwordEnabled: false,
+        },
+        validation.CHANNEL_NAME_LENGTH,
+      ],
+      [
+        'チャンネル名が長すぎる',
+        {
+          channelName: 'a'.repeat(21),
+          passwordEnabled: false,
+        },
+        validation.CHANNEL_NAME_LENGTH,
+      ],
+      [
+        '説明文が空',
+        {
+          channelDescription: '',
+          passwordEnabled: false,
+        },
+        validation.CHANNEL_DESCRIPTION_LENGTH,
+      ],
+      [
+        '説明文が長すぎる',
+        {
+          channelDescription: 'a'.repeat(2001),
+          passwordEnabled: false,
+        },
+        validation.CHANNEL_DESCRIPTION_LENGTH,
+      ],
+      [
+        'パスワードが短すぎる',
+        {
+          passwordEnabled: true,
+          password: '1234567',
+        },
+        validation.PASSWORD_LENGTH,
+      ],
+      [
+        'パスワードが長すぎる',
+        {
+          passwordEnabled: true,
+          password: 'a'.repeat(65),
+        },
+        validation.PASSWORD_LENGTH,
+      ],
+    ])('%s', async (_, requestBody, errorMessage) => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const response = await request(app)
+        .put(`/api/channel/settings/${testChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message', errorMessage);
+    });
+  });
+});

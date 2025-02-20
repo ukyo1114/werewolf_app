@@ -18,8 +18,8 @@ const validateChannelId = param('channelId')
   .withMessage(validation.INVALID_CHANNEL_ID);
 
 const validateChannelNameRequired = body('channelName')
+  .exists()
   .trim()
-  .notEmpty()
   .isString()
   .isLength({ min: 1, max: 20 })
   .withMessage(validation.CHANNEL_NAME_LENGTH)
@@ -34,8 +34,8 @@ const validateChannelNameOptional = body('channelName')
   .escape();
 
 const validateChannelDescriptionRequired = body('channelDescription')
+  .exists()
   .trim()
-  .notEmpty()
   .isString()
   .isLength({ min: 1, max: 2000 })
   .withMessage(validation.CHANNEL_DESCRIPTION_LENGTH)
@@ -50,7 +50,7 @@ const validateChannelDescriptionOptional = body('channelDescription')
   .escape();
 
 const validatePasswordEnabled = body('passwordEnabled')
-  .optional()
+  .exists()
   .isBoolean()
   .toBoolean();
 
@@ -86,7 +86,7 @@ router.post(
 );
 
 router.put(
-  '/settings',
+  '/settings/:channelId',
   [
     validateChannelNameOptional,
     validateChannelDescriptionOptional,

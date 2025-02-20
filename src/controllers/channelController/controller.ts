@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import { decodeToken } from '../../utils/decodeToken';
 import AppError from '../../utils/AppError';
-import { errors } from '../../config/messages';
+import { errors, validation } from '../../config/messages';
 import User from '../../models/userModel';
 import Channel from '../../models/channelModel';
 import ChannelUser from '../../models/channelUserModel';
@@ -74,6 +74,9 @@ export const createChannel = asyncHandler(
     if (isUserGuest)
       throw new AppError(403, errors.GUEST_CREATE_CHANNEL_DENIED);
 
+    if (passwordEnabled && !password)
+      throw new AppError(400, validation.PASSWORD_LENGTH);
+
     const createdChannel = await Channel.create({
       channelName,
       channelDescription,
@@ -119,7 +122,11 @@ export const updateChannelSettings = asyncHandler(
 
     if (channelName) channel.channelName = channelName;
     if (channelDescription) channel.channelDescription = channelDescription;
-    channel.passwordEnabled = passwordEnabled;
+    if (!passwordEnabled) {
+      channel.passwordEnabled = false;
+    } else if (!channel.passwordEnabled && password) {
+      channel.passwordEnabled = true;
+    }
     if (passwordEnabled && password) channel.password = password;
     channel.denyGuests = denyGuests;
 
