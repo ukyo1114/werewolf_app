@@ -91,9 +91,9 @@ describe('/list', () => {
     const response = await request(app)
       .get(`/api/block/list/${mockChannelId}`)
       .send()
-      .set('authorization', `Bearer mockToken`);
+      .set('authorization', `Bearer mockToken`)
+      .expect(404);
 
-    expect(response.status).toBe(400);
     expect(response.body).toHaveProperty('message', errors.CHANNEL_NOT_FOUND);
   });
 });
@@ -153,9 +153,9 @@ describe('/register', () => {
     const response = await request(app)
       .post(`/api/block/register/${mockChannelId}`)
       .send({ selectedUser: badUserId })
-      .set('authorization', `Bearer mockToken`);
+      .set('authorization', `Bearer mockToken`)
+      .expect(404);
 
-    expect(response.status).toBe(400);
     expect(response.body).toHaveProperty('message', errors.CHANNEL_NOT_FOUND);
   });
 
@@ -222,9 +222,9 @@ describe('/cancel', () => {
     const response = await request(app)
       .delete(`/api/block/cancel/${mockChannelId}`)
       .send({ selectedUser: blockUserId })
-      .set('authorization', `Bearer mockToken`);
+      .set('authorization', `Bearer mockToken`)
+      .expect(404);
 
-    expect(response.status).toBe(400);
     expect(response.body).toHaveProperty('message', errors.CHANNEL_NOT_FOUND);
   });
 });

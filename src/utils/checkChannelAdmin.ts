@@ -7,7 +7,7 @@ export const checkChannelAdmin = async (channelId: string, userId: string) => {
     .select('channelAdmin')
     .lean();
 
-  if (!channel) throw new AppError(400, errors.CHANNEL_NOT_FOUND);
+  if (!channel) throw new AppError(404, errors.CHANNEL_NOT_FOUND);
 
   return channel.channelAdmin.toString() === userId;
 };

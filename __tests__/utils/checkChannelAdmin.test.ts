@@ -35,6 +35,6 @@ describe('test checkChannelAdmin', () => {
   it('チャンネルが見つからないときエラーを返す', async () => {
     await expect(() =>
       checkChannelAdmin(mockChannelId, mockUserId),
-    ).rejects.toThrow(new AppError(400, errors.CHANNEL_NOT_FOUND));
+    ).rejects.toThrow(new AppError(404, errors.CHANNEL_NOT_FOUND));
   });
 });

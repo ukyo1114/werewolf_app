@@ -166,8 +166,7 @@ export const joinChannel = asyncHandler(
 
       if (
         channel.passwordEnabled &&
-        password &&
-        !(await channel.matchPassword(password))
+        (!password || !(await channel.matchPassword(password)))
       ) {
         throw new AppError(401, errors.WRONG_PASSWORD);
       } else {

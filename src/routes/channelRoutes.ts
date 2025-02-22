@@ -13,7 +13,6 @@ import {
 import protect from '../middleware/protect';
 
 const validateChannelId = param('channelId')
-  .optional()
   .isMongoId()
   .withMessage(validation.INVALID_CHANNEL_ID);
 
@@ -88,6 +87,7 @@ router.post(
 router.put(
   '/settings/:channelId',
   [
+    validateChannelId,
     validateChannelNameOptional,
     validateChannelDescriptionOptional,
     validatePasswordEnabled,
@@ -99,12 +99,17 @@ router.put(
 );
 
 router.put(
-  '/join',
+  '/join/:channelId',
   [validateChannelId, validatePassword],
   validateRequest,
   joinChannel,
 );
 
-router.delete('/leave', [validateChannelId], validateRequest, leaveChannel);
+router.delete(
+  '/leave/:channelId',
+  [validateChannelId],
+  validateRequest,
+  leaveChannel,
+);
 
 export default router;

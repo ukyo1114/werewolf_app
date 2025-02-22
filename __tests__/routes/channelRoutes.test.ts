@@ -15,9 +15,10 @@ import { errors, validation } from '../../src/config/messages';
 
 let testUserId: string;
 let guestUserId: string;
+let blockedUserId: string;
 
 beforeAll(async () => {
-  const [testUser, guestUser] = await Promise.all([
+  const [testUser, guestUser, blockedUser] = await Promise.all([
     User.create({
       userName: 'testUser',
       email: 'test@example.com',
@@ -26,8 +27,15 @@ beforeAll(async () => {
       isGuest: false,
     }),
     User.create({
-      userName: 'testUser',
-      email: 'test@example.com',
+      userName: 'guestUser',
+      email: 'guest@example.com',
+      password: 'password123',
+      pic: null,
+      isGuest: true,
+    }),
+    User.create({
+      userName: 'blockedUser',
+      email: 'glocked@example.com',
       password: 'password123',
       pic: null,
       isGuest: true,
@@ -36,6 +44,7 @@ beforeAll(async () => {
 
   testUserId = testUser._id.toString();
   guestUserId = guestUser._id.toString();
+  blockedUserId = blockedUser._id.toString();
 });
 
 beforeEach(async () => {
@@ -378,42 +387,42 @@ describe('/create', () => {
   });
 });
 
-/**
- * 各設定の変更
- * 管理者でないとき
- * チャンネルが見つからないとき
- * ユーザーが見つからない時
- */
 describe('/settings, /join, /left', () => {
   let testChannelId: string;
   let passwordChannelId: string;
+  let denyGuestsChannelId: string;
 
   beforeEach(async () => {
-    const [testChannel, passwordChannel] = await Promise.all([
-      Channel.create({
-        channelName: 'testChannel',
-        channelDescription: 'testDescription',
-        channelAdmin: testUserId,
-      }),
-      Channel.create({
-        channelName: 'passwordChannel',
-        channelDescription: 'testDescription',
-        password: 'testPassword',
-        passwordEnabled: true,
-        channelAdmin: testUserId,
-      }),
-    ]);
+    const [testChannel, passwordChannel, denyGuestsChannel] = await Promise.all(
+      [
+        Channel.create({
+          channelName: 'testChannel',
+          channelDescription: 'testDescription',
+          channelAdmin: testUserId,
+        }),
+        Channel.create({
+          channelName: 'passwordChannel',
+          channelDescription: 'testDescription',
+          password: 'testPassword',
+          passwordEnabled: true,
+          channelAdmin: testUserId,
+        }),
+        Channel.create({
+          channelName: 'denyGuestsChannel',
+          channelDescription: 'testDescription',
+          channelAdmin: testUserId,
+          denyGuests: true,
+        }),
+      ],
+    );
 
     testChannelId = testChannel._id.toString();
     passwordChannelId = passwordChannel._id.toString();
+    denyGuestsChannelId = denyGuestsChannel._id.toString();
   });
 
   afterEach(async () => {
-    await Promise.all([
-      await Channel.deleteMany({}),
-      await ChannelUser.deleteMany({}),
-      await ChannelBlockUser.deleteMany({}),
-    ]);
+    await Promise.all([await Channel.deleteMany({})]);
   });
 
   describe('/settings', () => {
@@ -620,6 +629,77 @@ describe('/settings, /join, /left', () => {
       expect(testChannel?.denyGuests).toBe(true);
     });
 
+    it('管理者でないときエラーを返す', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
+
+      const requestBody = {
+        channelName: 'channgedChannel',
+        passwordEnabled: false,
+      };
+
+      const response = await request(app)
+        .put(`/api/channel/settings/${testChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(403);
+
+      expect(response.body).toHaveProperty('message', errors.PERMISSION_DENIED);
+    });
+
+    it('チャンネルが見つからない時エラーを返す', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        channelName: 'channgedChannel',
+        passwordEnabled: false,
+      };
+
+      const response = await request(app)
+        .put(`/api/channel/settings/${mockChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(404);
+
+      expect(response.body).toHaveProperty('message', errors.CHANNEL_NOT_FOUND);
+    });
+
+    it('ユーザーが見つからない時エラーを返す', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: mockUserId });
+
+      const requestBody = {
+        channelName: 'channgedChannel',
+        passwordEnabled: false,
+      };
+
+      const response = await request(app)
+        .put(`/api/channel/settings/${testChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(401);
+
+      expect(response.body).toHaveProperty('message', errors.USER_NOT_FOUND);
+    });
+
+    it('チャンネルIDがmongoIdでないとエラーになる', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        channelName: 'channgedChannel',
+        passwordEnabled: false,
+      };
+
+      const response = await request(app)
+        .put('/api/channel/settings/wrongId')
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(400);
+
+      expect(response.body).toHaveProperty(
+        'message',
+        validation.INVALID_CHANNEL_ID,
+      );
+    });
+
     test.each([
       [
         'チャンネル名が空',
@@ -679,6 +759,288 @@ describe('/settings, /join, /left', () => {
         .expect(400);
 
       expect(response.body).toHaveProperty('message', errorMessage);
+    });
+  });
+
+  /**
+   * チャンネルに参加
+   * パスワード認証に成功する
+   * ブロックされているとき
+   * ユーザーが見つからないとき
+   * チャンネルが見つからないとき
+   * 既に参加しているとき
+   * ゲスト禁止のチャンネルにゲストアカウントで入室しようとしたときエラーを返す
+   * パスワードを間違えるとエラーを返す
+   */
+  describe('/join', () => {
+    beforeEach(async () => {
+      await Promise.all([
+        ChannelUser.create({
+          channelId: testChannelId,
+          userId: testUserId,
+        }),
+        ChannelBlockUser.create({
+          channelId: testChannelId,
+          userId: blockedUserId,
+        }),
+      ]);
+    });
+
+    afterEach(async () => {
+      await Promise.all([
+        ChannelUser.deleteMany({}),
+        ChannelBlockUser.deleteMany({}),
+      ]);
+    });
+
+    it('チャンネルに参加できる', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
+
+      const response = await request(app)
+        .put(`/api/channel/join/${testChannelId}`)
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      expect(response.body.channelName).toBe('testChannel');
+      expect(response.body.channelDescription).toBe('testDescription');
+      expect(response.body.channelAdmin).toBe(testUserId);
+      expect(response.body.users).toEqual([
+        { _id: testUserId, userName: 'testUser', pic: null },
+        { _id: guestUserId, userName: 'guestUser', pic: null },
+      ]);
+    });
+
+    it('パスワード認証に成功する', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
+
+      const response = await request(app)
+        .put(`/api/channel/join/${passwordChannelId}`)
+        .send({ password: 'testPassword' })
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      expect(response.body.channelName).toBe('passwordChannel');
+      expect(response.body.channelDescription).toBe('testDescription');
+      expect(response.body.channelAdmin).toBe(testUserId);
+      expect(response.body.users).toEqual([
+        { _id: guestUserId, userName: 'guestUser', pic: null },
+      ]);
+    });
+
+    it('ブロックされているときエラーを返す', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: blockedUserId });
+
+      const response = await request(app)
+        .put(`/api/channel/join/${testChannelId}`)
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(403);
+
+      expect(response.body).toHaveProperty('message', errors.USER_BLOCKED);
+    });
+
+    it('ユーザーが未登録のときエラーを返す', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: mockUserId });
+
+      const response = await request(app)
+        .put(`/api/channel/join/${testChannelId}`)
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(401);
+
+      expect(response.body).toHaveProperty('message', errors.USER_NOT_FOUND);
+    });
+
+    it('チャンネルが見つからないときエラーを返す', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const response = await request(app)
+        .put(`/api/channel/join/${mockChannelId}`)
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(404);
+
+      expect(response.body).toHaveProperty('message', errors.CHANNEL_NOT_FOUND);
+    });
+
+    it('チャンネルに既に参加中の時', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const response = await request(app)
+        .put(`/api/channel/join/${testChannelId}`)
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      expect(response.body.channelName).toBe('testChannel');
+      expect(response.body.channelDescription).toBe('testDescription');
+      expect(response.body.channelAdmin).toBe(testUserId);
+      expect(response.body.users).toEqual([
+        { _id: testUserId, userName: 'testUser', pic: null },
+      ]);
+    });
+
+    it('ゲスト禁止のチャンネルにゲストアカウントで参加しようとしたときエラーを返す', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
+
+      const response = await request(app)
+        .put(`/api/channel/join/${denyGuestsChannelId}`)
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(403);
+
+      expect(response.body).toHaveProperty(
+        'message',
+        errors.GUEST_ENTRY_DENIED,
+      );
+    });
+
+    it('パスワードを間違えるとエラーを返す', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
+
+      const response = await request(app)
+        .put(`/api/channel/join/${passwordChannelId}`)
+        .send({ password: 'wrongPassword' })
+        .set('authorization', `Bearer mockToken`)
+        .expect(401);
+
+      expect(response.body).toHaveProperty('message', errors.WRONG_PASSWORD);
+    });
+
+    it('パスワードを送信しないとエラーを返す', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
+
+      const response = await request(app)
+        .put(`/api/channel/join/${passwordChannelId}`)
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(401);
+
+      expect(response.body).toHaveProperty('message', errors.WRONG_PASSWORD);
+    });
+
+    it('チャンネルIDがmongoIdでないとエラーを返す', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
+
+      const response = await request(app)
+        .put('/api/channel/join/wrongId')
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(400);
+
+      expect(response.body).toHaveProperty(
+        'message',
+        validation.INVALID_CHANNEL_ID,
+      );
+    });
+
+    test.each([
+      ['パスワードが短すぎる', { password: '1234567' }],
+      ['パスワードが長すぎる', { password: 'a'.repeat(65) }],
+    ])('%s', async (_, password) => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
+
+      const response = await request(app)
+        .put(`/api/channel/join/${passwordChannelId}`)
+        .send(password)
+        .set('authorization', `Bearer mockToken`)
+        .expect(400);
+
+      expect(response.body).toHaveProperty(
+        'message',
+        validation.PASSWORD_LENGTH,
+      );
+    });
+  });
+
+  describe('/leave', () => {
+    beforeEach(async () => {
+      await Promise.all([
+        ChannelUser.create({
+          channelId: testChannelId,
+          userId: testUserId,
+        }),
+        ChannelUser.create({
+          channelId: testChannelId,
+          userId: guestUserId,
+        }),
+      ]);
+    });
+
+    afterEach(async () => {
+      await ChannelUser.deleteMany({});
+    });
+
+    it('チャンネルから退出', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
+
+      await request(app)
+        .delete(`/api/channel/leave/${testChannelId}`)
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const leftUser = await ChannelUser.findOne({
+        channelId: testChannelId,
+        userId: guestUserId,
+      });
+
+      expect(leftUser).toBeNull();
+    });
+
+    it('管理者は退出できない', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const response = await request(app)
+        .delete(`/api/channel/leave/${testChannelId}`)
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(403);
+
+      expect(response.body).toHaveProperty(
+        'message',
+        errors.ADMIN_LEAVE_DENIED,
+      );
+    });
+
+    it('ユーザーが未登録のとき', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: mockUserId });
+
+      const response = await request(app)
+        .delete(`/api/channel/leave/${testChannelId}`)
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(401);
+
+      expect(response.body).toHaveProperty('message', errors.USER_NOT_FOUND);
+    });
+
+    it('ユーザーが既に退出済みのとき', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
+
+      const response = await request(app)
+        .delete(`/api/channel/leave/${passwordChannelId}`)
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(400);
+
+      expect(response.body).toHaveProperty('message', errors.USER_ALREADY_LEFT);
+    });
+
+    it('チャンネルIDがmongoIdでないとエラーを返す', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
+
+      const response = await request(app)
+        .delete('/api/channel/leave/wrongId')
+        .send()
+        .set('authorization', `Bearer mockToken`)
+        .expect(400);
+
+      expect(response.body).toHaveProperty(
+        'message',
+        validation.INVALID_CHANNEL_ID,
+      );
     });
   });
 });
