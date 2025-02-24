@@ -14,6 +14,7 @@ import verifyEmailRoutes from './routes/verifyEmailRoutes';
 import userRoutes from './routes/userRoutes';
 import blockRoutes from './routes/blockRoutes';
 import channelRoutes from './routes/channelRoutes';
+import gameRoutes from './routes/gameRoutes';
 // import errorHandler from './middleware/errorHandler';
 
 const app = express();
@@ -43,6 +44,7 @@ app.use('/api/verify-email', verifyEmailRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/block', blockRoutes);
 app.use('/api/channel', channelRoutes);
+app.use('/api/game', gameRoutes);
 
 app.get('*', (req: Request, res: Response) => {
   res.status(200).send();

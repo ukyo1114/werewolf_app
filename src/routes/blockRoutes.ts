@@ -11,7 +11,6 @@ import {
 import protect from '../middleware/protect';
 
 const validateChannelId = param('channelId')
-  .optional()
   .isMongoId()
   .withMessage(validation.INVALID_CHANNEL_ID);
 

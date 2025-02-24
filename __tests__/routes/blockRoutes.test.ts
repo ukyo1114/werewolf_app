@@ -10,7 +10,7 @@ import User from '../../src/models/userModel';
 import Channel from '../../src/models/channelModel';
 import ChannelBlockUser from '../../src/models/channelBlockUserModel';
 import { mockChannelId, mockUserId } from '../../jest.setup';
-import { errors } from '../../src/config/messages';
+import { errors, validation } from '../../src/config/messages';
 
 let testUserId: string;
 let blockUserId: string;
@@ -61,9 +61,9 @@ describe('/list', () => {
     const response = await request(app)
       .get(`/api/block/list/${testChannelId}`)
       .send()
-      .set('authorization', `Bearer mockToken`);
+      .set('authorization', 'Bearer mockToken')
+      .expect(200);
 
-    expect(response.status).toBe(200);
     expect(response.body).toEqual([
       {
         _id: blockUserId,
@@ -79,9 +79,9 @@ describe('/list', () => {
     const response = await request(app)
       .get(`/api/block/list/${testChannelId}`)
       .send()
-      .set('authorization', `Bearer mockToken`);
+      .set('authorization', 'Bearer mockToken')
+      .expect(403);
 
-    expect(response.status).toBe(403);
     expect(response.body).toHaveProperty('message', errors.PERMISSION_DENIED);
   });
 
@@ -91,24 +91,52 @@ describe('/list', () => {
     const response = await request(app)
       .get(`/api/block/list/${mockChannelId}`)
       .send()
-      .set('authorization', `Bearer mockToken`)
+      .set('authorization', 'Bearer mockToken')
       .expect(404);
 
     expect(response.body).toHaveProperty('message', errors.CHANNEL_NOT_FOUND);
   });
+
+  it('チャンネルIDがmongoIdでないときエラーを返す', async () => {
+    (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+    const response = await request(app)
+      .get('/api/block/list/wrongId')
+      .send()
+      .set('authorization', 'Bearer mockToken')
+      .expect(400);
+
+    expect(response.body).toHaveProperty(
+      'message',
+      validation.INVALID_CHANNEL_ID,
+    );
+  });
 });
 
 describe('/register', () => {
-  it('ブロックユーザーを追加する', async () => {
-    (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
-    const badUserId = new ObjectId().toString();
+  const customRequest = async (
+    userId: string,
+    channelId: string,
+    selectedUser: string,
+    status: number,
+    errorMessage?: string,
+  ) => {
+    (decodeToken as jest.Mock).mockReturnValue({ userId });
 
     const response = await request(app)
-      .post(`/api/block/register/${testChannelId}`)
-      .send({ selectedUser: badUserId })
-      .set('authorization', `Bearer mockToken`);
+      .post(`/api/block/register/${channelId}`)
+      .send({ selectedUser })
+      .set('authorization', 'Bearer mockToken')
+      .expect(status);
 
-    expect(response.status).toBe(200);
+    if (errorMessage)
+      expect(response.body).toHaveProperty('message', errorMessage);
+  };
+
+  it('ブロックユーザーを追加する', async () => {
+    const badUserId = new ObjectId().toString();
+
+    await customRequest(testUserId, testChannelId, badUserId, 200);
 
     const createdBlockUser = await ChannelBlockUser.findOne({
       channelId: testChannelId,
@@ -119,69 +147,90 @@ describe('/register', () => {
   });
 
   it('管理者でなければエラーを返す', async () => {
-    (decodeToken as jest.Mock).mockReturnValue({ userId: blockUserId });
     const badUserId = new ObjectId().toString();
 
-    const response = await request(app)
-      .post(`/api/block/register/${testChannelId}`)
-      .send({ selectedUser: badUserId })
-      .set('authorization', `Bearer mockToken`);
-
-    expect(response.status).toBe(403);
-    expect(response.body).toHaveProperty('message', errors.PERMISSION_DENIED);
+    await customRequest(
+      blockUserId,
+      testChannelId,
+      badUserId,
+      403,
+      errors.PERMISSION_DENIED,
+    );
   });
 
   it('ユーザーが既にブロックされているときエラーを返す', async () => {
-    (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
-
-    const response = await request(app)
-      .post(`/api/block/register/${testChannelId}`)
-      .send({ selectedUser: blockUserId })
-      .set('authorization', `Bearer mockToken`);
-
-    expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty(
-      'message',
+    await customRequest(
+      testUserId,
+      testChannelId,
+      blockUserId,
+      400,
       errors.USER_ALREADY_BLOCKED,
     );
   });
 
   it('チャンネルが見つからない時エラーを返す', async () => {
-    (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
-    const badUserId = new ObjectId().toString();
-
-    const response = await request(app)
-      .post(`/api/block/register/${mockChannelId}`)
-      .send({ selectedUser: badUserId })
-      .set('authorization', `Bearer mockToken`)
-      .expect(404);
-
-    expect(response.body).toHaveProperty('message', errors.CHANNEL_NOT_FOUND);
+    await customRequest(
+      testUserId,
+      mockChannelId,
+      new ObjectId().toString(),
+      404,
+      errors.CHANNEL_NOT_FOUND,
+    );
   });
 
   it('自身をブロックしようとするとエラーを返す', async () => {
-    (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+    await customRequest(
+      testUserId,
+      testChannelId,
+      testUserId,
+      403,
+      errors.DENIED_SELF_BLOCK,
+    );
+  });
 
-    const response = await request(app)
-      .post(`/api/block/register/${testChannelId}`)
-      .send({ selectedUser: testUserId })
-      .set('authorization', `Bearer mockToken`);
+  it('チャンネルIDがmongoIDでないとき', async () => {
+    await customRequest(
+      testUserId,
+      'wrongChannelId',
+      new ObjectId().toString(),
+      400,
+      validation.INVALID_CHANNEL_ID,
+    );
+  });
 
-    expect(response.status).toBe(403);
-    expect(response.body).toHaveProperty('message', errors.DENIED_SELF_BLOCK);
+  it('ブロックするユーザーIDがmongoIDでないとき', async () => {
+    await customRequest(
+      testUserId,
+      testChannelId,
+      'wrongUserId',
+      400,
+      validation.INVALID_SELECTED_USER,
+    );
   });
 });
 
 describe('/cancel', () => {
-  it('ブロックを取り消す', async () => {
-    (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+  const customRequest = async (
+    userId: string,
+    channelId: string,
+    selectedUser: string,
+    status: number,
+    errorMessage?: string,
+  ) => {
+    (decodeToken as jest.Mock).mockReturnValue({ userId });
 
     const response = await request(app)
-      .delete(`/api/block/cancel/${testChannelId}`)
-      .send({ selectedUser: blockUserId })
-      .set('authorization', `Bearer mockToken`);
+      .delete(`/api/block/cancel/${channelId}`)
+      .send({ selectedUser })
+      .set('authorization', 'Bearer mockToken')
+      .expect(status);
 
-    expect(response.status).toBe(200);
+    if (errorMessage)
+      expect(response.body).toHaveProperty('message', errorMessage);
+  };
+
+  it('ブロックを取り消す', async () => {
+    await customRequest(testUserId, testChannelId, blockUserId, 200);
 
     const deletedBlockUser = await ChannelBlockUser.findOne({
       channelId: testChannelId,
@@ -191,40 +240,53 @@ describe('/cancel', () => {
     expect(deletedBlockUser).toBeNull();
   });
 
-  it('管理者でなければエラーを返す', async () => {
-    (decodeToken as jest.Mock).mockReturnValue({ userId: blockUserId });
-
-    const response = await request(app)
-      .delete(`/api/block/cancel/${testChannelId}`)
-      .send({ selectedUser: blockUserId })
-      .set('authorization', `Bearer mockToken`);
-
-    expect(response.status).toBe(403);
-    expect(response.body).toHaveProperty('message', errors.PERMISSION_DENIED);
+  it('管理者でないとき', async () => {
+    await customRequest(
+      blockUserId,
+      testChannelId,
+      blockUserId,
+      403,
+      errors.PERMISSION_DENIED,
+    );
   });
 
-  it('ユーザーがブロックされていなかった場合エラーを返す', async () => {
-    (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
-    const nonBlockedUserId = new ObjectId().toString();
-
-    const response = await request(app)
-      .delete(`/api/block/cancel/${testChannelId}`)
-      .send({ selectedUser: nonBlockedUserId })
-      .set('authorization', `Bearer mockToken`);
-
-    expect(response.status).toBe(404);
-    expect(response.body).toHaveProperty('message', errors.USER_NOT_BLOCKED);
+  it('ユーザーがブロックされていなかったとき', async () => {
+    await customRequest(
+      testUserId,
+      testChannelId,
+      new ObjectId().toString(),
+      404,
+      errors.USER_NOT_BLOCKED,
+    );
   });
 
-  it('チャンネルが見つからない時エラーを返す', async () => {
-    (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+  it('チャンネルが見つからないとき', async () => {
+    await customRequest(
+      testUserId,
+      mockChannelId,
+      blockUserId,
+      404,
+      errors.CHANNEL_NOT_FOUND,
+    );
+  });
 
-    const response = await request(app)
-      .delete(`/api/block/cancel/${mockChannelId}`)
-      .send({ selectedUser: blockUserId })
-      .set('authorization', `Bearer mockToken`)
-      .expect(404);
+  it('チャンネルIDがmongoIDでないとき', async () => {
+    await customRequest(
+      testUserId,
+      'wrongChannelId',
+      blockUserId,
+      400,
+      validation.INVALID_CHANNEL_ID,
+    );
+  });
 
-    expect(response.body).toHaveProperty('message', errors.CHANNEL_NOT_FOUND);
+  it('ブロックを取り消したいユーザーIDがmongoIDでないとき', async () => {
+    await customRequest(
+      testUserId,
+      testChannelId,
+      'wrongUserId',
+      400,
+      validation.INVALID_SELECTED_USER,
+    );
   });
 });

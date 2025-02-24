@@ -6,13 +6,6 @@ import { decodeToken } from '../../src/utils/decodeToken';
 import express from 'express';
 import request from 'supertest';
 import userRoutes from '../../src/routes/userRoutes';
-/* import {
-  registerUser,
-  login,
-  updateProfile,
-  changePassword,
-  resetPassword,
-} from '../../src/controllers/userController/controller'; */
 import User from '../../src/models/userModel';
 
 const app = express();
@@ -20,8 +13,6 @@ app.use(express.json());
 app.use(userRoutes);
 
 describe('registerUser', () => {
-  const mockToken = 'mockToken';
-
   beforeEach(async () => {
     jest.clearAllMocks();
     await User.deleteMany({});
@@ -41,7 +32,7 @@ describe('registerUser', () => {
     const response = await request(app).post('/register').send({
       userName: 'testUser',
       password: 'password123',
-      token: mockToken,
+      token: 'mockToken',
     });
 
     expect(response.status).toBe(201);
@@ -52,10 +43,9 @@ describe('registerUser', () => {
     (decodeToken as jest.Mock).mockReturnValue(decodedToken);
     const response = await request(app).post('/register').send({
       password: 'password123',
-      token: mockToken,
+      token: 'mockToken',
     });
 
-    // console.log(response);
     expect(response.status).toBe(400);
   });
 
@@ -65,10 +55,9 @@ describe('registerUser', () => {
     const response = await request(app).post('/register').send({
       userName: 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほ',
       password: 'password123',
-      token: mockToken,
+      token: 'mockToken',
     });
 
-    // console.log(response);
     expect(response.status).toBe(400);
   });
 
@@ -77,10 +66,9 @@ describe('registerUser', () => {
     (decodeToken as jest.Mock).mockReturnValue(decodedToken);
     const response = await request(app).post('/register').send({
       userName: 'testUser',
-      token: mockToken,
+      token: 'mockToken',
     });
 
-    // console.log(response);
     expect(response.status).toBe(400);
   });
 
@@ -90,10 +78,9 @@ describe('registerUser', () => {
     const response = await request(app).post('/register').send({
       userName: 'testUser',
       password: 'short',
-      token: mockToken,
+      token: 'mockToken',
     });
 
-    // console.log(response);
     expect(response.status).toBe(400);
   });
 
@@ -103,10 +90,9 @@ describe('registerUser', () => {
     const response = await request(app).post('/register').send({
       userName: 'testUser',
       password: 'password123',
-      token: mockToken,
+      token: 'mockToken',
     });
 
-    // console.log(response);
     expect(response.status).toBe(401);
   });
 
@@ -119,10 +105,9 @@ describe('registerUser', () => {
     const response = await request(app).post('/register').send({
       userName: 'testUser',
       password: 'password123',
-      token: mockToken,
+      token: 'mockToken',
     });
 
-    // console.log(response);
     expect(response.status).toBe(400);
   });
 });
@@ -157,7 +142,6 @@ describe('login', () => {
       password: 'password123',
     });
 
-    // console.log(response);
     expect(response.status).toBe(400);
   });
 
@@ -167,13 +151,11 @@ describe('login', () => {
       password: 'wrongPassword',
     });
 
-    // console.log(response);
     expect(response.status).toBe(401);
   });
 });
 
 describe('updateProfile', () => {
-  const mockToken = 'mockToken';
   let userId: string;
 
   beforeEach(async () => {
@@ -198,9 +180,8 @@ describe('updateProfile', () => {
       .send({
         userName: 'newUserName',
       })
-      .set('authorization', `Bearer ${mockToken}`);
+      .set('authorization', 'Bearer mockToken');
 
-    // console.log(response);
     expect(response.status).toBe(200);
   });
 
@@ -211,9 +192,8 @@ describe('updateProfile', () => {
     const response = await request(app)
       .put('/profile')
       .send({})
-      .set('authorization', `Bearer ${mockToken}`);
+      .set('authorization', 'Bearer mockToken');
 
-    // console.log(response);
     expect(response.status).toBe(400);
   });
 
@@ -226,9 +206,8 @@ describe('updateProfile', () => {
       .send({
         pic: 'invalidPicture',
       })
-      .set('authorization', `Bearer ${mockToken}`);
+      .set('authorization', 'Bearer mockToken');
 
-    // console.log(response);
     expect(response.status).toBe(400);
   });
 });
@@ -249,8 +228,6 @@ describe('updateEmail', () => {
     userId = user._id.toString();
   });
 
-  const mockToken = 'mockToken';
-
   it('メールアドレスの変更が成功する', async () => {
     const decodedToken = {
       userId,
@@ -259,7 +236,7 @@ describe('updateEmail', () => {
     };
     (decodeToken as jest.Mock).mockReturnValue(decodedToken);
 
-    const response = await request(app).get(`/email/${mockToken}`).send();
+    const response = await request(app).get('/email/mockToken').send();
 
     expect(response.status).toBe(200);
   });
@@ -272,7 +249,7 @@ describe('updateEmail', () => {
     };
     (decodeToken as jest.Mock).mockReturnValue(decodedToken);
 
-    const response = await request(app).get(`/email/${mockToken}`).send();
+    const response = await request(app).get('/email/mockToken').send();
 
     expect(response.status).toBe(401);
   });
@@ -285,9 +262,8 @@ describe('updateEmail', () => {
     };
     (decodeToken as jest.Mock).mockReturnValue(decodedToken);
 
-    const response = await request(app).get(`/email/${mockToken}`).send();
+    const response = await request(app).get('/email/mockToken').send();
 
-    // console.log(response);
     expect(response.status).toBe(400);
   });
 
@@ -299,15 +275,13 @@ describe('updateEmail', () => {
     };
     (decodeToken as jest.Mock).mockReturnValue(decodedToken);
 
-    const response = await request(app).get(`/email/${mockToken}`).send();
+    const response = await request(app).get('/email/mockToken').send();
 
-    // console.log(response);
     expect(response.status).toBe(401);
   });
 });
 
 describe('changePassword', () => {
-  const mockToken = 'mockToken';
   let userId: string;
 
   beforeEach(async () => {
@@ -333,9 +307,8 @@ describe('changePassword', () => {
         currentPassword: 'password123',
         newPassword: 'newPassword',
       })
-      .set('authorization', `Bearer ${mockToken}`);
+      .set('authorization', 'Bearer mockToken');
 
-    // console.log(response);
     expect(response.status).toBe(200);
   });
 
@@ -349,9 +322,8 @@ describe('changePassword', () => {
         currentPassword: 'password123',
         newPassword: 'newPassword',
       })
-      .set('authorization', `Bearer ${mockToken}`);
+      .set('authorization', 'Bearer mockToken');
 
-    // console.log(response);
     expect(response.status).toBe(401);
   });
 
@@ -365,15 +337,13 @@ describe('changePassword', () => {
         currentPassword: 'wrongPassword',
         newPassword: 'newPassword',
       })
-      .set('authorization', `Bearer ${mockToken}`);
+      .set('authorization', 'Bearer mockToken');
 
-    // console.log(response);
     expect(response.status).toBe(401);
   });
 });
 
 describe('resetPassword', () => {
-  const mockToken = 'mockToken';
   let userId: string;
 
   beforeEach(async () => {
@@ -398,10 +368,9 @@ describe('resetPassword', () => {
 
     const response = await request(app).put('/reset-password').send({
       password: 'changedPassword',
-      token: mockToken,
+      token: 'mockToken',
     });
 
-    // console.log(response);
     expect(response.status).toBe(200);
   });
 
@@ -414,10 +383,9 @@ describe('resetPassword', () => {
 
     const response = await request(app).put('/reset-password').send({
       password: 'changedPassword',
-      token: mockToken,
+      token: 'mockToken',
     });
 
-    // console.log(response);
     expect(response.status).toBe(401);
   });
 
@@ -430,10 +398,9 @@ describe('resetPassword', () => {
 
     const response = await request(app).put('/reset-password').send({
       password: 'changedPassword',
-      token: mockToken,
+      token: 'mockToken',
     });
 
-    // console.log(response);
     expect(response.status).toBe(401);
   });
 });

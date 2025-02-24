@@ -1,9 +1,7 @@
 import { Request, Response } from 'express';
 import asyncHandler from 'express-async-handler';
-import { decodeToken } from '../../utils/decodeToken';
 import AppError from '../../utils/AppError';
 import { errors, validation } from '../../config/messages';
-import User from '../../models/userModel';
 import Channel from '../../models/channelModel';
 import ChannelUser from '../../models/channelUserModel';
 import ChannelBlockUser from '../../models/channelBlockUserModel';

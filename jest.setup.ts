@@ -7,6 +7,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
 import { IUser } from './src/classes/PlayerManager';
+import User from './src/models/userModel';
 
 let mongoServer: MongoMemoryServer;
 
