@@ -92,4 +92,18 @@ export default class ChannelManager {
       .filter((user) => user.status === 'werewolf')
       .map((user) => user.socketId);
   }
+
+  getReceiveMessageType(userId: string): { $in: MessageType[] } | null {
+    const user = this.users[userId];
+    if (!user) throw new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN);
+
+    const game = this.game;
+    if (!game) return null;
+
+    const { currentPhase } = game.phaseManager;
+
+    if (currentPhase === 'finished' || user.status === 'spectator') return null;
+    if (user.status === 'normal') return { $in: ['normal'] };
+    return { $in: ['normal', 'werewolf'] };
+  }
 }

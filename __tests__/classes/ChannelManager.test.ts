@@ -407,4 +407,80 @@ describe('test ChannelManager', () => {
       expect(messageReceivers).toEqual(['user3', 'user2']);
     });
   });
+
+  describe('test getReciveMessageType', () => {
+    let game: GameManager;
+    let channel: ChannelManager;
+
+    beforeAll(() => {
+      game = games[mockGameId];
+      channel = new ChannelManager(mockGameId, game);
+
+      channel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+        user2: new ChannelUserManager({
+          userId: 'user2',
+          socketId: 'user2',
+          status: 'werewolf',
+        }),
+        user3: new ChannelUserManager({
+          userId: 'user3',
+          socketId: 'user3',
+          status: 'spectator',
+        }),
+      };
+    });
+
+    it('通常のチャンネルのとき', () => {
+      const normalChanel = new ChannelManager(mockChannelId);
+
+      normalChanel.users = {
+        user1: new ChannelUserManager({
+          userId: 'user1',
+          socketId: 'user1',
+          status: 'normal',
+        }),
+      };
+
+      const receiveMessageType = normalChanel.getReceiveMessageType('user1');
+      expect(receiveMessageType).toBe(null);
+    });
+
+    it('ユーザーが見つからないとき', () => {
+      const normalChanel = new ChannelManager(mockChannelId);
+
+      expect(() => normalChanel.getReceiveMessageType('user1')).toThrow(
+        new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN),
+      );
+    });
+
+    it('ユーザーが観戦者', () => {
+      const receiveMessageType = channel.getReceiveMessageType('user3');
+
+      expect(receiveMessageType).toBe(null);
+    });
+
+    it('ユーザーがnormal', () => {
+      const receiveMessageType = channel.getReceiveMessageType('user1');
+
+      expect(receiveMessageType).toEqual({ $in: ['normal'] });
+    });
+
+    it('ユーザーが人狼', () => {
+      const receiveMessageType = channel.getReceiveMessageType('user2');
+
+      expect(receiveMessageType).toEqual({ $in: ['normal', 'werewolf'] });
+    });
+
+    it('ゲームが終了しているとき', () => {
+      game.phaseManager.currentPhase = 'finished';
+      const receiveMessageType = channel.getReceiveMessageType('user1');
+
+      expect(receiveMessageType).toBe(null);
+    });
+  });
 });

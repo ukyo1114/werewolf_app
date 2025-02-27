@@ -31,6 +31,7 @@ export const errors = {
   USER_ALREADY_LEFT: 'ユーザーは既に退出済みです。',
   GAME_ACCESS_FORBIDDEN: 'ゲームを利用できません。',
   GAME_IS_PROCESSING: '集計中のため受付できません。',
+  MESSAGE_NOT_FOUND: 'メッセージが見つかりません。',
 };
 
 export const validation = {
@@ -44,6 +45,8 @@ export const validation = {
   CHANNEL_DESCRIPTION_LENGTH:
     '説明文は1文字以上2000文字以内で入力してください。',
   INVALID_GAME_ID: 'ゲームIDが無効です。',
+  MESSAGE_LENGTH: 'メッセージは1文字以上400文字以内で入力してください。',
+  INVALID_MESSAGE_ID: 'メッセージIDが無効です。',
 };
 
 export const gameError = {
