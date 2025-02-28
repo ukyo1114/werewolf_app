@@ -401,7 +401,7 @@ describe('test sendMessage', () => {
       testChannelId,
       'testMessage',
       403,
-      errors.MESSAGE_SENDING_FORBIDDEN,
+      errors.CHANNEL_ACCESS_FORBIDDEN,
     );
   });
 

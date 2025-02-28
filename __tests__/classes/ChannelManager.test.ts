@@ -346,6 +346,16 @@ describe('test ChannelManager', () => {
     });
   });
 
+  describe('test checkCanUserAccessChannel', () => {
+    it('チャンネルにユーザーがいないときエラーを返す', () => {
+      const channel = new ChannelManager(mockChannelId);
+
+      expect(() => channel.checkCanUserAccessChannel('userId')).toThrow(
+        new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN),
+      );
+    });
+  });
+
   describe('test getMessageReceivers', () => {
     it('メッセージタイプがnormalのときnullを返す', () => {
       const channel = new ChannelManager(mockChannelId);
