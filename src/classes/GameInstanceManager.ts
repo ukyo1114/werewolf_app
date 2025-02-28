@@ -21,3 +21,11 @@ export const isUserPlayingGame = (userId: string) => {
 
   return game ? game.gameId : null;
 };
+
+export const getGamesByChannelId = (channelId: string) => {
+  const filteredGames = Object.values(games).filter(
+    (game) => game.channelId === channelId,
+  );
+
+  return filteredGames;
+};

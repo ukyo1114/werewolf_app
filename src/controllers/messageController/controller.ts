@@ -2,13 +2,7 @@ import { Request, Response, RequestHandler } from 'express';
 import asyncHandler from 'express-async-handler';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
-import User from '../../models/userModel';
-import ChannelUser from '../../models/channelUserModel';
-import Game from '../../models/gameModel';
-import GameUser from '../../models/gameUserModel';
 import Message, { MessageType } from '../../models/messageModel';
-import { games } from '../../classes/GameInstanceManager';
-import GameManager from '../../classes/GameManager';
 import { channels } from '../../classes/ChannelInstanceManager';
 
 interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>

@@ -241,7 +241,7 @@ describe('test ChannelManager', () => {
       const channel = new ChannelManager(mockChannelId);
 
       expect(() => channel.getSendMessageType(mockUserId)).toThrow(
-        new AppError(403, errors.MESSAGE_SENDING_FORBIDDEN),
+        new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN),
       );
     });
 

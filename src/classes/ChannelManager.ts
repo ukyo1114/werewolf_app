@@ -51,8 +51,8 @@ export default class ChannelManager {
   }
 
   getSendMessageType(userId: string) {
+    this.checkCanUserAccessChannel(userId);
     const user = this.users[userId];
-    if (!user) throw new AppError(403, errors.MESSAGE_SENDING_FORBIDDEN);
 
     const game = this.game;
     if (!game) return 'normal';
@@ -94,8 +94,8 @@ export default class ChannelManager {
   }
 
   getReceiveMessageType(userId: string): { $in: MessageType[] } | null {
+    this.checkCanUserAccessChannel(userId);
     const user = this.users[userId];
-    if (!user) throw new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN);
 
     const game = this.game;
     if (!game) return null;
@@ -105,5 +105,10 @@ export default class ChannelManager {
     if (currentPhase === 'finished' || user.status === 'spectator') return null;
     if (user.status === 'normal') return { $in: ['normal'] };
     return { $in: ['normal', 'werewolf'] };
+  }
+
+  checkCanUserAccessChannel(userId: string) {
+    if (!this.users[userId])
+      throw new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN);
   }
 }
