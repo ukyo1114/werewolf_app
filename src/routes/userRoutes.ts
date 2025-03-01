@@ -15,22 +15,20 @@ import protect from '../middleware/protect';
 
 const router = express.Router();
 
-const validateUserNameRequired = body('userName')
-  .trim()
-  .notEmpty()
-  .isLength({ min: 1, max: 20 })
-  .withMessage(validation.USER_NAME_LENGTH)
-  .escape();
+const validateUserName = (isOptional: boolean) => {
+  let validator = body('userName').trim();
 
-const validateUserNameOptional = body('userName')
-  .trim()
-  .optional()
-  .isLength({ min: 1, max: 20 })
-  .withMessage(validation.USER_NAME_LENGTH)
-  .escape();
+  if (isOptional) {
+    validator = validator.optional();
+  }
+
+  return validator
+    .isLength({ min: 1, max: 20 })
+    .withMessage(validation.USER_NAME_LENGTH)
+    .escape();
+};
 
 const validateEmail = body('email')
-  .notEmpty()
   .isEmail()
   .withMessage(validation.INVALID_EMAIL)
   .trim()
@@ -44,13 +42,12 @@ const validatePic = body('pic')
 const validatePassword = (password: string) =>
   body(password)
     .trim()
-    .notEmpty()
     .isLength({ min: 8, max: 64 })
     .withMessage(validation.PASSWORD_LENGTH);
 
 router.post(
   '/register',
-  [validateUserNameRequired, validatePassword('password')],
+  [validateUserName(false), validatePassword('password')],
   validateRequest,
   registerUser,
 );
@@ -64,7 +61,7 @@ router.post(
 
 router.put(
   '/profile',
-  [validateUserNameOptional, validatePic],
+  [validateUserName(true), validatePic],
   validateRequest,
   protect,
   updateProfile,

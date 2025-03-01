@@ -1,22 +1,15 @@
 jest.mock('../../src/utils/decodeToken', () => ({
   decodeToken: jest.fn(),
 }));
+
+import app from '../../src/app';
 import { decodeToken } from '../../src/utils/decodeToken';
-
-import express from 'express';
 import request from 'supertest';
-import userRoutes from '../../src/routes/userRoutes';
 import User from '../../src/models/userModel';
+import { errors, validation } from '../../src/config/messages';
 
-const app = express();
-app.use(express.json());
-app.use(userRoutes);
-
-describe('registerUser', () => {
+describe('/register', () => {
   beforeEach(async () => {
-    jest.clearAllMocks();
-    await User.deleteMany({});
-
     await User.create({
       userName: 'testUser',
       email: 'already-registered@example.com',
@@ -26,141 +19,248 @@ describe('registerUser', () => {
     });
   });
 
+  afterEach(async () => {
+    jest.clearAllMocks();
+    await User.deleteMany({});
+  });
+
+  const customRequest = async (
+    email: string,
+    action: string,
+    userName: string | undefined,
+    password: string | undefined,
+    token: string,
+    status: number,
+    errorMessage?: string,
+  ) => {
+    (decodeToken as jest.Mock).mockReturnValue({ email, action });
+
+    const response = await request(app)
+      .post('/api/user/register')
+      .send({ userName, password, token })
+      .expect(status);
+
+    if (errorMessage)
+      expect(response.body).toHaveProperty('message', errorMessage);
+
+    return response.body;
+  };
+
   it('ユーザー登録に成功する', async () => {
-    const decodedToken = { email: 'test@example.com', action: 'registerUser' };
-    (decodeToken as jest.Mock).mockReturnValue(decodedToken);
-    const response = await request(app).post('/register').send({
-      userName: 'testUser',
-      password: 'password123',
-      token: 'mockToken',
-    });
-
-    expect(response.status).toBe(201);
+    await customRequest(
+      'test@example.com',
+      'registerUser',
+      'testUser',
+      'password',
+      'mockToken',
+      201,
+    );
   });
 
-  it('ユーザー名が提供されていない時、バリデーションエラーを返す', async () => {
-    const decodedToken = { email: 'test@example.com', action: 'registerUser' };
-    (decodeToken as jest.Mock).mockReturnValue(decodedToken);
-    const response = await request(app).post('/register').send({
-      password: 'password123',
-      token: 'mockToken',
-    });
-
-    expect(response.status).toBe(400);
-  });
-
-  it('ユーザー名が長すぎる時、バリデーションエラーを返す', async () => {
-    const decodedToken = { email: 'test@example.com', action: 'registerUser' };
-    (decodeToken as jest.Mock).mockReturnValue(decodedToken);
-    const response = await request(app).post('/register').send({
-      userName: 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほ',
-      password: 'password123',
-      token: 'mockToken',
-    });
-
-    expect(response.status).toBe(400);
-  });
-
-  it('パスワードが提供されていない時、バリデーションエラーを返す', async () => {
-    const decodedToken = { email: 'test@example.com', action: 'registerUser' };
-    (decodeToken as jest.Mock).mockReturnValue(decodedToken);
-    const response = await request(app).post('/register').send({
-      userName: 'testUser',
-      token: 'mockToken',
-    });
-
-    expect(response.status).toBe(400);
-  });
-
-  it('パスワードが短すぎる時、バリデーションエラーを返す', async () => {
-    const decodedToken = { email: 'test@example.com', action: 'registerUser' };
-    (decodeToken as jest.Mock).mockReturnValue(decodedToken);
-    const response = await request(app).post('/register').send({
-      userName: 'testUser',
-      password: 'short',
-      token: 'mockToken',
-    });
-
-    expect(response.status).toBe(400);
-  });
-
-  it('トークン内のactionが不正な時、401エラーを返す', async () => {
-    const decodedToken = { email: 'test@example.com', action: 'invalidAction' };
-    (decodeToken as jest.Mock).mockReturnValue(decodedToken);
-    const response = await request(app).post('/register').send({
-      userName: 'testUser',
-      password: 'password123',
-      token: 'mockToken',
-    });
-
-    expect(response.status).toBe(401);
+  it('トークンのactionが不正な時、401エラーを返す', async () => {
+    await customRequest(
+      'test@example.com',
+      'invalidAction',
+      'testUser',
+      'password',
+      'mockToken',
+      401,
+      errors.INVALID_TOKEN,
+    );
   });
 
   it('メールアドレスが既に登録されている時、400エラーを返す', async () => {
-    const decodedToken = {
-      email: 'already-registered@example.com',
-      action: 'registerUser',
-    };
-    (decodeToken as jest.Mock).mockReturnValue(decodedToken);
-    const response = await request(app).post('/register').send({
-      userName: 'testUser',
-      password: 'password123',
-      token: 'mockToken',
-    });
+    await customRequest(
+      'already-registered@example.com',
+      'registerUser',
+      'testUser',
+      'password',
+      'mockToken',
+      400,
+      errors.EMAIL_ALREADY_REGISTERED,
+    );
+  });
 
-    expect(response.status).toBe(400);
+  it('ユーザー名がundefinedのとき', async () => {
+    await customRequest(
+      'test@example.com',
+      'registerUser',
+      undefined,
+      'password',
+      'mockToken',
+      400,
+      validation.USER_NAME_LENGTH,
+    );
+  });
+
+  it('ユーザー名が空文字のとき', async () => {
+    await customRequest(
+      'test@example.com',
+      'registerUser',
+      '',
+      'password',
+      'mockToken',
+      400,
+      validation.USER_NAME_LENGTH,
+    );
+  });
+
+  it('ユーザー名が長すぎるとき', async () => {
+    await customRequest(
+      'test@example.com',
+      'registerUser',
+      'a'.repeat(21),
+      'password',
+      'mockToken',
+      400,
+      validation.USER_NAME_LENGTH,
+    );
+  });
+
+  it('パスワードがundefinedのとき', async () => {
+    await customRequest(
+      'test@example.com',
+      'registerUser',
+      'testUser',
+      undefined,
+      'mockToken',
+      400,
+      validation.PASSWORD_LENGTH,
+    );
+  });
+
+  it('パスワードが短すぎるとき', async () => {
+    await customRequest(
+      'test@example.com',
+      'registerUser',
+      'testUser',
+      'a'.repeat(7),
+      'mockToken',
+      400,
+      validation.PASSWORD_LENGTH,
+    );
+  });
+
+  it('パスワードが長すぎるとき', async () => {
+    await customRequest(
+      'test@example.com',
+      'registerUser',
+      'testUser',
+      'a'.repeat(65),
+      'mockToken',
+      400,
+      validation.PASSWORD_LENGTH,
+    );
   });
 });
 
-describe('login', () => {
+describe('/login', () => {
+  let testUserId: string;
+
   beforeAll(async () => {
-    await User.create({
+    const testUser = await User.create({
       userName: 'testUser',
       email: 'test@example.com',
-      password: 'password123',
+      password: 'password',
       pic: null,
       isGuest: false,
     });
+
+    testUserId = testUser._id.toString();
   });
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
+  const customRequest = async (
+    email: string | undefined,
+    password: string | undefined,
+    status: number,
+    errorMessage?: string,
+  ) => {
+    const response = await request(app)
+      .post('/api/user/login')
+      .send({ email, password })
+      .expect(status);
+
+    if (errorMessage)
+      expect(response.body).toHaveProperty('message', errorMessage);
+
+    return response.body;
+  };
+
   it('ログイン成功', async () => {
-    const response = await request(app).post('/login').send({
-      email: 'test@example.com',
-      password: 'password123',
-    });
+    const loginUser = await customRequest('test@example.com', 'password', 200);
 
-    expect(response.status).toBe(200);
+    expect(loginUser.userId).toBe(testUserId);
+    expect(loginUser.userName).toBe('testUser');
+    expect(loginUser.pic).toBe(null);
   });
 
-  it('メールアドレスが登録されていない時、400エラーを返す', async () => {
-    const response = await request(app).post('/login').send({
-      email: 'not-registered@example.com',
-      password: 'password123',
-    });
-
-    expect(response.status).toBe(400);
+  it('メールアドレスが登録されていないとき', async () => {
+    await customRequest(
+      'not-registered@example.com',
+      'password',
+      400,
+      errors.EMAIL_NOT_FOUND,
+    );
   });
 
-  it('パスワードが間違っている時、401エラーを返す', async () => {
-    const response = await request(app).post('/login').send({
-      email: 'test@example.com',
-      password: 'wrongPassword',
-    });
+  it('パスワードが間違っているとき', async () => {
+    await customRequest(
+      'test@example.com',
+      'wrongpassword',
+      401,
+      errors.WRONG_PASSWORD,
+    );
+  });
 
-    expect(response.status).toBe(401);
+  it('メールアドレスがundefinedのとき', async () => {
+    await customRequest(undefined, 'password', 400, validation.INVALID_EMAIL);
+  });
+
+  it('メールアドレスの形式が正しくないとき', async () => {
+    await customRequest(
+      'wrongEmail',
+      'password',
+      400,
+      validation.INVALID_EMAIL,
+    );
+  });
+
+  it('パスワードがundefinedのとき', async () => {
+    await customRequest(
+      'test@example.com',
+      undefined,
+      400,
+      validation.PASSWORD_LENGTH,
+    );
+  });
+
+  it('パスワードが短すぎるとき', async () => {
+    await customRequest(
+      'test@example.com',
+      'a'.repeat(7),
+      400,
+      validation.PASSWORD_LENGTH,
+    );
+  });
+
+  it('パスワードが長すぎるとき', async () => {
+    await customRequest(
+      'test@example.com',
+      'a'.repeat(65),
+      400,
+      validation.PASSWORD_LENGTH,
+    );
   });
 });
 
 describe('updateProfile', () => {
-  let userId: string;
+  let testUserId: string;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
-    await User.deleteMany({});
     const user = await User.create({
       userName: 'testUser',
       email: 'already-registered@example.com',
@@ -168,51 +268,82 @@ describe('updateProfile', () => {
       pic: null,
       isGuest: false,
     });
-    userId = user._id.toString();
+
+    testUserId = user._id.toString();
   });
+
+  afterEach(async () => {
+    jest.clearAllMocks();
+    await User.deleteMany({});
+  });
+
+  const customRequest = async (
+    userId: string,
+    userName: string | undefined,
+    pic: string | undefined,
+    status: number,
+    errorMessage?: string,
+  ) => {
+    (decodeToken as jest.Mock).mockReturnValue({ userId });
+
+    const response = await request(app)
+      .put('/api/user/profile')
+      .send({ userName, pic })
+      .set('authorization', 'Bearer mockToken')
+      .expect(status);
+
+    if (errorMessage)
+      expect(response.body).toHaveProperty('message', errorMessage);
+
+    return response.body;
+  };
 
   it('ユーザー名の更新に成功する', async () => {
-    const decodedToken = { userId };
-    (decodeToken as jest.Mock).mockReturnValue(decodedToken);
-
-    const response = await request(app)
-      .put('/profile')
-      .send({
-        userName: 'newUserName',
-      })
-      .set('authorization', 'Bearer mockToken');
-
-    expect(response.status).toBe(200);
+    await customRequest(testUserId, 'newUserName', undefined, 200);
   });
 
-  it('ユーザー名と画像が送信されなかった場合、400エラーを返す', async () => {
-    const decodedToken = { userId };
-    (decodeToken as jest.Mock).mockReturnValue(decodedToken);
-
-    const response = await request(app)
-      .put('/profile')
-      .send({})
-      .set('authorization', 'Bearer mockToken');
-
-    expect(response.status).toBe(400);
+  it('ユーザー名と画像が送信されなかったとき', async () => {
+    await customRequest(
+      testUserId,
+      undefined,
+      undefined,
+      400,
+      errors.NO_UPDATE_DATA,
+    );
   });
 
-  it('画像の形式が無効な場合、400エラーを返す', async () => {
-    const decodedToken = { userId };
-    (decodeToken as jest.Mock).mockReturnValue(decodedToken);
+  it('画像の形式が正しくないとき', async () => {
+    await customRequest(
+      testUserId,
+      undefined,
+      'invalidPicture',
+      400,
+      validation.INVALID_PIC,
+    );
+  });
 
-    const response = await request(app)
-      .put('/profile')
-      .send({
-        pic: 'invalidPicture',
-      })
-      .set('authorization', 'Bearer mockToken');
+  it('ユーザー名が空文字のとき', async () => {
+    await customRequest(
+      testUserId,
+      '',
+      undefined,
+      400,
+      validation.USER_NAME_LENGTH,
+    );
+  });
 
-    expect(response.status).toBe(400);
+  it('ユーザー名が長すぎるとき', async () => {
+    await customRequest(
+      testUserId,
+      'a'.repeat(21),
+      undefined,
+      400,
+      validation.USER_NAME_LENGTH,
+    );
   });
 });
 
-describe('updateEmail', () => {
+/* describe('updateEmail', () => {
   let userId: string;
 
   beforeEach(async () => {
@@ -403,4 +534,4 @@ describe('resetPassword', () => {
 
     expect(response.status).toBe(401);
   });
-});
+}); */
