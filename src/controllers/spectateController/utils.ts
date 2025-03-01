@@ -3,27 +3,27 @@ import User from '../../models/userModel';
 
 export const createGameList = async (channelId: string) => {
   const filteredGames = getGamesByChannelId(channelId);
-  if (filteredGames.length === 0) return [];
+  if (!filteredGames.length) return [];
 
-  // 各ゲームごとに情報を取得
-  const gameList = await Promise.all(
-    filteredGames.map((game) => {
-      const { gameId, result } = game;
-      const { currentDay, currentPhase } = game.phaseManager;
+  return Promise.all(
+    filteredGames.map(
+      async ({ gameId, result, phaseManager, playerManager }) => {
+        const playersDetail = await User.find({
+          _id: { $in: Object.keys(playerManager.players) },
+        }).select('_id userName pic');
 
-      const players = Object.keys(game.playerManager.players);
-
-      return User.find({ _id: { $in: players } })
-        .populate('_id userName pic')
-        .then((playersDetail) => ({
+        return {
           gameId,
-          players: playersDetail,
-          currentDay,
-          currentPhase,
+          players: playersDetail.map(({ _id, userName, pic }) => ({
+            _id: _id.toString(),
+            userName,
+            pic,
+          })),
+          currentDay: phaseManager.currentDay,
+          currentPhase: phaseManager.currentPhase,
           result: result.value,
-        }));
-    }),
+        };
+      },
+    ),
   );
-
-  return gameList;
 };
