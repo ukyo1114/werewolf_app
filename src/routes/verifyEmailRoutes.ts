@@ -9,7 +9,6 @@ import protect from '../middleware/protect';
 const router = express.Router();
 
 const validateEmail = body('email')
-  .notEmpty()
   .isEmail()
   .withMessage(validation.INVALID_EMAIL)
   .trim()

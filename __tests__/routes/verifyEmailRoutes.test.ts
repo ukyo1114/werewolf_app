@@ -2,75 +2,169 @@ jest.mock('../../src/controllers/verifyEmailController/utils', () => ({
   ...jest.requireActual('../../src/controllers/verifyEmailController/utils'),
   sendMail: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('../../src/utils/decodeToken', () => ({
+  decodeToken: jest.fn(),
+}));
 
+import app from '../../src/app';
+import { decodeToken } from '../../src/utils/decodeToken';
 import request from 'supertest';
-import express from 'express';
-import verifyEmailRoutes from '../../src/routes/verifyEmailRoutes';
 import User from '../../src/models/userModel';
-import { errors } from '../../src/config/messages';
-// import { validation } from '../../src/config/messages';
+import { errors, validation } from '../../src/config/messages';
 
-jest.mock('../../src/models/userModel');
+let testUserId: string;
+let guestUserId: string;
 
-const app = express();
-app.use(express.json());
-app.use(verifyEmailRoutes);
+beforeEach(async () => {
+  const [testUser, guestUser] = await Promise.all([
+    User.create({
+      userName: 'testUser',
+      email: 'already-registered@example.com',
+      password: 'password',
+      pic: null,
+      isGuest: false,
+    }),
+    User.create({}),
+  ]);
 
-describe('POST /register-user', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
+  testUserId = testUser._id.toString();
+  guestUserId = guestUser._id.toString();
+});
+
+afterEach(async () => {
+  jest.clearAllMocks();
+  await User.deleteMany({});
+});
+
+describe('/register-user', () => {
+  const customRequest = async (
+    email: string | undefined,
+    status: number,
+    errorMessage?: string,
+  ) => {
+    const response = await request(app)
+      .post('/api/verify-email/register-user')
+      .send({ email })
+      .expect(status);
+
+    if (errorMessage)
+      expect(response.body).toHaveProperty('message', errorMessage);
+
+    return response.body;
+  };
+
+  it('登録用メールが送信できる', async () => {
+    await customRequest('test@example.com', 202);
   });
 
-  it('should return 202 when email is valid', async () => {
-    (User.exists as jest.Mock).mockResolvedValue(false);
+  it('既に登録されたメールアドレスを送信したとき', async () => {
+    await customRequest(
+      'already-registered@example.com',
+      400,
+      errors.EMAIL_ALREADY_REGISTERED,
+    );
+  });
+
+  it('メールアドレスがundefinedのとき', async () => {
+    await customRequest(undefined, 400, validation.INVALID_EMAIL);
+  });
+
+  it('メールアドレスの形式が正しくないとき', async () => {
+    await customRequest('invalidEmail', 400, validation.INVALID_EMAIL);
+  });
+});
+
+describe('/change-email', () => {
+  const customRequest = async (
+    userId: string,
+    email: string | undefined,
+    status: number,
+    errorMessage?: string,
+  ) => {
+    (decodeToken as jest.Mock).mockReturnValue({ userId });
 
     const response = await request(app)
-      .post('/register-user')
-      .send({ email: 'test@example.com' });
+      .post('/api/verify-email/change-email')
+      .send({ email })
+      .set('authorization', 'Bearer mockToken')
+      .expect(status);
 
-    expect(response.status).toBe(202);
-    expect(response.body).toEqual({});
+    if (errorMessage)
+      expect(response.body).toHaveProperty('message', errorMessage);
+
+    return response.body;
+  };
+
+  it('メールアドレス変更用メールが送信できる', async () => {
+    await customRequest(testUserId, 'change@example.com', 202);
   });
 
-  it('should return 400 when email is already registered', async () => {
-    (User.exists as jest.Mock).mockResolvedValue(true);
+  it('既に登録されたメールアドレスを送信したとき', async () => {
+    await customRequest(
+      testUserId,
+      'already-registered@example.com',
+      400,
+      errors.EMAIL_ALREADY_REGISTERED,
+    );
+  });
 
+  it('ゲストアカウントでメールアドレスを変更しようとしているとき', async () => {
+    await customRequest(
+      guestUserId,
+      'change@example.com',
+      403,
+      errors.PERMISSION_DENIED,
+    );
+  });
+
+  it('メールアドレスがundefinedのとき', async () => {
+    await customRequest(testUserId, undefined, 400, validation.INVALID_EMAIL);
+  });
+
+  it('メールアドレスの形式が正しくないとき', async () => {
+    await customRequest(
+      testUserId,
+      'invalidEmail',
+      400,
+      validation.INVALID_EMAIL,
+    );
+  });
+});
+
+describe('/forgot-password', () => {
+  const customRequest = async (
+    email: string | undefined,
+    status: number,
+    errorMessage?: string,
+  ) => {
     const response = await request(app)
-      .post('/register-user')
-      .send({ email: 'test@example.com' });
+      .post('/api/verify-email/forgot-password')
+      .send({ email })
+      .expect(status);
 
-    // console.log(response);
+    if (errorMessage)
+      expect(response.body).toHaveProperty('message', errorMessage);
 
-    expect(response.status).toBe(400);
-    // expect(response.body.message).toBe(errors.EMAIL_ALREADY_REGISTERED);
-    expect(User.exists).toHaveBeenCalledWith({ email: 'test@example.com' });
+    return response.body;
+  };
+
+  it('パスワードリセット用メールが送信できる', async () => {
+    await customRequest('already-registered@example.com', 202);
   });
 
-  it('should return 400 when email is invalid', async () => {
-    const response = await request(app)
-      .post('/register-user')
-      .send({ email: 'not-an-email' });
-
-    expect(response.status).toBe(400);
-    /*     expect(response.body.errors).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          message: validation.INVALID_EMAIL,
-        }),
-      ]),
-    ); */
+  it('メールアドレスがundefinedのとき', async () => {
+    await customRequest(undefined, 400, validation.INVALID_EMAIL);
   });
 
-  it('should return 400 when email is missing', async () => {
-    const response = await request(app).post('/register-user').send({});
+  it('メールアドレスの形式が正しくないとき', async () => {
+    await customRequest('invalidEmail', 400, validation.INVALID_EMAIL);
+  });
 
-    expect(response.status).toBe(400);
-    /*     expect(response.body.errors).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          message: validation.INVALID_EMAIL,
-        }),
-      ]),
-    ); */
+  it('メールアドレスが登録されていないとき', async () => {
+    await customRequest(
+      'not-registered@example.com',
+      400,
+      errors.EMAIL_NOT_REGISTERED,
+    );
   });
 });

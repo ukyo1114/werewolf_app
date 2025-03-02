@@ -21,13 +21,25 @@ export const sendVerificationEmail = (action: keyof typeof mailContent) =>
       const userId = req.userId;
       const { email } = req.body;
 
-      // メールアドレスの重複をチェック
-      if (action === 'registerUser' || action === 'changeEmail') {
-        const emailExists = await User.exists({ email });
-
-        if (emailExists)
-          throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
+      // ゲストアカウントによる操作を禁止
+      if (action === 'changeEmail' && userId) {
+        const user = await User.findById(userId).select('isGuest').lean();
+        if (user?.isGuest) throw new AppError(403, errors.PERMISSION_DENIED);
       }
+
+      const emailExists = await User.exists({ email });
+
+      // メールアドレスを重複して登録できないようチェック
+      if (
+        (action === 'registerUser' || action === 'changeEmail') &&
+        emailExists
+      ) {
+        throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
+      }
+
+      // メールアドレスが登録されていなければ通知する
+      if (action === 'forgotPassword' && !emailExists)
+        throw new AppError(400, errors.EMAIL_NOT_REGISTERED);
 
       const verificationToken: string = genVerificationToken({
         userId,
