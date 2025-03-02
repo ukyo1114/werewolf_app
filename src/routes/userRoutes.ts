@@ -10,6 +10,7 @@ import {
   updateEmail,
   changePassword,
   resetPassword,
+  loginAsGuest,
 } from '../controllers/userController/controller';
 import protect from '../middleware/protect';
 
@@ -58,6 +59,8 @@ router.post(
   validateRequest,
   login,
 );
+
+router.get('/guest', loginAsGuest);
 
 router.put(
   '/profile',

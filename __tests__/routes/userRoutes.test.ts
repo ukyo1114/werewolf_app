@@ -9,22 +9,31 @@ import User from '../../src/models/userModel';
 import { errors, validation } from '../../src/config/messages';
 import { mockUserId } from '../../jest.setup';
 
-describe('/register', () => {
-  beforeEach(async () => {
-    await User.create({
+let testUserId: string;
+let guestUserId: string;
+
+beforeEach(async () => {
+  const [testUser, guestUser] = await Promise.all([
+    User.create({
       userName: 'testUser',
       email: 'already-registered@example.com',
-      password: 'password123',
+      password: 'password',
       pic: null,
       isGuest: false,
-    });
-  });
+    }),
+    User.create({}),
+  ]);
 
-  afterEach(async () => {
-    jest.clearAllMocks();
-    await User.deleteMany({});
-  });
+  testUserId = testUser._id.toString();
+  guestUserId = guestUser._id.toString();
+});
 
+afterEach(async () => {
+  jest.clearAllMocks();
+  await User.deleteMany({});
+});
+
+describe('/register', () => {
   const customRequest = async (
     email: string,
     action: string,
@@ -156,24 +165,6 @@ describe('/register', () => {
 });
 
 describe('/login', () => {
-  let testUserId: string;
-
-  beforeAll(async () => {
-    const testUser = await User.create({
-      userName: 'testUser',
-      email: 'test@example.com',
-      password: 'password',
-      pic: null,
-      isGuest: false,
-    });
-
-    testUserId = testUser._id.toString();
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
   const customRequest = async (
     email: string | undefined,
     password: string | undefined,
@@ -192,7 +183,11 @@ describe('/login', () => {
   };
 
   it('ログイン成功', async () => {
-    const loginUser = await customRequest('test@example.com', 'password', 200);
+    const loginUser = await customRequest(
+      'already-registered@example.com',
+      'password',
+      200,
+    );
 
     expect(loginUser.userId).toBe(testUserId);
     expect(loginUser.userName).toBe('testUser');
@@ -210,7 +205,7 @@ describe('/login', () => {
 
   it('パスワードが間違っているとき', async () => {
     await customRequest(
-      'test@example.com',
+      'already-registered@example.com',
       'wrongpassword',
       401,
       errors.WRONG_PASSWORD,
@@ -232,7 +227,7 @@ describe('/login', () => {
 
   it('パスワードがundefinedのとき', async () => {
     await customRequest(
-      'test@example.com',
+      'already-registered@example.com',
       undefined,
       400,
       validation.PASSWORD_LENGTH,
@@ -241,7 +236,7 @@ describe('/login', () => {
 
   it('パスワードが短すぎるとき', async () => {
     await customRequest(
-      'test@example.com',
+      'already-registered@example.com',
       'a'.repeat(7),
       400,
       validation.PASSWORD_LENGTH,
@@ -250,7 +245,7 @@ describe('/login', () => {
 
   it('パスワードが長すぎるとき', async () => {
     await customRequest(
-      'test@example.com',
+      'already-registered@example.com',
       'a'.repeat(65),
       400,
       validation.PASSWORD_LENGTH,
@@ -258,26 +253,32 @@ describe('/login', () => {
   });
 });
 
+describe('/guest', () => {
+  const customRequest = async (status: number, errorMessage?: string) => {
+    const response = await request(app)
+      .get('/api/user/guest')
+      .send()
+      .expect(status);
+
+    if (errorMessage)
+      expect(response.body).toHaveProperty('message', errorMessage);
+
+    return response.body;
+  };
+
+  it('ゲストアカウントが作成されユーザー情報を取得', async () => {
+    const guestUser = await customRequest(200);
+
+    expect(guestUser).toHaveProperty('userId');
+    expect(guestUser).toHaveProperty('token');
+
+    const createdUser = await User.exists({ _id: guestUser.userId });
+
+    expect(createdUser).not.toBeNull();
+  });
+});
+
 describe('updateProfile', () => {
-  let testUserId: string;
-
-  beforeEach(async () => {
-    const user = await User.create({
-      userName: 'testUser',
-      email: 'already-registered@example.com',
-      password: 'password123',
-      pic: null,
-      isGuest: false,
-    });
-
-    testUserId = user._id.toString();
-  });
-
-  afterEach(async () => {
-    jest.clearAllMocks();
-    await User.deleteMany({});
-  });
-
   const customRequest = async (
     userId: string,
     userName: string | undefined,
@@ -301,6 +302,10 @@ describe('updateProfile', () => {
 
   it('ユーザー名の更新に成功する', async () => {
     await customRequest(testUserId, 'newUserName', undefined, 200);
+  });
+
+  it('ゲストユーザーのユーザー名の更新に成功する', async () => {
+    await customRequest(guestUserId, 'newUsername', undefined, 200);
   });
 
   it('ユーザー名と画像が送信されなかったとき', async () => {
@@ -345,24 +350,6 @@ describe('updateProfile', () => {
 });
 
 describe('updateEmail', () => {
-  let testUserId: string;
-
-  beforeEach(async () => {
-    const testUser = await User.create({
-      userName: 'testUser',
-      email: 'already-registered@example.com',
-      password: 'password123',
-      pic: null,
-      isGuest: false,
-    });
-    testUserId = testUser._id.toString();
-  });
-
-  afterEach(async () => {
-    jest.clearAllMocks();
-    await User.deleteMany({});
-  });
-
   const customRequest = async (
     userId: string,
     email: string,
@@ -427,24 +414,6 @@ describe('updateEmail', () => {
 });
 
 describe('changePassword', () => {
-  let testUserId: string;
-
-  beforeEach(async () => {
-    const testUser = await User.create({
-      userName: 'testUser',
-      email: 'already-registered@example.com',
-      password: 'password',
-      pic: null,
-      isGuest: false,
-    });
-    testUserId = testUser._id.toString();
-  });
-
-  afterEach(async () => {
-    jest.clearAllMocks();
-    await User.deleteMany({});
-  });
-
   const customRequest = async (
     userId: string,
     currentPassword: string | undefined,
@@ -468,6 +437,16 @@ describe('changePassword', () => {
 
   it('パスワードの変更に成功する', async () => {
     await customRequest(testUserId, 'password', 'newPassword', 200);
+  });
+
+  it('ゲストアカウントでパスワードを変更しようとしたとき', async () => {
+    await customRequest(
+      guestUserId,
+      'guestpassword',
+      'newPassword',
+      403,
+      errors.PERMISSION_DENIED,
+    );
   });
 
   it('ユーザーが存在しないとき', async () => {
@@ -552,24 +531,6 @@ describe('changePassword', () => {
 });
 
 describe('resetPassword', () => {
-  let testUserId: string;
-
-  beforeEach(async () => {
-    const testUser = await User.create({
-      userName: 'testUser',
-      email: 'already-registered@example.com',
-      password: 'password123',
-      pic: null,
-      isGuest: false,
-    });
-    testUserId = testUser._id.toString();
-  });
-
-  afterEach(async () => {
-    jest.clearAllMocks();
-    await User.deleteMany({});
-  });
-
   const customRequest = async (
     email: string,
     action: string,

@@ -88,6 +88,17 @@ export const login = asyncHandler(
   },
 );
 
+export const loginAsGuest = asyncHandler(
+  async (req: Request, res: Response): Promise<void> => {
+    const guestUser = await User.create({});
+
+    res.status(200).json({
+      userId: guestUser._id.toString(),
+      token: genUserToken(guestUser._id.toString()),
+    });
+  },
+);
+
 // TODO: 更新を通知する処理を追加
 export const updateProfile = asyncHandler(
   async (req: CustomRequest<IUpdateProfile>, res: Response): Promise<void> => {
@@ -139,8 +150,9 @@ export const changePassword = asyncHandler(
     const userId = req.userId;
     const { currentPassword, newPassword } = req.body;
 
-    const user = await User.findById(userId).select('password');
+    const user = await User.findById(userId).select('password isGuest');
     if (!user) throw new AppError(401, errors.USER_NOT_FOUND);
+    if (user.isGuest) throw new AppError(403, errors.PERMISSION_DENIED);
 
     if (!(await user.matchPassword(currentPassword))) {
       throw new AppError(401, errors.WRONG_PASSWORD);

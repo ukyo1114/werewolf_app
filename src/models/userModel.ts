@@ -20,10 +20,12 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: true,
       maxlength: 20,
+      default: 'ゲスト',
     },
     email: {
       type: String,
       unique: true,
+      sparse: true,
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     },
     password: { type: String, minlength: 8 },
