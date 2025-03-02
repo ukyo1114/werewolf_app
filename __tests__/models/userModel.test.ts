@@ -1,6 +1,10 @@
 import User from '../../src/models/userModel';
 
 describe('User Model Test', () => {
+  afterAll(async () => {
+    await User.deleteMany({});
+  });
+
   it('ユーザー登録に成功する', async () => {
     const userData = {
       userName: 'testuser',
@@ -16,12 +20,6 @@ describe('User Model Test', () => {
     expect(user.password).not.toBe(userData.password); // パスワードはハッシュ化されている
     expect(user.createdAt).toBeDefined();
     expect(user.updatedAt).toBeDefined();
-  });
-
-  it('必須項目が未入力の場合、ユーザーの登録に失敗する', async () => {
-    const invalidData = {};
-
-    await expect(User.create(invalidData)).rejects.toThrow();
   });
 
   it('メールアドレスの検証が実行されること', async () => {

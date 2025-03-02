@@ -50,7 +50,7 @@ beforeAll(async () => {
   });
 });
 
-afterEach(() => {
+afterAll(() => {
   app.close();
 });
 

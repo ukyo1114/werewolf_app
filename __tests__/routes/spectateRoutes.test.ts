@@ -72,6 +72,7 @@ beforeAll(async () => {
 
 afterEach(() => {
   jest.restoreAllMocks();
+  app.close();
 });
 
 afterAll(() => {

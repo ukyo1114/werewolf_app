@@ -36,6 +36,10 @@ afterEach(async () => {
   await User.deleteMany({});
 });
 
+afterAll(() => {
+  app.close();
+});
+
 describe('/register-user', () => {
   const customRequest = async (
     email: string | undefined,

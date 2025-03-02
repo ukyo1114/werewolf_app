@@ -13,7 +13,6 @@ const channelBlockUserSchema = new Schema<IChannelBlockUser>(
     channelId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      index: true,
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -27,7 +26,6 @@ const channelBlockUserSchema = new Schema<IChannelBlockUser>(
   },
 );
 
-// 同じチャンネルとユーザーの組み合わせは一意である必要がある
 channelBlockUserSchema.index({ channelId: 1, userId: 1 }, { unique: true });
 
 const ChannelBlockUser = mongoose.model(

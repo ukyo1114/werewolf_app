@@ -51,7 +51,7 @@ beforeEach(async () => {
   jest.clearAllMocks();
 });
 
-afterEach(() => {
+afterAll(() => {
   app.close();
 });
 
