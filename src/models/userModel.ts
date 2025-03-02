@@ -19,7 +19,7 @@ const userSchema = new Schema<IUser>(
     userName: {
       type: String,
       required: true,
-      maxlength: 50,
+      maxlength: 20,
     },
     email: {
       type: String,

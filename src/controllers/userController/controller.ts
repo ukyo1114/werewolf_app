@@ -99,7 +99,12 @@ export const updateProfile = asyncHandler(
     // TODO: ユーザーがゲーム中の場合エラーを返す
 
     if (pic) await uploadPicture({ userId, pic });
-    if (userName) await User.findByIdAndUpdate(userId, { userName });
+    if (userName)
+      await User.findByIdAndUpdate(
+        userId,
+        { userName },
+        { runValidators: true },
+      );
 
     res.status(200).send();
   },
@@ -118,7 +123,11 @@ export const updateEmail = asyncHandler(
     const emailExists = await User.exists({ email });
     if (emailExists) throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
 
-    const user = await User.findByIdAndUpdate(userId, { email });
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { email },
+      { runValidators: true },
+    );
     if (!user) throw new AppError(401, errors.USER_NOT_FOUND);
 
     res.status(200).send(); // TODO: 認証完了ページを送信
