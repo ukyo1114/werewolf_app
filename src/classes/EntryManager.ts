@@ -6,7 +6,7 @@ import GameManager from './GameManager';
 export default class EntryManager {
   public channelId: string;
   public users: {
-    [key: string]: { socketId: string };
+    [key: string]: { userId: string };
   } = {};
   public MAX_USERS: number;
   public isProcessing: boolean;
@@ -20,7 +20,7 @@ export default class EntryManager {
   async register(userId: string, socketId: string) {
     if (this.isProcessing) return;
 
-    this.users[userId] = { socketId };
+    this.users[socketId] = { userId };
 
     if (Object.keys(this.users).length === this.MAX_USERS) {
       this.isProcessing = true;
@@ -30,15 +30,15 @@ export default class EntryManager {
     // this.entryUpdate();
   }
 
-  cancel(userId: string) {
+  cancel(socketId: string) {
     if (this.isProcessing) return;
 
-    delete this.users[userId];
+    delete this.users[socketId];
     // this.entryUpdate();
   }
 
   getUserList(): string[] {
-    return Object.keys(this.users);
+    return Object.values(this.users).map((user) => user.userId);
   }
 
   entryUpdate() {
@@ -78,7 +78,7 @@ export default class EntryManager {
       await games[gameId].playerManager.registerPlayersInDB();
 
       // 各プレイヤーに通知
-      const socketIds = Object.values(this.users).map((user) => user.socketId);
+      const socketIds = Object.keys(this.users);
       // entryEvents.emit('gameStart', { socketIds, gameId });
     } catch (error) {
       console.error('error:', error);

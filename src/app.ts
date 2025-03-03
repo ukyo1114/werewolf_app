@@ -17,10 +17,23 @@ import channelRoutes from './routes/channelRoutes';
 import gameRoutes from './routes/gameRoutes';
 import messageRoutes from './routes/messageRoutes';
 import spectateRoutes from './routes/spectateRoutes';
+import EntryManager from './classes/EntryManager';
+import ChannelManager from './classes/ChannelManager';
+import GameManager from './classes/GameManager';
 // import errorHandler from './middleware/errorHandler';
 
 const app = express();
 connectDB();
+
+export const appState: {
+  entryManagers: { [key: string]: EntryManager };
+  channelManagers: { [key: string]: ChannelManager };
+  gameManagers: { [key: string]: GameManager };
+} = {
+  entryManagers: {},
+  channelManagers: {},
+  gameManagers: {},
+};
 
 // ミドルウェアの設定
 app.use(express.json());

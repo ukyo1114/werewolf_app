@@ -9,6 +9,7 @@ interface IChannel extends Document {
   password: string | undefined;
   channelAdmin: Types.ObjectId;
   denyGuests: boolean;
+  numberOfPlayers: number;
   matchPassword(enteredPassword: string): Promise<boolean>;
   isModified: (path: string) => boolean;
   createdAt: Date;
@@ -44,6 +45,13 @@ const channelSchema = new Schema<IChannel>(
       type: Boolean,
       default: false,
       requierd: true,
+    },
+    numberOfPlayers: {
+      type: Number,
+      required: true,
+      default: 10,
+      min: 5,
+      max: 20,
     },
   },
   {
