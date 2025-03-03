@@ -20,6 +20,7 @@ import spectateRoutes from './routes/spectateRoutes';
 import EntryManager from './classes/EntryManager';
 import ChannelManager from './classes/ChannelManager';
 import GameManager from './classes/GameManager';
+import EventEmitter from 'events';
 // import errorHandler from './middleware/errorHandler';
 
 const app = express();
@@ -35,6 +36,12 @@ export const appState: {
   gameManagers: {},
 };
 
+export const Events: {
+  [key: string]: EventEmitter;
+} = {
+  entryEvents: new EventEmitter(),
+};
+
 // ミドルウェアの設定
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -48,7 +55,7 @@ app.use(express.urlencoded({ extended: true }));
 // CORS設定
 const corsOptions: cors.CorsOptions = {
   origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
 };
 

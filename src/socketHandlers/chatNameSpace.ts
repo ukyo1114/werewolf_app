@@ -86,7 +86,7 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
       });
     });
 
-    entryEvents.on('gameCreationFailed', (channelId) => {
+    entryEvents.on('gameCreationFailed', (channelId: string) => {
       entryNameSpace.to(channelId).emit('gameCreationFailed', {
         message: errors.GAME_CREATION_FAILED,
       });

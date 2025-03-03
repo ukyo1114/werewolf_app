@@ -2,11 +2,15 @@ import User from '../models/userModel';
 import Game from '../models/gameModel';
 import { games } from './GameInstanceManager';
 import GameManager from './GameManager';
+import { appState, Events } from '../app';
+
+const { entryEvents } = Events;
+const { gameManagers } = appState;
 
 export default class EntryManager {
   public channelId: string;
   public users: {
-    [key: string]: { userId: string };
+    [key: string]: string;
   } = {};
   public MAX_USERS: number;
   public isProcessing: boolean;
@@ -20,34 +24,34 @@ export default class EntryManager {
   async register(userId: string, socketId: string) {
     if (this.isProcessing) return;
 
-    this.users[socketId] = { userId };
+    this.users[socketId] = userId;
 
     if (Object.keys(this.users).length === this.MAX_USERS) {
       this.isProcessing = true;
       await this.startGame();
     }
 
-    // this.entryUpdate();
+    this.entryUpdate();
   }
 
   cancel(socketId: string) {
     if (this.isProcessing) return;
 
     delete this.users[socketId];
-    // this.entryUpdate();
+    this.entryUpdate();
   }
 
   getUserList(): string[] {
-    return Object.values(this.users).map((user) => user.userId);
+    return Object.values(this.users);
   }
 
   entryUpdate() {
     const userList = this.getUserList();
 
-    /*     entryEvents.emit('entryUpdate', {
+    entryEvents.emit('entryUpdate', {
       channelId: this.channelId,
       userList,
-    }); */
+    });
   }
 
   async startGame() {
@@ -72,17 +76,17 @@ export default class EntryManager {
       const gameId = _id.toString();
 
       // ゲームインスタンスを作成
-      games[gameId] = new GameManager(this.channelId, gameId, users);
+      gameManagers[gameId] = new GameManager(this.channelId, gameId, users);
 
       // プレイヤー情報をデータベースに登録
-      await games[gameId].playerManager.registerPlayersInDB();
+      await gameManagers[gameId].playerManager.registerPlayersInDB();
 
       // 各プレイヤーに通知
       const socketIds = Object.keys(this.users);
-      // entryEvents.emit('gameStart', { socketIds, gameId });
+      entryEvents.emit('gameStart', { socketIds, gameId });
     } catch (error) {
       console.error('error:', error);
-      // entryEvents.emit("gameCreationFailed", { channelId: this.channelId });
+      entryEvents.emit('gameCreationFailed', this.channelId);
     } finally {
       // カウンターをリセット
       this.users = {};

@@ -33,6 +33,7 @@ export const errors = {
   GAME_IS_PROCESSING: '集計中のため受付できません。',
   MESSAGE_NOT_FOUND: 'メッセージが見つかりません。',
   EMAIL_NOT_REGISTERED: 'メールアドレスが登録されていません。',
+  GAME_CREATION_FAILED: 'ゲームの開始中にエラーが発生しました',
 };
 
 export const validation = {
