@@ -1,25 +1,34 @@
-import { games } from '../../src/classes/GameInstanceManager';
+jest.mock('../../src/app', () => ({
+  appState: { gameManagers: {} },
+}));
 import GameManager from '../../src/classes/GameManager';
 import AppError from '../../src/utils/AppError';
 import { gameError } from '../../src/config/messages';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { appState } from '../../src/app';
+
+const { gameManagers } = appState;
 
 describe('test MediumManager', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    games[mockGameId] = new GameManager(mockChannelId, mockGameId, mockUsers);
+    gameManagers[mockGameId] = new GameManager(
+      mockChannelId,
+      mockGameId,
+      mockUsers,
+    );
     // sendMessageをモック
-    games[mockGameId].sendMessage = jest.fn();
+    gameManagers[mockGameId].sendMessage = jest.fn();
   });
 
   afterAll(() => {
-    delete games[mockGameId];
+    delete gameManagers[mockGameId];
     jest.restoreAllMocks();
   });
 
   describe('medium', () => {
     it('正しい霊能結果が保存される', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const phaseManager = game.phaseManager;
 
       phaseManager.nextPhase();
@@ -42,7 +51,7 @@ describe('test MediumManager', () => {
 
   describe('getMediumResult', () => {
     it('霊能履歴が正しい形式で取得できる', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const phaseManager = game.phaseManager;
 
       phaseManager.nextPhase();
@@ -64,7 +73,7 @@ describe('test MediumManager', () => {
     });
 
     it('霊能結果を不正に取得しようとするとエラーが返されること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const phaseManager = game.phaseManager;
 
       const mediumId = game.playerManager.findPlayerByRole('medium').userId;

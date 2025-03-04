@@ -1,18 +1,17 @@
 import GameManager from './GameManager';
+import { appState } from '../app';
 
-export const games: {
-  [key: string]: GameManager;
-} = {};
+const { gameManagers } = appState;
 
 export const checkIsUserInGame = (userId: string) => {
-  return Object.values(games).some(
+  return Object.values(gameManagers).some(
     (game) =>
       userId in game.playerManager.players && game.result.value === 'running',
   );
 };
 
 export const isUserPlayingGame = (userId: string) => {
-  const game = Object.values(games).find(
+  const game = Object.values(gameManagers).find(
     (game) =>
       userId in game.playerManager.players &&
       game.result.value === 'running' &&
@@ -23,7 +22,7 @@ export const isUserPlayingGame = (userId: string) => {
 };
 
 export const getGamesByChannelId = (channelId: string) => {
-  const filteredGames = Object.values(games).filter(
+  const filteredGames = Object.values(gameManagers).filter(
     (game) => game.channelId === channelId,
   );
 

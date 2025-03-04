@@ -1,19 +1,28 @@
+jest.mock('../../src/app', () => ({
+  appState: { gameManagers: {} },
+}));
 import GameUser from '../../src/models/gameUserModel';
-import { games } from '../../src/classes/GameInstanceManager';
 import GameManager from '../../src/classes/GameManager';
 import { roleConfig } from '../../src/config/roles';
 import AppError from '../../src/utils/AppError';
 import { gameError } from '../../src/config/messages';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { appState } from '../../src/app';
+
+const { gameManagers } = appState;
 
 beforeEach(() => {
-  games[mockGameId] = new GameManager(mockChannelId, mockGameId, mockUsers);
+  gameManagers[mockGameId] = new GameManager(
+    mockChannelId,
+    mockGameId,
+    mockUsers,
+  );
   // sendMessageをモック
-  games[mockGameId].sendMessage = jest.fn();
+  gameManagers[mockGameId].sendMessage = jest.fn();
 });
 
 afterEach(() => {
-  const timerId = games[mockGameId].phaseManager.timerId;
+  const timerId = gameManagers[mockGameId].phaseManager.timerId;
 
   if (timerId) {
     clearTimeout(timerId);
@@ -21,14 +30,14 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  delete games[mockGameId];
+  delete gameManagers[mockGameId];
   jest.restoreAllMocks();
 });
 
 describe('test PlayserManager', () => {
   it('playerManagerが正しく初期化されること', () => {
     const validRoles = roleConfig[mockUsers.length];
-    const { gameId, players } = games[mockGameId].playerManager;
+    const { gameId, players } = gameManagers[mockGameId].playerManager;
 
     expect(gameId).toBe(mockGameId);
     mockUsers.forEach((user) => {
@@ -43,8 +52,8 @@ describe('test PlayserManager', () => {
   });
 
   it('データベースにプレイヤーを登録できること', async () => {
-    const players = games[mockGameId].playerManager.players;
-    await games[mockGameId].playerManager.registerPlayersInDB();
+    const players = gameManagers[mockGameId].playerManager.players;
+    await gameManagers[mockGameId].playerManager.registerPlayersInDB();
 
     const gameUsers = await GameUser.find({ gameId: mockGameId }).lean();
 
@@ -59,7 +68,7 @@ describe('test PlayserManager', () => {
     it('spectator用ステータスを返すこと', () => {
       const userId = 'notRegistered';
       const playerState =
-        games[mockGameId].playerManager.getPlayerState(userId);
+        gameManagers[mockGameId].playerManager.getPlayerState(userId);
 
       expect(playerState).toEqual({
         status: 'spectator',
@@ -70,7 +79,8 @@ describe('test PlayserManager', () => {
     it('ゲームに参加しているプレイヤーのステータスが返ること', () => {
       mockUsers.forEach((user) => {
         const userId = user.userId;
-        const role = games[mockGameId].playerManager.players[userId].role;
+        const role =
+          gameManagers[mockGameId].playerManager.players[userId].role;
         const properties =
           role === 'freemason'
             ? ['freemasons']
@@ -81,7 +91,7 @@ describe('test PlayserManager', () => {
                 : [];
 
         const playerState =
-          games[mockGameId].playerManager.getPlayerState(userId);
+          gameManagers[mockGameId].playerManager.getPlayerState(userId);
 
         expect(playerState.status).toBe('alive');
         expect(playerState.role).toBe(role);
@@ -95,7 +105,7 @@ describe('test PlayserManager', () => {
   describe('test findPayerByRole', () => {
     it('プレイヤーが存在しない場合エラーになる', () => {
       expect(() =>
-        games[mockGameId].playerManager.findPlayerByRole('fox'),
+        gameManagers[mockGameId].playerManager.findPlayerByRole('fox'),
       ).toThrow(new AppError(500, gameError.PLAYER_NOT_FOUND));
     });
 
@@ -103,7 +113,8 @@ describe('test PlayserManager', () => {
       const validRoles = roleConfig[mockUsers.length];
 
       validRoles.forEach((role) => {
-        const player = games[mockGameId].playerManager.findPlayerByRole(role);
+        const player =
+          gameManagers[mockGameId].playerManager.findPlayerByRole(role);
 
         expect(player).toHaveProperty('userId');
         expect(player).toHaveProperty('userName');
@@ -115,7 +126,7 @@ describe('test PlayserManager', () => {
 
   describe('test getImmoralists', () => {
     it('返されたプレイヤーにimmorarilstだけが含まれていること', () => {
-      const players = games[mockGameId].playerManager.getImmoralists();
+      const players = gameManagers[mockGameId].playerManager.getImmoralists();
 
       players.forEach((player) => {
         expect(player.role).toBe('immoralist');
@@ -125,7 +136,7 @@ describe('test PlayserManager', () => {
 
   describe('test getLivingPlayers', () => {
     it('返されたプレイヤーが全員生存していること', () => {
-      const players = games[mockGameId].playerManager.getLivingPlayers();
+      const players = gameManagers[mockGameId].playerManager.getLivingPlayers();
 
       players.forEach((player) => {
         expect(player.status).toBe('alive');
@@ -135,7 +146,8 @@ describe('test PlayserManager', () => {
 
   describe('test getPlayersWithRole', () => {
     it('プレイヤーデータにuserId, status, roleだけが含まれていること', () => {
-      const players = games[mockGameId].playerManager.getPlayersWithRole();
+      const players =
+        gameManagers[mockGameId].playerManager.getPlayersWithRole();
 
       Object.values(players).forEach((player) => {
         expect(player).toHaveProperty('userId');
@@ -148,7 +160,8 @@ describe('test PlayserManager', () => {
 
   describe('test getPlayersWithoutRole', () => {
     it('プレイヤーデータにuserId, statusだけが含まれていること', () => {
-      const players = games[mockGameId].playerManager.getPlayersWithoutRole();
+      const players =
+        gameManagers[mockGameId].playerManager.getPlayersWithoutRole();
 
       Object.values(players).forEach((player) => {
         expect(player).toHaveProperty('userId');

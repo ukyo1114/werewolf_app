@@ -1,5 +1,7 @@
+jest.mock('../../src/app', () => ({
+  appState: { gameManagers: {} },
+}));
 import { EventEmitter } from 'events';
-import { games } from '../../src/classes/GameInstanceManager';
 import GameManager from '../../src/classes/GameManager';
 import PhaseManager from '../../src/classes/PhaseManager';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
@@ -7,22 +9,29 @@ import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
 const startTimerSpy = jest.spyOn(PhaseManager.prototype, 'startTimer');
 const nextPhaseSpy = jest.spyOn(PhaseManager.prototype, 'nextPhase');
 const consoleErrorSpy = jest.spyOn(console, 'error');
+import { appState } from '../../src/app';
+
+const { gameManagers } = appState;
 
 describe('test PhaseManager', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    games[mockGameId] = new GameManager(mockChannelId, mockGameId, mockUsers);
+    gameManagers[mockGameId] = new GameManager(
+      mockChannelId,
+      mockGameId,
+      mockUsers,
+    );
     // sendMessageをモック
-    games[mockGameId].sendMessage = jest.fn();
+    gameManagers[mockGameId].sendMessage = jest.fn();
   });
 
   afterAll(() => {
-    delete games[mockGameId];
+    delete gameManagers[mockGameId];
     jest.restoreAllMocks();
   });
 
   it('正しいプロパティで初期化されること', () => {
-    const phaseManager = games[mockGameId].phaseManager;
+    const phaseManager = gameManagers[mockGameId].phaseManager;
 
     expect(phaseManager).toBeInstanceOf(PhaseManager);
     expect(phaseManager.currentDay).toBe(0);
@@ -33,7 +42,7 @@ describe('test PhaseManager', () => {
   });
 
   it('イベントリスナーが正しく登録されること', () => {
-    const phaseManager = games[mockGameId].phaseManager;
+    const phaseManager = gameManagers[mockGameId].phaseManager;
     const mockOn = jest.spyOn(phaseManager.eventEmitter, 'on');
 
     phaseManager.registerListner();
@@ -47,7 +56,7 @@ describe('test PhaseManager', () => {
   });
 
   it('タイマー終了時にタイマー終了イベントが発火されること', () => {
-    const phaseManager = games[mockGameId].phaseManager;
+    const phaseManager = gameManagers[mockGameId].phaseManager;
     const mockEmit = jest.spyOn(phaseManager.eventEmitter, 'emit');
     const msToRun =
       phaseManager.phaseDurations_sec[phaseManager.currentPhase] * 1000;
@@ -60,7 +69,7 @@ describe('test PhaseManager', () => {
   });
 
   it('フェーズが正しく切り替わること', () => {
-    const phaseManager = games[mockGameId].phaseManager;
+    const phaseManager = gameManagers[mockGameId].phaseManager;
 
     // 準備中から昼へ
     phaseManager.nextPhase();
@@ -78,7 +87,7 @@ describe('test PhaseManager', () => {
     expect(phaseManager.currentPhase).toBe('day');
 
     // ゲームが終了
-    games[mockGameId].result.value = 'villagersWin';
+    gameManagers[mockGameId].result.value = 'villagersWin';
     phaseManager.nextPhase();
     expect(phaseManager.currentDay).toBe(2);
     expect(phaseManager.currentPhase).toBe('finished');
@@ -88,14 +97,14 @@ describe('test PhaseManager', () => {
   });
 
   it('processCompletedイベントを受信して処理を行うこと', () => {
-    const phaseManager = games[mockGameId].phaseManager;
+    const phaseManager = gameManagers[mockGameId].phaseManager;
     const mockEmit = jest.spyOn(phaseManager.eventEmitter, 'emit');
     const msToRun =
       phaseManager.phaseDurations_sec[phaseManager.currentPhase] * 1000;
 
     jest.advanceTimersByTime(msToRun);
 
-    games[mockGameId].eventEmitter.emit('processCompleted');
+    gameManagers[mockGameId].eventEmitter.emit('processCompleted');
 
     expect(nextPhaseSpy).toHaveBeenCalled();
     expect(startTimerSpy).toHaveBeenCalled();

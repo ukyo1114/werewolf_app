@@ -16,28 +16,37 @@
  * If the target is a fox, the attack fails
  *
  */
-import { games } from '../../src/classes/GameInstanceManager';
+jest.mock('../../src/app', () => ({
+  appState: { gameManagers: {} },
+}));
 import GameManager from '../../src/classes/GameManager';
 import AppError from '../../src/utils/AppError';
 import { gameError } from '../../src/config/messages';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { appState } from '../../src/app';
+
+const { gameManagers } = appState;
 
 describe('test AttackManager', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    games[mockGameId] = new GameManager(mockChannelId, mockGameId, mockUsers);
+    gameManagers[mockGameId] = new GameManager(
+      mockChannelId,
+      mockGameId,
+      mockUsers,
+    );
     // sendMessageをモック
-    games[mockGameId].sendMessage = jest.fn();
+    gameManagers[mockGameId].sendMessage = jest.fn();
   });
 
   afterAll(() => {
-    delete games[mockGameId];
+    delete gameManagers[mockGameId];
     jest.restoreAllMocks();
   });
 
   describe('recieveAttackRequest', () => {
     it('リクエストが受け付けられる', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
         werewolf: {
@@ -61,7 +70,7 @@ describe('test AttackManager', () => {
     });
 
     it('nightフェーズでないときエラーを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'day';
       game.playerManager.players = {
         werewolf: {
@@ -85,7 +94,7 @@ describe('test AttackManager', () => {
     });
 
     it('リクエストを送信したプレイヤーが死亡しているときエラーを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
         werewolf: {
@@ -109,7 +118,7 @@ describe('test AttackManager', () => {
     });
 
     it('リクエストを送信したプレイヤーが人狼でないときエラーを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
         villager1: {
@@ -134,7 +143,7 @@ describe('test AttackManager', () => {
     });
 
     it('ターゲットが死亡しているときエラーを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
         werewolf: {
@@ -159,7 +168,7 @@ describe('test AttackManager', () => {
     });
 
     it('ターゲットが人狼のときエラーを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
         werewolf1: {
@@ -183,7 +192,7 @@ describe('test AttackManager', () => {
     });
 
     it('リクエストを送信したプレイヤーが存在しないときエラーを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
         werewolf: {
@@ -210,7 +219,7 @@ describe('test AttackManager', () => {
     });
 
     it('ターゲットが存在しないときエラーを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
         werewolf: {
@@ -239,7 +248,7 @@ describe('test AttackManager', () => {
 
   describe('attack', () => {
     it('襲撃が行われる', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentDay = 1;
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
@@ -271,7 +280,7 @@ describe('test AttackManager', () => {
     });
 
     it('護衛成功時の処理が正しく行われる', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentDay = 1;
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
@@ -302,7 +311,7 @@ describe('test AttackManager', () => {
     });
 
     it('襲撃対象が狐だった場合襲撃が失敗する', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentDay = 1;
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
@@ -333,7 +342,7 @@ describe('test AttackManager', () => {
     });
 
     it('狩人が死亡している場合護衛が実行されない', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentDay = 1;
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
@@ -366,7 +375,7 @@ describe('test AttackManager', () => {
 
   describe('getRandomAttackTarget', () => {
     it('正しいターゲットが設定されること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.playerManager.players = {
         user1: {
           userId: 'user1',
@@ -404,7 +413,7 @@ describe('test AttackManager', () => {
 
   describe('getAttackHistory', () => {
     it('襲撃履歴を取得できる', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'day';
       game.playerManager.players = {
         werewolf: {
@@ -427,7 +436,7 @@ describe('test AttackManager', () => {
     });
 
     it('プレイヤーが人狼でないときエラーを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'day';
       game.playerManager.players = {
         villager: {
@@ -446,7 +455,7 @@ describe('test AttackManager', () => {
     });
 
     it('preフェーズのときエラーを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.playerManager.players = {
         werewolf: {
           userId: 'werewolf',
@@ -464,7 +473,7 @@ describe('test AttackManager', () => {
     });
 
     it('プレイヤーが存在しないときエラーを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'day';
       game.playerManager.players = {};
 

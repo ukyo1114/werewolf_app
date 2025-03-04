@@ -6,8 +6,10 @@ import User from '../../models/userModel';
 import ChannelUser from '../../models/channelUserModel';
 import Game from '../../models/gameModel';
 import GameUser from '../../models/gameUserModel';
-import { games } from '../../classes/GameInstanceManager';
 import GameManager from '../../classes/GameManager';
+import { appState } from '../../app';
+
+const { gameManagers } = appState;
 
 interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
   extends Request<TParams, any, TBody, TQuery> {
@@ -22,7 +24,7 @@ export const joinGame = asyncHandler(
     const { userId } = req as { userId: string };
     const { gameId } = req.params;
 
-    if (!games[gameId]) throw new AppError(403, errors.GAME_NOT_FOUND);
+    if (!gameManagers[gameId]) throw new AppError(403, errors.GAME_NOT_FOUND);
 
     const game = await Game.findById(gameId)
       .select('_id channelId')
@@ -87,7 +89,7 @@ export const handleGameAction = (
       const { gameId } = req.params;
       const { selectedUser } = req.body;
 
-      const game = games[gameId];
+      const game = gameManagers[gameId];
       if (!game) throw new AppError(403, errors.GAME_NOT_FOUND);
       if (game.isProcessing) throw new AppError(409, errors.GAME_IS_PROCESSING);
 

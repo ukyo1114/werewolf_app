@@ -2,7 +2,7 @@ jest.mock('../../src/utils/decodeToken', () => ({
   decodeToken: jest.fn(),
 }));
 
-import app from '../../src/app';
+import app, { appState } from '../../src/app';
 import { decodeToken } from '../../src/utils/decodeToken';
 import request from 'supertest';
 import User from '../../src/models/userModel';
@@ -19,9 +19,10 @@ import ChannelUser from '../../src/models/channelUserModel';
 import { channels } from '../../src/classes/ChannelInstanceManager';
 import ChannelUserManager from '../../src/classes/ChannelUserManager';
 import ChannelManager from '../../src/classes/ChannelManager';
-import { games } from '../../src/classes/GameInstanceManager';
 import Message from '../../src/models/messageModel';
 import GameManager from '../../src/classes/GameManager';
+
+const { gameManagers } = appState;
 
 let testUserId: string;
 let testUser2Id: string;
@@ -73,17 +74,24 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  games[mockGameId] = new GameManager(testChannelId, mockGameId, mockUsers);
-  channels[mockGameId] = new ChannelManager(mockGameId, games[mockGameId]);
+  gameManagers[mockGameId] = new GameManager(
+    testChannelId,
+    mockGameId,
+    mockUsers,
+  );
+  channels[mockGameId] = new ChannelManager(
+    mockGameId,
+    gameManagers[mockGameId],
+  );
 });
 
 afterEach(async () => {
-  const timerId = games[mockGameId]?.phaseManager.timerId;
+  const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
 
   if (timerId) {
     clearTimeout(timerId);
   }
-  delete games[mockGameId];
+  delete gameManagers[mockGameId];
   delete channels[mockGameId];
   await Message.deleteMany({});
   jest.restoreAllMocks();
@@ -183,7 +191,7 @@ describe('getMessages', () => {
   });
 
   it('ゲームが終了していると全てのメッセージを取得できる', async () => {
-    const game = games[mockGameId];
+    const game = gameManagers[mockGameId];
     game.phaseManager.currentPhase = 'finished';
 
     channels[mockGameId].users = {
@@ -405,7 +413,7 @@ describe('test sendMessage', () => {
   });
 
   it('ゲームが終了しているとメッセージタイプ通常になる', async () => {
-    const game = games[mockGameId];
+    const game = gameManagers[mockGameId];
     game.phaseManager.currentPhase = 'finished';
 
     channels[mockGameId].users = {
@@ -440,7 +448,7 @@ describe('test sendMessage', () => {
   });
 
   it('夜フェーズ時ユーザーが人狼だとメッセージタイプが人狼になる', async () => {
-    const game = games[mockGameId];
+    const game = gameManagers[mockGameId];
     game.phaseManager.currentPhase = 'night';
 
     channels[mockGameId].users = {
@@ -459,7 +467,7 @@ describe('test sendMessage', () => {
   });
 
   it('夜フェーズ時ユーザーが通常だとエラーになる', async () => {
-    const game = games[mockGameId];
+    const game = gameManagers[mockGameId];
     game.phaseManager.currentPhase = 'night';
 
     channels[mockGameId].users = {

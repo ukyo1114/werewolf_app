@@ -1,10 +1,15 @@
+jest.mock('../../src/app', () => ({
+  appState: { gameManagers: {} },
+}));
 import { ObjectId } from 'mongodb';
 import User from '../../src/models/userModel';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
 import GameManager from '../../src/classes/GameManager';
-import { games } from '../../src/classes/GameInstanceManager';
 import { createGameList } from '../../src/controllers/spectateController/utils';
 import { errors, validation } from '../../src/config/messages';
+import { appState } from '../../src/app';
+
+const { gameManagers } = appState;
 
 let testUserId: string;
 
@@ -19,8 +24,12 @@ beforeAll(async () => {
 
   testUserId = testUser._id.toString();
 
-  games[mockGameId] = new GameManager(mockChannelId, mockGameId, mockUsers);
-  games[mockGameId].playerManager.players = {
+  gameManagers[mockGameId] = new GameManager(
+    mockChannelId,
+    mockGameId,
+    mockUsers,
+  );
+  gameManagers[mockGameId].playerManager.players = {
     [testUserId]: {
       userId: testUserId,
       userName: 'testUser',
@@ -28,7 +37,7 @@ beforeAll(async () => {
       role: 'villager',
     },
   };
-  games[mockGameId].sendMessage = jest.fn();
+  gameManagers[mockGameId].sendMessage = jest.fn();
 });
 
 afterEach(() => {
@@ -36,12 +45,12 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  const timerId = games[mockGameId]?.phaseManager.timerId;
+  const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
 
   if (timerId) {
     clearTimeout(timerId);
   }
-  delete games[mockGameId];
+  delete gameManagers[mockGameId];
 });
 
 describe('test createGameList', () => {

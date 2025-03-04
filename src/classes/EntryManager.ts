@@ -1,6 +1,5 @@
 import User from '../models/userModel';
 import Game from '../models/gameModel';
-import { games } from './GameInstanceManager';
 import GameManager from './GameManager';
 import { appState, Events } from '../app';
 
@@ -54,43 +53,52 @@ export default class EntryManager {
     });
   }
 
+  async getUsersDetail() {
+    const userList = this.getUserList();
+    const dbUsers = await User.find({ _id: { $in: userList } })
+      .select('_id userName')
+      .lean();
+
+    return dbUsers.map((user) => ({
+      userId: user._id.toString(),
+      userName: user.userName,
+    }));
+  }
+
+  async createGame(users: { userId: string; userName: string }[]) {
+    const game = await Game.create({
+      channelId: this.channelId,
+      numberOfPlayers: this.MAX_USERS,
+    });
+    const gameId = game._id.toString();
+
+    gameManagers[gameId] = new GameManager(this.channelId, gameId, users);
+    await gameManagers[gameId].playerManager.registerPlayersInDB();
+
+    return gameId;
+  }
+
+  emitGameStart(gameId: string) {
+    entryEvents.emit('gameStart', { users: Object.keys(this.users), gameId });
+  }
+
+  reset() {
+    this.users = {};
+    this.isProcessing = false;
+  }
+
   async startGame() {
     try {
-      const channelId = this.channelId;
-
-      // ユーザー情報を取得
-      const userList = this.getUserList();
-      const dbUsers = await User.find({ _id: { $in: userList } })
-        .select('_id userName')
-        .lean();
-      const users = dbUsers.map((user) => ({
-        userId: user._id.toString(),
-        userName: user.userName,
-      }));
-
-      // gameIdを取得
-      const { _id } = await Game.create({
-        channelId,
-        numberOfPlayers: this.MAX_USERS,
-      });
-      const gameId = _id.toString();
-
-      // ゲームインスタンスを作成
-      gameManagers[gameId] = new GameManager(this.channelId, gameId, users);
-
-      // プレイヤー情報をデータベースに登録
-      await gameManagers[gameId].playerManager.registerPlayersInDB();
+      const users = await this.getUsersDetail();
+      const gameId = await this.createGame(users);
 
       // 各プレイヤーに通知
-      const socketIds = Object.keys(this.users);
-      entryEvents.emit('gameStart', { socketIds, gameId });
+      this.emitGameStart(gameId);
     } catch (error) {
       console.error('error:', error);
       entryEvents.emit('gameCreationFailed', this.channelId);
     } finally {
-      // カウンターをリセット
-      this.users = {};
-      this.isProcessing = false;
+      this.reset();
     }
   }
 }

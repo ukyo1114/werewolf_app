@@ -14,28 +14,38 @@ jest.mock('../../src/app', () => ({
   Events: { entryEvents: new EventEmitter() },
 }));
 
-import { ObjectId } from 'mongodb';
-import Channel from '../../src/models/channelModel';
 import User from '../../src/models/userModel';
 import Game from '../../src/models/gameModel';
-import { games } from '../../src/classes/GameInstanceManager';
-import channelManager from '../../src/classes/ChannelManager';
 import GameManager from '../../src/classes/GameManager';
 import EntryManager from '../../src/classes/EntryManager';
-import AppError from '../../src/utils/AppError';
-import { errors } from '../../src/config/messages';
-import { createChannelInstance } from '../../src/classes/ChannelInstanceManager';
 import {
   mockUserId,
   mockChannelId,
   mockGameId,
   mockUsers,
 } from '../../jest.setup';
-import { Events } from '../../src/app';
+import { appState, Events } from '../../src/app';
+import GameUser from '../../src/models/gameUserModel';
 
 let startGameSpy: any;
 let entryUpdateSpy: any;
 let entryEmitSpy: any;
+let getUsersDetailSpy: any;
+let createGameSpy: any;
+
+let testUserId: string;
+
+beforeAll(async () => {
+  const testUser = await User.create({
+    userName: 'testUser',
+    email: 'test@example.com',
+    password: 'password123',
+    pic: null,
+    isGuest: false,
+  });
+
+  testUserId = testUser._id.toString();
+});
 
 beforeEach(() => {
   startGameSpy = jest
@@ -47,15 +57,25 @@ beforeEach(() => {
     .mockImplementation();
 
   entryEmitSpy = jest.spyOn(Events.entryEvents, 'emit');
+
+  getUsersDetailSpy = jest
+    .spyOn(EntryManager.prototype, 'getUsersDetail')
+    .mockResolvedValue([{ userId: testUserId, userName: 'testUser' }]);
+
+  createGameSpy = jest
+    .spyOn(EntryManager.prototype, 'createGame')
+    .mockResolvedValue(mockGameId);
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await Game.deleteMany({});
+  await GameUser.deleteMany({});
   jest.clearAllMocks();
 });
 
-afterAll(async () => {
-  // await Game.deleteMany({});
-});
+/* afterAll(async () => {
+  await User.deleteMany({});
+}); */
 
 it('インスタンスを作成', () => {
   const entryManager = new EntryManager(mockChannelId, 1);
@@ -167,4 +187,108 @@ describe('test entryUpdate', () => {
   });
 });
 
-describe('test startGame', () => {});
+describe('test getUsersDetail', () => {
+  let entryManager: EntryManager;
+
+  beforeEach(() => {
+    getUsersDetailSpy.mockRestore();
+    entryManager = new EntryManager(mockChannelId, 1);
+    entryManager.users = { testSocketId: testUserId };
+  });
+
+  it('ユーザー情報の配列を取得', async () => {
+    const users = await entryManager.getUsersDetail();
+
+    expect(users).toEqual([{ userId: testUserId, userName: 'testUser' }]);
+  });
+});
+
+describe('test createGame', () => {
+  let entryManager: EntryManager;
+
+  beforeEach(() => {
+    createGameSpy.mockRestore();
+    entryManager = new EntryManager(mockChannelId, 10);
+  });
+
+  it('ゲームを作成する', async () => {
+    const testUsers = [
+      { userId: mockUserId, userName: 'mockUser' },
+      ...mockUsers,
+    ];
+    testUsers.pop();
+
+    const gameId = await entryManager.createGame(testUsers);
+    const game = appState.gameManagers[gameId];
+
+    const registeredUser = await GameUser.exists({
+      gameId,
+      userId: mockUserId,
+    });
+
+    expect(registeredUser).not.toBe(null);
+    expect(game).toBeInstanceOf(GameManager);
+
+    const timerId = game.phaseManager.timerId;
+    if (timerId) {
+      clearTimeout(timerId);
+    }
+  });
+});
+
+describe('test emitGameStart', () => {
+  let entryManager: EntryManager;
+
+  beforeEach(() => {
+    entryManager = new EntryManager(mockChannelId, 1);
+    entryManager.users = { testSocketId: mockUserId };
+  });
+
+  it('ゲーム開始を通知', () => {
+    entryManager.emitGameStart(mockGameId);
+
+    expect(entryEmitSpy).toHaveBeenCalledWith('gameStart', {
+      users: ['testSocketId'],
+      gameId: mockGameId,
+    });
+  });
+});
+
+describe('test gameStart', () => {
+  let entryManager: EntryManager;
+
+  beforeEach(() => {
+    startGameSpy.mockRestore();
+    entryManager = new EntryManager(mockChannelId, 1);
+    entryManager.users = { testSocketId: mockUserId };
+  });
+
+  it('ゲームを開始する', async () => {
+    entryManager.isProcessing = true;
+    await entryManager.startGame();
+
+    expect(getUsersDetailSpy).toHaveBeenCalled();
+    expect(createGameSpy).toHaveBeenCalled();
+    expect(entryEmitSpy).toHaveBeenCalledWith('gameStart', {
+      users: ['testSocketId'],
+      gameId: mockGameId,
+    });
+    expect(entryManager.users).toEqual({});
+    expect(entryManager.isProcessing).toBe(false);
+  });
+
+  it('tryブロック内でエラーが発生したとき', async () => {
+    getUsersDetailSpy = jest
+      .spyOn(EntryManager.prototype, 'getUsersDetail')
+      .mockRejectedValue(new Error());
+    entryManager.isProcessing = true;
+    await entryManager.startGame();
+
+    expect(entryEmitSpy).toHaveBeenCalledWith(
+      'gameCreationFailed',
+      mockChannelId,
+    );
+    expect(entryManager.users).toEqual({});
+    expect(entryManager.isProcessing).toBe(false);
+  });
+});

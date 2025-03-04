@@ -1,5 +1,4 @@
 import EventEmitter from 'events';
-import { games } from './GameInstanceManager';
 import PhaseManager, { CurrentPhase } from './PhaseManager';
 import PlayerManager, { Status, IUser } from './PlayerManager';
 import VoteManager from './VoteManager';
@@ -11,6 +10,9 @@ import Message, { IMessage } from '../models/messageModel';
 import Game from '../models/gameModel';
 import { gameMaster } from '../config/messages';
 import { Role } from '../config/roles';
+import { appState } from '../app';
+
+const { gameManagers } = appState;
 
 export type Result =
   | 'running'
@@ -148,7 +150,7 @@ export default class GameManager {
       await Game.findByIdAndUpdate(this.gameId, { result: this.result.value });
       this.eventEmitter.removeAllListeners();
 
-      delete games[this.gameId];
+      delete gameManagers[this.gameId];
     } catch (error) {
       console.error(`Failed to end game ${this.gameId}:`, error);
     }

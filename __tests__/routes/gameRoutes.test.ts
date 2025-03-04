@@ -2,7 +2,7 @@ jest.mock('../../src/utils/decodeToken', () => ({
   decodeToken: jest.fn(),
 }));
 
-import app from '../../src/app';
+import app, { appState } from '../../src/app';
 import { decodeToken } from '../../src/utils/decodeToken';
 import request from 'supertest';
 import User from '../../src/models/userModel';
@@ -15,9 +15,10 @@ import {
   mockUsers,
 } from '../../jest.setup';
 import GameManager from '../../src/classes/GameManager';
-import { games } from '../../src/classes/GameInstanceManager';
 import { errors, validation } from '../../src/config/messages';
 import ChannelUser from '../../src/models/channelUserModel';
+
+const { gameManagers } = appState;
 
 let testUserId: string;
 let testUser2Id: string;
@@ -74,17 +75,21 @@ beforeEach(() => {
     ...mockUsers,
   ];
   gameUsers.pop();
-  games[testGameId] = new GameManager(mockChannelId, testGameId, gameUsers);
-  games[testGameId].sendMessage = jest.fn();
+  gameManagers[testGameId] = new GameManager(
+    mockChannelId,
+    testGameId,
+    gameUsers,
+  );
+  gameManagers[testGameId].sendMessage = jest.fn();
 });
 
 afterEach(() => {
-  const timerId = games[testGameId]?.phaseManager.timerId;
+  const timerId = gameManagers[testGameId]?.phaseManager.timerId;
 
   if (timerId) {
     clearTimeout(timerId);
   }
-  delete games[testGameId];
+  delete gameManagers[testGameId];
   jest.restoreAllMocks();
 });
 
@@ -193,7 +198,7 @@ describe('/player-state', () => {
   });
 
   it('ゲームが処理中のとき', async () => {
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
     game.isProcessing = true;
 
     await customRequest(testUserId, testGameId, 409, errors.GAME_IS_PROCESSING);
@@ -231,7 +236,7 @@ describe('/vote', () => {
 
   it('投票する', async () => {
     const votee = mockUsers[0].userId;
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
 
     game.phaseManager.currentPhase = 'day';
 
@@ -252,7 +257,7 @@ describe('/vote', () => {
 
   it('ゲームが処理中のとき', async () => {
     const votee = mockUsers[0].userId;
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
     game.isProcessing = true;
 
     await customRequest(
@@ -278,7 +283,7 @@ describe('/vote', () => {
 
   it('selectedUserが無効', async () => {
     const votee = 'wrongUserId';
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
 
     game.phaseManager.currentPhase = 'day';
 
@@ -307,7 +312,7 @@ describe('/devine', () => {
   };
 
   it('占いリクエスト送信', async () => {
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
     game.playerManager.players = {
       [testUserId]: {
         userId: testUserId,
@@ -350,7 +355,7 @@ describe('/guard', () => {
   };
 
   it('護衛リクエスト送信', async () => {
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
     game.playerManager.players = {
       [testUserId]: {
         userId: testUserId,
@@ -393,7 +398,7 @@ describe('/attack', () => {
   };
 
   it('襲撃リクエスト送信', async () => {
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
     game.playerManager.players = {
       [testUserId]: {
         userId: testUserId,
@@ -437,7 +442,7 @@ describe('/vote-history', () => {
   };
 
   it('投票履歴を取得', async () => {
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
     game.phaseManager.currentPhase = 'day';
     game.voteManager.voteHistory = { 1: { votee: ['voter'] } };
 
@@ -469,7 +474,7 @@ describe('/devine-result', () => {
   };
 
   it('占い結果を取得', async () => {
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
     game.playerManager.players = {
       [testUserId]: {
         userId: testUserId,
@@ -509,7 +514,7 @@ describe('/medium-result', () => {
   };
 
   it('霊能結果を取得', async () => {
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
     game.playerManager.players = {
       [testUserId]: {
         userId: testUserId,
@@ -549,7 +554,7 @@ describe('/guard-history', () => {
   };
 
   it('護衛履歴を取得', async () => {
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
     game.playerManager.players = {
       [testUserId]: {
         userId: testUserId,
@@ -589,7 +594,7 @@ describe('/attack-history', () => {
   };
 
   it('襲撃履歴を取得', async () => {
-    const game = games[testGameId];
+    const game = gameManagers[testGameId];
     game.playerManager.players = {
       [testUserId]: {
         userId: testUserId,

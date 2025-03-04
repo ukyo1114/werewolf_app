@@ -6,10 +6,12 @@
  * An error occurs if neither the channel nor the game exists
  */
 
+jest.mock('../../src/app', () => ({
+  appState: { gameManagers: {} },
+}));
 import { ObjectId } from 'mongodb';
 import Channel from '../../src/models/channelModel';
 import Game from '../../src/models/gameModel';
-import { games } from '../../src/classes/GameInstanceManager';
 import channelManager from '../../src/classes/ChannelManager';
 import GameManager from '../../src/classes/GameManager';
 import AppError from '../../src/utils/AppError';
@@ -21,6 +23,9 @@ import {
   mockGameId,
   mockUsers,
 } from '../../jest.setup';
+import { appState } from '../../src/app';
+
+const { gameManagers } = appState;
 
 let testChannelId: string;
 let testGameId: string;
@@ -40,12 +45,16 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  games[testGameId] = new GameManager(mockChannelId, testGameId, mockUsers);
-  games[testGameId].sendMessage = jest.fn();
+  gameManagers[testGameId] = new GameManager(
+    mockChannelId,
+    testGameId,
+    mockUsers,
+  );
+  gameManagers[testGameId].sendMessage = jest.fn();
 });
 
 afterEach(() => {
-  const timerId = games[testGameId]?.phaseManager.timerId;
+  const timerId = gameManagers[testGameId]?.phaseManager.timerId;
 
   if (timerId) {
     clearTimeout(timerId);
@@ -53,7 +62,7 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  delete games[testGameId];
+  delete gameManagers[testGameId];
   jest.restoreAllMocks();
 });
 
@@ -77,7 +86,7 @@ describe('test createChannelInstance', () => {
 
     const gameIdNotExists = gameNotExists._id.toString();
 
-    expect(games[gameIdNotExists]).toBeUndefined();
+    expect(gameManagers[gameIdNotExists]).toBeUndefined();
 
     await expect(() => createChannelInstance(gameIdNotExists)).rejects.toThrow(
       new AppError(404, errors.GAME_NOT_FOUND),

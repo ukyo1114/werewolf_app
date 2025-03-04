@@ -2,7 +2,7 @@ jest.mock('../../src/utils/decodeToken', () => ({
   decodeToken: jest.fn(),
 }));
 
-import app from '../../src/app';
+import app, { appState } from '../../src/app';
 import { decodeToken } from '../../src/utils/decodeToken';
 import request from 'supertest';
 import User from '../../src/models/userModel';
@@ -12,8 +12,9 @@ import { errors, validation } from '../../src/config/messages';
 import { channels } from '../../src/classes/ChannelInstanceManager';
 import ChannelUserManager from '../../src/classes/ChannelUserManager';
 import ChannelManager from '../../src/classes/ChannelManager';
-import { games } from '../../src/classes/GameInstanceManager';
 import GameManager from '../../src/classes/GameManager';
+
+const { gameManagers } = appState;
 
 let testUserId: string;
 let testUser2Id: string;
@@ -58,8 +59,12 @@ beforeAll(async () => {
     }),
   };
 
-  games[mockGameId] = new GameManager(testChannelId, mockGameId, mockUsers);
-  games[mockGameId].playerManager.players = {
+  gameManagers[mockGameId] = new GameManager(
+    testChannelId,
+    mockGameId,
+    mockUsers,
+  );
+  gameManagers[mockGameId].playerManager.players = {
     [testUserId]: {
       userId: testUserId,
       userName: 'testUser',
@@ -67,7 +72,7 @@ beforeAll(async () => {
       role: 'villager',
     },
   };
-  games[mockGameId].sendMessage = jest.fn();
+  gameManagers[mockGameId].sendMessage = jest.fn();
 });
 
 afterEach(() => {
@@ -76,12 +81,12 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  const timerId = games[mockGameId]?.phaseManager.timerId;
+  const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
 
   if (timerId) {
     clearTimeout(timerId);
   }
-  delete games[mockGameId];
+  delete gameManagers[mockGameId];
 });
 
 describe('getMessages', () => {

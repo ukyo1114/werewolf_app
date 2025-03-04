@@ -10,13 +10,6 @@ import createError from 'http-errors';
 // import path from 'path';
 
 import connectDB from './utils/connectDB';
-import verifyEmailRoutes from './routes/verifyEmailRoutes';
-import userRoutes from './routes/userRoutes';
-import blockRoutes from './routes/blockRoutes';
-import channelRoutes from './routes/channelRoutes';
-import gameRoutes from './routes/gameRoutes';
-import messageRoutes from './routes/messageRoutes';
-import spectateRoutes from './routes/spectateRoutes';
 import EntryManager from './classes/EntryManager';
 import ChannelManager from './classes/ChannelManager';
 import GameManager from './classes/GameManager';
@@ -62,6 +55,14 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions));
 
 // エンドポイント
+import verifyEmailRoutes from './routes/verifyEmailRoutes';
+import userRoutes from './routes/userRoutes';
+import blockRoutes from './routes/blockRoutes';
+import channelRoutes from './routes/channelRoutes';
+import gameRoutes from './routes/gameRoutes';
+import messageRoutes from './routes/messageRoutes';
+import spectateRoutes from './routes/spectateRoutes';
+
 app.use('/api/verify-email', verifyEmailRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/block', blockRoutes);

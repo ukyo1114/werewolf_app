@@ -1,5 +1,7 @@
+jest.mock('../../src/app', () => ({
+  appState: { gameManagers: {} },
+}));
 import { ObjectId } from 'mongodb';
-import { games } from '../../src/classes/GameInstanceManager';
 import GameManager from '../../src/classes/GameManager';
 import ChannelManager from '../../src/classes/ChannelManager';
 import ChannelUserManager from '../../src/classes/ChannelUserManager';
@@ -14,6 +16,9 @@ import {
 } from '../../jest.setup';
 import AppError from '../../src/utils/AppError';
 import { errors } from '../../src/config/messages';
+import { appState } from '../../src/app';
+
+const { gameManagers } = appState;
 
 const mockSocketId = 'mockSocketId';
 
@@ -23,13 +28,17 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  games[mockGameId] = new GameManager(mockChannelId, mockGameId, mockUsers);
+  gameManagers[mockGameId] = new GameManager(
+    mockChannelId,
+    mockGameId,
+    mockUsers,
+  );
   // sendMessageをモック
-  games[mockGameId].sendMessage = jest.fn();
+  gameManagers[mockGameId].sendMessage = jest.fn();
 });
 
 afterEach(() => {
-  const timerId = games[mockGameId].phaseManager.timerId;
+  const timerId = gameManagers[mockGameId].phaseManager.timerId;
 
   if (timerId) {
     clearTimeout(timerId);
@@ -37,7 +46,7 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  delete games[mockGameId];
+  delete gameManagers[mockGameId];
   jest.restoreAllMocks();
 });
 
@@ -52,7 +61,7 @@ describe('test ChannelManager', () => {
     });
 
     it('ゲーム用チャンネルで正しく初期化されること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
 
       expect(channel.channelId).toBe(mockGameId);
@@ -83,7 +92,7 @@ describe('test ChannelManager', () => {
     });
 
     it('ゲーム用のチャンネルでユーザーがチャンネルに参加できる', async () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
       game.playerManager.players = {
         [mockUserId]: {
@@ -104,7 +113,7 @@ describe('test ChannelManager', () => {
     });
 
     it('ゲーム用のチャンネルでデータベースに登録されていないユーザーが参加しようとするとエラーになる', async () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
       const nonExistingUser = new ObjectId().toString();
 
@@ -114,7 +123,7 @@ describe('test ChannelManager', () => {
     });
 
     it('ユーザーが人狼のとき', async () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
       game.playerManager.players = {
         [mockUserId]: {
@@ -135,7 +144,7 @@ describe('test ChannelManager', () => {
     });
 
     it('ユーザーが死亡しているとき', async () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
       game.playerManager.players = {
         [mockUserId]: {
@@ -156,7 +165,7 @@ describe('test ChannelManager', () => {
     });
 
     it('ユーザーがゲームに参加していないとき', async () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
 
       await channel.userJoined(mockUserId, mockSocketId);
@@ -261,7 +270,7 @@ describe('test ChannelManager', () => {
     });
 
     it('finishedフェーズのときnormalを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
       channel.users = {
         user1: new ChannelUserManager({
@@ -278,7 +287,7 @@ describe('test ChannelManager', () => {
     });
 
     it('ユーザーがspectatorのときspectatorを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
       channel.users = {
         user1: new ChannelUserManager({
@@ -295,7 +304,7 @@ describe('test ChannelManager', () => {
     });
 
     it('nightフェーズでないときnormalを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
       channel.users = {
         user1: new ChannelUserManager({
@@ -312,7 +321,7 @@ describe('test ChannelManager', () => {
     });
 
     it('nightフェーズのとき人狼にはwerewolfを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
       channel.users = {
         user1: new ChannelUserManager({
@@ -329,7 +338,7 @@ describe('test ChannelManager', () => {
     });
 
     it('nightフェーズのとき人狼以外にはエラーを返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
       channel.users = {
         user1: new ChannelUserManager({
@@ -366,7 +375,7 @@ describe('test ChannelManager', () => {
     });
 
     it('メッセージタイプがspectatorのとき観戦者を返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
       channel.users = {
         user1: new ChannelUserManager({
@@ -392,7 +401,7 @@ describe('test ChannelManager', () => {
     });
 
     it('メッセージタイプがwerewolfのとき人狼と観戦者を返す', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
       channel.users = {
         user1: new ChannelUserManager({
@@ -423,7 +432,7 @@ describe('test ChannelManager', () => {
     let channel: ChannelManager;
 
     beforeAll(() => {
-      game = games[mockGameId];
+      game = gameManagers[mockGameId];
       channel = new ChannelManager(mockGameId, game);
 
       channel.users = {

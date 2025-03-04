@@ -1,5 +1,7 @@
+jest.mock('../../src/app', () => ({
+  appState: { gameManagers: {} },
+}));
 import { EventEmitter } from 'events';
-import { games } from '../../src/classes/GameInstanceManager';
 import GameManager from '../../src/classes/GameManager';
 import PlayerManager from '../../src/classes/PlayerManager';
 import PhaseManager from '../../src/classes/PhaseManager';
@@ -9,51 +11,66 @@ import MediumManager from '../../src/classes/MediumManager';
 import GuardManager from '../../src/classes/GuardManager';
 import AttackManager from '../../src/classes/AttackManager';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { appState } from '../../src/app';
+
+const { gameManagers } = appState;
 
 describe('test GameManager', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    games[mockGameId] = new GameManager(mockChannelId, mockGameId, mockUsers);
+    gameManagers[mockGameId] = new GameManager(
+      mockChannelId,
+      mockGameId,
+      mockUsers,
+    );
   });
 
   afterAll(() => {
-    delete games[mockGameId];
+    delete gameManagers[mockGameId];
   });
 
   it('should initialize with correct properties', () => {
-    expect(games[mockGameId].channelId).toBe(mockChannelId);
-    expect(games[mockGameId].gameId).toBe(mockGameId);
-    expect(games[mockGameId].result.value).toBe('running');
-    expect(games[mockGameId].isProcessing).toBe(false);
-    expect(games[mockGameId].eventEmitter).toBeInstanceOf(EventEmitter);
+    expect(gameManagers[mockGameId].channelId).toBe(mockChannelId);
+    expect(gameManagers[mockGameId].gameId).toBe(mockGameId);
+    expect(gameManagers[mockGameId].result.value).toBe('running');
+    expect(gameManagers[mockGameId].isProcessing).toBe(false);
+    expect(gameManagers[mockGameId].eventEmitter).toBeInstanceOf(EventEmitter);
   });
 
   it('should initialize managers with correct dependencies', () => {
-    expect(games[mockGameId].phaseManager).toBeInstanceOf(PhaseManager);
-    expect(games[mockGameId].phaseManager.eventEmitter).toBe(
-      games[mockGameId].eventEmitter,
+    expect(gameManagers[mockGameId].phaseManager).toBeInstanceOf(PhaseManager);
+    expect(gameManagers[mockGameId].phaseManager.eventEmitter).toBe(
+      gameManagers[mockGameId].eventEmitter,
     );
-    expect(games[mockGameId].phaseManager.result).toBe(
-      games[mockGameId].result,
-    );
-
-    expect(games[mockGameId].playerManager).toBeInstanceOf(PlayerManager);
-    expect(games[mockGameId].playerManager.gameId).toBe(mockGameId);
-    expect(Object.keys(games[mockGameId].playerManager.players)).toHaveLength(
-      mockUsers.length,
+    expect(gameManagers[mockGameId].phaseManager.result).toBe(
+      gameManagers[mockGameId].result,
     );
 
-    expect(games[mockGameId].voteManager).toBeInstanceOf(VoteManager);
-    expect(games[mockGameId].devineManager).toBeInstanceOf(DevineManager);
-    expect(games[mockGameId].mediumManager).toBeInstanceOf(MediumManager);
-    expect(games[mockGameId].guardManager).toBeInstanceOf(GuardManager);
-    expect(games[mockGameId].attackManager).toBeInstanceOf(AttackManager);
+    expect(gameManagers[mockGameId].playerManager).toBeInstanceOf(
+      PlayerManager,
+    );
+    expect(gameManagers[mockGameId].playerManager.gameId).toBe(mockGameId);
+    expect(
+      Object.keys(gameManagers[mockGameId].playerManager.players),
+    ).toHaveLength(mockUsers.length);
+
+    expect(gameManagers[mockGameId].voteManager).toBeInstanceOf(VoteManager);
+    expect(gameManagers[mockGameId].devineManager).toBeInstanceOf(
+      DevineManager,
+    );
+    expect(gameManagers[mockGameId].mediumManager).toBeInstanceOf(
+      MediumManager,
+    );
+    expect(gameManagers[mockGameId].guardManager).toBeInstanceOf(GuardManager);
+    expect(gameManagers[mockGameId].attackManager).toBeInstanceOf(
+      AttackManager,
+    );
   });
 
   it('should register event listeners', () => {
-    const mockOn = jest.spyOn(games[mockGameId].eventEmitter, 'on');
+    const mockOn = jest.spyOn(gameManagers[mockGameId].eventEmitter, 'on');
 
-    games[mockGameId].registerListners();
+    gameManagers[mockGameId].registerListners();
 
     expect(mockOn).toHaveBeenCalledWith('timerEnd', expect.any(Function));
     expect(mockOn).toHaveBeenCalledWith('phaseSwitched', expect.any(Function));

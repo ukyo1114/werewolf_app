@@ -1,17 +1,26 @@
-import { games } from '../../src/classes/GameInstanceManager';
+jest.mock('../../src/app', () => ({
+  appState: { gameManagers: {} },
+}));
 import GameManager from '../../src/classes/GameManager';
 import AppError from '../../src/utils/AppError';
 import { gameError } from '../../src/config/messages';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { appState } from '../../src/app';
+
+const { gameManagers } = appState;
 
 beforeEach(() => {
-  games[mockGameId] = new GameManager(mockChannelId, mockGameId, mockUsers);
+  gameManagers[mockGameId] = new GameManager(
+    mockChannelId,
+    mockGameId,
+    mockUsers,
+  );
   // sendMessageをモック
-  games[mockGameId].sendMessage = jest.fn();
+  gameManagers[mockGameId].sendMessage = jest.fn();
 });
 
 afterEach(() => {
-  const timerId = games[mockGameId].phaseManager.timerId;
+  const timerId = gameManagers[mockGameId].phaseManager.timerId;
 
   if (timerId) {
     clearTimeout(timerId);
@@ -19,14 +28,14 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  delete games[mockGameId];
+  delete gameManagers[mockGameId];
   jest.restoreAllMocks();
 });
 
 describe('test VoteManager', () => {
   describe('receiveVote', () => {
     it('投票が正常に受け付けされる', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
 
       game.phaseManager.nextPhase();
 
@@ -40,7 +49,7 @@ describe('test VoteManager', () => {
     });
 
     it('投票者が死亡しているとエラーが返る', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
 
       game.phaseManager.nextPhase();
 
@@ -55,7 +64,7 @@ describe('test VoteManager', () => {
     });
 
     it('投票対象が死亡しているとエラーが返る', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
 
       game.phaseManager.nextPhase();
 
@@ -70,7 +79,7 @@ describe('test VoteManager', () => {
     });
 
     it('夜に投票しようとするとエラーが返る', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
 
       game.phaseManager.nextPhase();
       game.phaseManager.nextPhase();
@@ -87,7 +96,7 @@ describe('test VoteManager', () => {
 
   describe('getExcutionTarget', () => {
     it('最多得票者が処刑対象として返される', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
 
       game.phaseManager.nextPhase();
 
@@ -121,7 +130,7 @@ describe('test VoteManager', () => {
     });
 
     it('投票が無かった場合、nullが返される', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
 
       game.phaseManager.nextPhase();
 
@@ -133,7 +142,7 @@ describe('test VoteManager', () => {
 
   describe('test voteCounter', () => {
     it('投票カウントが正しい形式で返されること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
 
       game.phaseManager.nextPhase();
 
@@ -152,7 +161,7 @@ describe('test VoteManager', () => {
 
   describe('test genVoteHistory', () => {
     it('投票履歴が正しい形式で生成され、投票がリセットされること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
 
       game.phaseManager.nextPhase();
 
@@ -173,7 +182,7 @@ describe('test VoteManager', () => {
 
   describe('test getVoteHistory', () => {
     it('投票履歴が正しい形式で返されること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
 
       game.phaseManager.nextPhase();
 
@@ -192,7 +201,7 @@ describe('test VoteManager', () => {
     });
 
     it('preフェーズに投票履歴を取得しようとするとエラーが返されること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       expect(() => game.voteManager.getVoteHistory()).toThrow(
         new AppError(403, gameError.VOTE_HISTORY_NOT_FOUND),
       );

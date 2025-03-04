@@ -1,25 +1,34 @@
-import { games } from '../../src/classes/GameInstanceManager';
+jest.mock('../../src/app', () => ({
+  appState: { gameManagers: {} },
+}));
 import GameManager from '../../src/classes/GameManager';
 import AppError from '../../src/utils/AppError';
 import { gameError } from '../../src/config/messages';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { appState } from '../../src/app';
+
+const { gameManagers } = appState;
 
 describe('test GuardManager', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    games[mockGameId] = new GameManager(mockChannelId, mockGameId, mockUsers);
+    gameManagers[mockGameId] = new GameManager(
+      mockChannelId,
+      mockGameId,
+      mockUsers,
+    );
     // sendMessageをモック
-    games[mockGameId].sendMessage = jest.fn();
+    gameManagers[mockGameId].sendMessage = jest.fn();
   });
 
   afterAll(() => {
-    delete games[mockGameId];
+    delete gameManagers[mockGameId];
     jest.restoreAllMocks();
   });
 
   describe('recieveGuardRequest', () => {
     it('護衛リクエストが正しく受け付けられること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const phaseManager = game.phaseManager;
 
       phaseManager.nextPhase();
@@ -35,7 +44,7 @@ describe('test GuardManager', () => {
     });
 
     it('護衛リクエストが不正な場合にエラーが返されること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const phaseManager = game.phaseManager;
 
       const playerId = game.playerManager.findPlayerByRole('hunter').userId;
@@ -92,7 +101,7 @@ describe('test GuardManager', () => {
 
   describe('devine', () => {
     it('正しく護衛処理が行われ、リクエストがリセットされること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const guardManager = game.guardManager;
 
       const villagerId = game.playerManager.findPlayerByRole('villager').userId;
@@ -108,7 +117,7 @@ describe('test GuardManager', () => {
 
   describe('getRandomDevineTarget', () => {
     it('正しいターゲットが設定されること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const playerManager = game.playerManager;
 
       const villagerId = playerManager.findPlayerByRole('villager').userId;
@@ -135,7 +144,7 @@ describe('test GuardManager', () => {
 
   describe('getGuardHistory', () => {
     it('護衛結果が正しい形式で返されること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const phaseManager = game.phaseManager;
       const guardManager = game.guardManager;
 
@@ -157,7 +166,7 @@ describe('test GuardManager', () => {
     });
 
     it('護衛結果を不正に取得しようとするとエラーが返されること', () => {
-      const game = games[mockGameId];
+      const game = gameManagers[mockGameId];
       const phaseManager = game.phaseManager;
       const guardManager = game.guardManager;
 

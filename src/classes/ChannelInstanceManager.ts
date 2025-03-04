@@ -1,9 +1,11 @@
 import Channel from '../models/channelModel';
 import Game from '../models/gameModel';
 import ChannelManager from './ChannelManager';
-import { games } from './GameInstanceManager';
 import AppError from '../utils/AppError';
 import { errors } from '../config/messages';
+import { appState } from '../app';
+
+const { gameManagers } = appState;
 
 export const channels: { [key: string]: ChannelManager } = {};
 
@@ -17,7 +19,7 @@ export const createChannelInstance = async (channelId: string) => {
     channels[channelId] = new ChannelManager(channelId);
     return channels[channelId];
   } else if (isGame) {
-    const game = games[channelId];
+    const game = gameManagers[channelId];
 
     if (game) {
       channels[channelId] = new ChannelManager(channelId, game);
