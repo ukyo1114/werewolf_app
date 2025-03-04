@@ -9,12 +9,11 @@ import User from '../../src/models/userModel';
 import Channel from '../../src/models/channelModel';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
 import { errors, validation } from '../../src/config/messages';
-import { channels } from '../../src/classes/ChannelInstanceManager';
 import ChannelUserManager from '../../src/classes/ChannelUserManager';
 import ChannelManager from '../../src/classes/ChannelManager';
 import GameManager from '../../src/classes/GameManager';
 
-const { gameManagers } = appState;
+const { gameManagers, channelManagers } = appState;
 
 let testUserId: string;
 let testUser2Id: string;
@@ -49,9 +48,9 @@ beforeAll(async () => {
 
   testChannelId = testChannel._id.toString();
 
-  channels[testChannelId] = new ChannelManager(testChannelId);
+  channelManagers[testChannelId] = new ChannelManager(testChannelId);
 
-  channels[testChannelId].users = {
+  channelManagers[testChannelId].users = {
     [testUserId]: new ChannelUserManager({
       userId: testUserId,
       socketId: 'testUser',

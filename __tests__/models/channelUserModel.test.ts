@@ -1,6 +1,7 @@
 import Channel from '../../src/models/channelModel';
 import User from '../../src/models/userModel';
 import ChannelUser from '../../src/models/channelUserModel';
+import ChannelBlockUser from '../../src/models/channelBlockUserModel';
 
 let userId: string;
 let channelId: string;
@@ -25,8 +26,13 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  jest.clearAllMocks();
+  await ChannelUser.collection.dropIndexes();
+  await ChannelUser.syncIndexes();
   await ChannelUser.deleteMany({});
+});
+
+afterEach(async () => {
+  jest.clearAllMocks();
 });
 
 describe('ChannelUser Model Test', () => {

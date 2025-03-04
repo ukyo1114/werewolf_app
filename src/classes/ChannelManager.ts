@@ -1,12 +1,14 @@
 import { union } from 'lodash';
 import GameManager from './GameManager';
-import { channels } from './ChannelInstanceManager';
 import ChannelUserManager, { IChannelUser } from './ChannelUserManager';
 import ChannelUser from '../models/channelUserModel';
 import { MessageType } from '../models/messageModel';
 import GameUser from '../models/gameUserModel';
 import AppError from '../utils/AppError';
 import { errors } from '../config/messages';
+import { appState } from '../app';
+
+const { channelManagers } = appState;
 
 export default class ChannelManager {
   public channelId: string;
@@ -47,7 +49,8 @@ export default class ChannelManager {
 
   userLeft(userId: string) {
     delete this.users[userId];
-    if (Object.keys(this.users).length === 0) delete channels[this.channelId];
+    if (Object.keys(this.users).length === 0)
+      delete channelManagers[this.channelId];
   }
 
   getSendMessageType(userId: string) {

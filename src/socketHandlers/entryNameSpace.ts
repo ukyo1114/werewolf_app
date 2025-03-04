@@ -1,11 +1,12 @@
 import { Namespace, Socket } from 'socket.io';
-import { authenticateSocketUser } from '../middleware/authenticateSocketUser';
+import { authSocketUser } from '../middleware/authSocketUser';
 import { isUserPlayingGame } from '../classes/GameInstanceManager';
 import { errors } from '../config/messages';
 import { appState, Events } from '../app';
 import EntryManager from '../classes/EntryManager';
 import Channel from '../models/channelModel';
 import { handleSocketError } from '../utils/handleSocketError';
+import ChannelUser from '../models/channelUserModel';
 
 const { entryManagers } = appState;
 const { entryEvents } = Events;
@@ -16,7 +17,7 @@ interface CustomSocket extends Socket {
 }
 
 export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
-  entryNameSpace.use(authenticateSocketUser);
+  entryNameSpace.use(authSocketUser);
 
   entryNameSpace.on('connection', (socket: CustomSocket) => {
     const userId = socket.userId;
@@ -25,20 +26,21 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
     if (gameId) socket.emit('connect_response', gameId);
 
     socket.on('joinChannel', async (channelId, callback) => {
+      // チャンネルに参加していなければエラーを返す
+      if (!(await ChannelUser.exists({ channelId, userId })))
+        return handleSocketError(socket, errors.CHANNEL_ACCESS_FORBIDDEN);
+
       socket.join(channelId);
       socket.channelId = channelId;
 
       // インスタンスが存在しない場合作成する
-      // TODO: ユーザーがチャンネルに参加しているかどうかの判定を追加する
       if (!entryManagers[channelId]) {
         const channel = await Channel.findById(channelId)
           .select('numberOfPlayers')
           .lean();
-        if (!channel) {
-          socket.emit('connect_error', errors.CHANNEL_NOT_FOUND);
-          socket.disconnect();
-          return;
-        }
+        if (!channel)
+          return handleSocketError(socket, errors.CHANNEL_NOT_FOUND);
+
         entryManagers[channelId] = new EntryManager(
           channelId,
           channel.numberOfPlayers,

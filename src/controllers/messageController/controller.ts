@@ -3,7 +3,9 @@ import asyncHandler from 'express-async-handler';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 import Message, { MessageType } from '../../models/messageModel';
-import { channels } from '../../classes/ChannelInstanceManager';
+import { appState } from '../../app';
+
+const { channelManagers } = appState;
 
 interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
   extends Request<TParams, any, TBody, TQuery> {
@@ -19,7 +21,7 @@ export const getMessages = asyncHandler(
     const { channelId } = req.params;
     const { messageId } = req.query;
 
-    const channel = channels[channelId];
+    const channel = channelManagers[channelId];
     if (!channel) throw new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN);
 
     const query: {
@@ -62,7 +64,7 @@ export const sendMessage = asyncHandler(
     const { channelId } = req.params;
     const { message } = req.body;
 
-    const channel = channels[channelId];
+    const channel = channelManagers[channelId];
     if (!channel) throw new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN);
 
     const messageType = channel.getSendMessageType(userId);

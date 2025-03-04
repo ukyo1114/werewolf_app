@@ -16,13 +16,12 @@ import {
 } from '../../jest.setup';
 import { errors, validation } from '../../src/config/messages';
 import ChannelUser from '../../src/models/channelUserModel';
-import { channels } from '../../src/classes/ChannelInstanceManager';
 import ChannelUserManager from '../../src/classes/ChannelUserManager';
 import ChannelManager from '../../src/classes/ChannelManager';
 import Message from '../../src/models/messageModel';
 import GameManager from '../../src/classes/GameManager';
 
-const { gameManagers } = appState;
+const { gameManagers, channelManagers } = appState;
 
 let testUserId: string;
 let testUser2Id: string;
@@ -62,9 +61,9 @@ beforeAll(async () => {
     userId: testUserId,
   });
 
-  channels[testChannelId] = new ChannelManager(testChannelId);
+  channelManagers[testChannelId] = new ChannelManager(testChannelId);
 
-  channels[testChannelId].users = {
+  channelManagers[testChannelId].users = {
     [testUserId]: new ChannelUserManager({
       userId: testUserId,
       socketId: 'testUser',
@@ -79,7 +78,7 @@ beforeEach(() => {
     mockGameId,
     mockUsers,
   );
-  channels[mockGameId] = new ChannelManager(
+  channelManagers[mockGameId] = new ChannelManager(
     mockGameId,
     gameManagers[mockGameId],
   );
@@ -92,7 +91,7 @@ afterEach(async () => {
     clearTimeout(timerId);
   }
   delete gameManagers[mockGameId];
-  delete channels[mockGameId];
+  delete channelManagers[mockGameId];
   await Message.deleteMany({});
   jest.restoreAllMocks();
 });
@@ -194,7 +193,7 @@ describe('getMessages', () => {
     const game = gameManagers[mockGameId];
     game.phaseManager.currentPhase = 'finished';
 
-    channels[mockGameId].users = {
+    channelManagers[mockGameId].users = {
       [testUserId]: new ChannelUserManager({
         userId: testUserId,
         socketId: 'testUser',
@@ -229,7 +228,7 @@ describe('getMessages', () => {
   });
 
   it('観戦者は全てのメッセージを取得できる', async () => {
-    channels[mockGameId].users = {
+    channelManagers[mockGameId].users = {
       [testUserId]: new ChannelUserManager({
         userId: testUserId,
         socketId: 'testUser',
@@ -264,7 +263,7 @@ describe('getMessages', () => {
   });
 
   it('人狼は人狼用メッセージを取得できる', async () => {
-    channels[mockGameId].users = {
+    channelManagers[mockGameId].users = {
       [testUserId]: new ChannelUserManager({
         userId: testUserId,
         socketId: 'testUser',
@@ -299,7 +298,7 @@ describe('getMessages', () => {
   });
 
   it('通常プレイヤーは通常メッセージのみ取得できる', async () => {
-    channels[mockGameId].users = {
+    channelManagers[mockGameId].users = {
       [testUserId]: new ChannelUserManager({
         userId: testUserId,
         socketId: 'testUser',
@@ -416,7 +415,7 @@ describe('test sendMessage', () => {
     const game = gameManagers[mockGameId];
     game.phaseManager.currentPhase = 'finished';
 
-    channels[mockGameId].users = {
+    channelManagers[mockGameId].users = {
       [testUserId]: new ChannelUserManager({
         userId: testUserId,
         socketId: 'testUser',
@@ -432,7 +431,7 @@ describe('test sendMessage', () => {
   });
 
   it('ユーザーが観戦者の時メッセージタイプが観戦になる', async () => {
-    channels[mockGameId].users = {
+    channelManagers[mockGameId].users = {
       [testUserId]: new ChannelUserManager({
         userId: testUserId,
         socketId: 'testUser',
@@ -451,7 +450,7 @@ describe('test sendMessage', () => {
     const game = gameManagers[mockGameId];
     game.phaseManager.currentPhase = 'night';
 
-    channels[mockGameId].users = {
+    channelManagers[mockGameId].users = {
       [testUserId]: new ChannelUserManager({
         userId: testUserId,
         socketId: 'testUser',
@@ -470,7 +469,7 @@ describe('test sendMessage', () => {
     const game = gameManagers[mockGameId];
     game.phaseManager.currentPhase = 'night';
 
-    channels[mockGameId].users = {
+    channelManagers[mockGameId].users = {
       [testUserId]: new ChannelUserManager({
         userId: testUserId,
         socketId: 'testUser',

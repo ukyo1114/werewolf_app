@@ -49,6 +49,7 @@ export const validation = {
   INVALID_GAME_ID: 'ゲームIDが無効です。',
   MESSAGE_LENGTH: 'メッセージは1文字以上400文字以内で入力してください。',
   INVALID_MESSAGE_ID: 'メッセージIDが無効です。',
+  NUMBER_OF_PLAYERS: 'プレイヤー数は5人以上20人以下で入力してください。',
 };
 
 export const gameError = {

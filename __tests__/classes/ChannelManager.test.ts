@@ -1,11 +1,10 @@
 jest.mock('../../src/app', () => ({
-  appState: { gameManagers: {} },
+  appState: { gameManagers: {}, channelManagers: {} },
 }));
 import { ObjectId } from 'mongodb';
 import GameManager from '../../src/classes/GameManager';
 import ChannelManager from '../../src/classes/ChannelManager';
 import ChannelUserManager from '../../src/classes/ChannelUserManager';
-import { channels } from '../../src/classes/ChannelInstanceManager';
 import ChannelUser from '../../src/models/channelUserModel';
 import GameUser from '../../src/models/gameUserModel';
 import {
@@ -18,7 +17,7 @@ import AppError from '../../src/utils/AppError';
 import { errors } from '../../src/config/messages';
 import { appState } from '../../src/app';
 
-const { gameManagers } = appState;
+const { gameManagers, channelManagers } = appState;
 
 const mockSocketId = 'mockSocketId';
 
@@ -180,8 +179,8 @@ describe('test ChannelManager', () => {
 
   describe('test userLeft', () => {
     it('ユーザーが退出', async () => {
-      channels[mockChannelId] = new ChannelManager(mockChannelId);
-      const channel = channels[mockChannelId];
+      channelManagers[mockChannelId] = new ChannelManager(mockChannelId);
+      const channel = channelManagers[mockChannelId];
       channel.users = {
         user1: new ChannelUserManager({
           userId: 'user1',
@@ -202,8 +201,8 @@ describe('test ChannelManager', () => {
     });
 
     it('最期のユーザーが退出するとchannelオブジェクトを削除する', () => {
-      channels[mockChannelId] = new ChannelManager(mockChannelId);
-      const channel = channels[mockChannelId];
+      channelManagers[mockChannelId] = new ChannelManager(mockChannelId);
+      const channel = channelManagers[mockChannelId];
       channel.users = {
         user1: new ChannelUserManager({
           userId: 'user1',
@@ -214,12 +213,12 @@ describe('test ChannelManager', () => {
 
       channel.userLeft('user1');
 
-      expect(channels).not.toHaveProperty('mockChannelId');
+      expect(channelManagers).not.toHaveProperty('mockChannelId');
     });
 
     it('存在しないユーザーを削除しようとしてもエラーにならない', () => {
-      channels[mockChannelId] = new ChannelManager(mockChannelId);
-      const channel = channels[mockChannelId];
+      channelManagers[mockChannelId] = new ChannelManager(mockChannelId);
+      const channel = channelManagers[mockChannelId];
       channel.users = {
         user1: new ChannelUserManager({
           userId: 'user1',
@@ -231,7 +230,7 @@ describe('test ChannelManager', () => {
       expect(() => channel.userLeft('nonExistentUser')).not.toThrow();
     });
 
-    it('チャンネルがchannelsに登録されていなくてもエラーにならない', () => {
+    it('チャンネルがchannelManagersに登録されていなくてもエラーにならない', () => {
       const channel = new ChannelManager(mockChannelId);
       channel.users = {
         user1: new ChannelUserManager({

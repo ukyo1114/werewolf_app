@@ -3,7 +3,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import User from '../models/userModel';
 import { errors } from '../config/messages';
 
-export const authenticateSocketUser = async (
+export const authSocketUser = async (
   socket: Socket,
   next: (err?: Error) => void,
 ): Promise<void> => {

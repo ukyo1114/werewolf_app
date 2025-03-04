@@ -16,7 +16,7 @@ const validateChannelId = param('channelId')
   .isMongoId()
   .withMessage(validation.INVALID_CHANNEL_ID);
 
-const validateChannelNameRequired = body('channelName')
+/* const validateChannelNameRequired = body('channelName')
   .exists()
   .trim()
   .isString()
@@ -30,9 +30,23 @@ const validateChannelNameOptional = body('channelName')
   .isString()
   .isLength({ min: 1, max: 20 })
   .withMessage(validation.CHANNEL_NAME_LENGTH)
-  .escape();
+  .escape(); */
 
-const validateChannelDescriptionRequired = body('channelDescription')
+const validateChannelName = (isOptional: boolean) => {
+  let validator = body('channelName').trim();
+
+  if (isOptional) {
+    validator = validator.optional();
+  }
+
+  return validator
+    .isString()
+    .isLength({ min: 1, max: 20 })
+    .withMessage(validation.CHANNEL_NAME_LENGTH)
+    .escape();
+};
+
+/* const validateChannelDescriptionRequired = body('channelDescription')
   .exists()
   .trim()
   .isString()
@@ -46,7 +60,21 @@ const validateChannelDescriptionOptional = body('channelDescription')
   .isString()
   .isLength({ min: 1, max: 2000 })
   .withMessage(validation.CHANNEL_DESCRIPTION_LENGTH)
-  .escape();
+  .escape(); */
+
+const validateChannelDescription = (isOptional: boolean) => {
+  let validator = body('channelDescription').trim();
+
+  if (isOptional) {
+    validator = validator.optional();
+  }
+
+  return validator
+    .isString()
+    .isLength({ min: 1, max: 2000 })
+    .withMessage(validation.CHANNEL_DESCRIPTION_LENGTH)
+    .escape();
+};
 
 const validatePasswordEnabled = body('passwordEnabled')
   .exists()
@@ -65,6 +93,10 @@ const validateDenyGuests = body('denyGuests')
   .isBoolean()
   .toBoolean();
 
+const validateNumberOfPlayers = body('numberOfPlayers')
+  .isInt({ min: 5, max: 20 })
+  .withMessage(validation.NUMBER_OF_PLAYERS);
+
 const router = express.Router();
 
 router.use(protect);
@@ -74,11 +106,12 @@ router.get('/list', getChannelList);
 router.post(
   '/create',
   [
-    validateChannelNameRequired,
-    validateChannelDescriptionRequired,
+    validateChannelName(false),
+    validateChannelDescription(false),
     validatePasswordEnabled,
     validatePassword,
     validateDenyGuests,
+    validateNumberOfPlayers,
   ],
   validateRequest,
   createChannel,
@@ -88,11 +121,12 @@ router.put(
   '/settings/:channelId',
   [
     validateChannelId,
-    validateChannelNameOptional,
-    validateChannelDescriptionOptional,
+    validateChannelName(true),
+    validateChannelDescription(true),
     validatePasswordEnabled,
     validatePassword,
     validateDenyGuests,
+    validateNumberOfPlayers,
   ],
   validateRequest,
   updateChannelSettings,

@@ -1,4 +1,3 @@
-import GameManager from './GameManager';
 import { appState } from '../app';
 
 const { gameManagers } = appState;

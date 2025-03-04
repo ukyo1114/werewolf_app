@@ -19,6 +19,7 @@ interface ICreateChannel {
   passwordEnabled: boolean;
   password?: string;
   denyGuests: boolean;
+  numberOfPlayers: number;
 }
 
 interface IChannelSettings {
@@ -27,6 +28,7 @@ interface IChannelSettings {
   passwordEnabled: boolean;
   password?: string;
   denyGuests: boolean;
+  numberOfPlayers: number;
 }
 
 export const getChannelList = asyncHandler(
@@ -65,6 +67,7 @@ export const createChannel = asyncHandler(
       passwordEnabled,
       password,
       denyGuests,
+      numberOfPlayers,
     } = req.body;
     const { userId } = req as { userId: string };
 
@@ -82,6 +85,7 @@ export const createChannel = asyncHandler(
       password: passwordEnabled ? password : undefined,
       channelAdmin: userId,
       denyGuests,
+      numberOfPlayers,
     });
 
     await ChannelUser.create({
@@ -109,6 +113,7 @@ export const updateChannelSettings = asyncHandler(
       passwordEnabled,
       password,
       denyGuests,
+      numberOfPlayers,
     } = req.body;
     const { userId } = req as { userId: string };
 
@@ -127,6 +132,7 @@ export const updateChannelSettings = asyncHandler(
     }
     if (passwordEnabled && password) channel.password = password;
     channel.denyGuests = denyGuests;
+    channel.numberOfPlayers = numberOfPlayers;
 
     await channel.save();
 

@@ -144,6 +144,7 @@ describe('/create', () => {
       passwordEnabled: false,
       password: undefined,
       denyGuests: false,
+      numberOfPlayers: 10,
     };
 
     const response = await request(app)
@@ -181,6 +182,7 @@ describe('/create', () => {
       passwordEnabled: true,
       password: '12345678',
       denyGuests: false,
+      numberOfPlayers: 10,
     };
 
     const response = await request(app)
@@ -205,6 +207,7 @@ describe('/create', () => {
       passwordEnabled: false,
       password: '12345678',
       denyGuests: false,
+      numberOfPlayers: 10,
     };
 
     const response = await request(app)
@@ -229,6 +232,7 @@ describe('/create', () => {
       passwordEnabled: false,
       password: undefined,
       denyGuests: false,
+      numberOfPlayers: 10,
     };
 
     const response = await request(app)
@@ -252,6 +256,7 @@ describe('/create', () => {
       passwordEnabled: false,
       password: undefined,
       denyGuests: false,
+      numberOfPlayers: 10,
     };
 
     const response = await request(app)
@@ -272,6 +277,7 @@ describe('/create', () => {
         passwordEnabled: false,
         password: undefined,
         denyGuests: false,
+        numberOfPlayers: 10,
       },
       validation.CHANNEL_NAME_LENGTH,
     ],
@@ -283,6 +289,7 @@ describe('/create', () => {
         passwordEnabled: false,
         password: undefined,
         denyGuests: false,
+        numberOfPlayers: 10,
       },
       validation.CHANNEL_NAME_LENGTH,
     ],
@@ -294,8 +301,9 @@ describe('/create', () => {
         passwordEnabled: false,
         password: undefined,
         denyGuests: false,
+        numberOfPlayers: 10,
       },
-      'Invalid value',
+      validation.CHANNEL_NAME_LENGTH,
     ],
     [
       '説明文が空',
@@ -305,6 +313,7 @@ describe('/create', () => {
         passwordEnabled: false,
         password: undefined,
         denyGuests: false,
+        numberOfPlayers: 10,
       },
       validation.CHANNEL_DESCRIPTION_LENGTH,
     ],
@@ -316,6 +325,7 @@ describe('/create', () => {
         passwordEnabled: false,
         password: undefined,
         denyGuests: false,
+        numberOfPlayers: 10,
       },
       validation.CHANNEL_DESCRIPTION_LENGTH,
     ],
@@ -327,8 +337,9 @@ describe('/create', () => {
         passwordEnabled: false,
         password: undefined,
         denyGuests: false,
+        numberOfPlayers: 10,
       },
-      'Invalid value',
+      validation.CHANNEL_DESCRIPTION_LENGTH,
     ],
     [
       'パスワード有効化がundefined',
@@ -338,6 +349,7 @@ describe('/create', () => {
         passwordEnabled: undefined,
         password: '12345678',
         denyGuests: false,
+        numberOfPlayers: 10,
       },
       'Invalid value',
     ],
@@ -349,6 +361,7 @@ describe('/create', () => {
         passwordEnabled: true,
         password: '1234567',
         denyGuests: false,
+        numberOfPlayers: 10,
       },
       validation.PASSWORD_LENGTH,
     ],
@@ -360,6 +373,7 @@ describe('/create', () => {
         passwordEnabled: true,
         password: 'a'.repeat(65),
         denyGuests: false,
+        numberOfPlayers: 10,
       },
       validation.PASSWORD_LENGTH,
     ],
@@ -371,8 +385,45 @@ describe('/create', () => {
         passwordEnabled: true,
         password: undefined,
         denyGuests: false,
+        numberOfPlayers: 10,
       },
       validation.PASSWORD_LENGTH,
+    ],
+    [
+      'プレイヤー数がundefined',
+      {
+        channelName: 'testChannel',
+        channelDescription: 'testDescription',
+        passwordEnabled: false,
+        password: undefined,
+        denyGuests: false,
+        numberOfPlayers: undefined,
+      },
+      validation.NUMBER_OF_PLAYERS,
+    ],
+    [
+      'プレイヤー数が少なすぎる',
+      {
+        channelName: 'testChannel',
+        channelDescription: 'testDescription',
+        passwordEnabled: false,
+        password: undefined,
+        denyGuests: false,
+        numberOfPlayers: 4,
+      },
+      validation.NUMBER_OF_PLAYERS,
+    ],
+    [
+      'プレイヤー数が多すぎる',
+      {
+        channelName: 'testChannel',
+        channelDescription: 'testDescription',
+        passwordEnabled: false,
+        password: undefined,
+        denyGuests: false,
+        numberOfPlayers: 21,
+      },
+      validation.NUMBER_OF_PLAYERS,
     ],
   ])('%s', async (_, requestBody, errorMessage) => {
     (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
@@ -432,6 +483,7 @@ describe('/settings, /join, /left', () => {
       const requestBody = {
         channelName: 'channgedChannel',
         passwordEnabled: false,
+        numberOfPlayers: 10,
       };
 
       await request(app)
@@ -451,6 +503,7 @@ describe('/settings, /join, /left', () => {
       const requestBody = {
         channelDescription: 'channgeDescription',
         passwordEnabled: false,
+        numberOfPlayers: 10,
       };
 
       await request(app)
@@ -472,6 +525,7 @@ describe('/settings, /join, /left', () => {
       const requestBody = {
         password: 'testPassword',
         passwordEnabled: true,
+        numberOfPlayers: 10,
       };
 
       await request(app)
@@ -492,6 +546,7 @@ describe('/settings, /join, /left', () => {
       const requestBody = {
         password: 'changedPassword',
         passwordEnabled: true,
+        numberOfPlayers: 10,
       };
 
       const passwordChannel = await Channel.findById(passwordChannelId);
@@ -515,6 +570,7 @@ describe('/settings, /join, /left', () => {
 
       const requestBody = {
         passwordEnabled: true,
+        numberOfPlayers: 10,
       };
 
       const passwordChannel = await Channel.findById(passwordChannelId);
@@ -538,6 +594,7 @@ describe('/settings, /join, /left', () => {
       const requestBody = {
         password: 'testPassword',
         passwordEnabled: false,
+        numberOfPlayers: 10,
       };
 
       await request(app)
@@ -557,6 +614,7 @@ describe('/settings, /join, /left', () => {
 
       const requestBody = {
         passwordEnabled: true,
+        numberOfPlayers: 10,
       };
 
       await request(app)
@@ -576,6 +634,7 @@ describe('/settings, /join, /left', () => {
 
       const requestBody = {
         passwordEnabled: false,
+        numberOfPlayers: 10,
       };
 
       await request(app)
@@ -596,6 +655,7 @@ describe('/settings, /join, /left', () => {
       const requestBody = {
         password: 'testPassword',
         passwordEnabled: false,
+        numberOfPlayers: 10,
       };
 
       await request(app)
@@ -616,6 +676,7 @@ describe('/settings, /join, /left', () => {
       const requestBody = {
         passwordEnabled: false,
         denyGuests: true,
+        numberOfPlayers: 10,
       };
 
       await request(app)
@@ -629,12 +690,32 @@ describe('/settings, /join, /left', () => {
       expect(testChannel?.denyGuests).toBe(true);
     });
 
+    it('ユーザー数を変更', async () => {
+      (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
+
+      const requestBody = {
+        passwordEnabled: false,
+        numberOfPlayers: 5,
+      };
+
+      await request(app)
+        .put(`/api/channel/settings/${testChannelId}`)
+        .send(requestBody)
+        .set('authorization', `Bearer mockToken`)
+        .expect(200);
+
+      const testChannel = await Channel.findById(testChannelId);
+
+      expect(testChannel?.numberOfPlayers).toBe(requestBody.numberOfPlayers);
+    });
+
     it('管理者でないときエラーを返す', async () => {
       (decodeToken as jest.Mock).mockReturnValue({ userId: guestUserId });
 
       const requestBody = {
         channelName: 'channgedChannel',
         passwordEnabled: false,
+        numberOfPlayers: 10,
       };
 
       const response = await request(app)
@@ -652,6 +733,7 @@ describe('/settings, /join, /left', () => {
       const requestBody = {
         channelName: 'channgedChannel',
         passwordEnabled: false,
+        numberOfPlayers: 10,
       };
 
       const response = await request(app)
@@ -669,6 +751,7 @@ describe('/settings, /join, /left', () => {
       const requestBody = {
         channelName: 'channgedChannel',
         passwordEnabled: false,
+        numberOfPlayers: 10,
       };
 
       const response = await request(app)
@@ -686,6 +769,7 @@ describe('/settings, /join, /left', () => {
       const requestBody = {
         channelName: 'channgedChannel',
         passwordEnabled: false,
+        numberOfPlayers: 10,
       };
 
       const response = await request(app)
@@ -706,6 +790,7 @@ describe('/settings, /join, /left', () => {
         {
           channelName: '',
           passwordEnabled: false,
+          numberOfPlayers: 10,
         },
         validation.CHANNEL_NAME_LENGTH,
       ],
@@ -714,6 +799,7 @@ describe('/settings, /join, /left', () => {
         {
           channelName: 'a'.repeat(21),
           passwordEnabled: false,
+          numberOfPlayers: 10,
         },
         validation.CHANNEL_NAME_LENGTH,
       ],
@@ -722,6 +808,7 @@ describe('/settings, /join, /left', () => {
         {
           channelDescription: '',
           passwordEnabled: false,
+          numberOfPlayers: 10,
         },
         validation.CHANNEL_DESCRIPTION_LENGTH,
       ],
@@ -730,6 +817,7 @@ describe('/settings, /join, /left', () => {
         {
           channelDescription: 'a'.repeat(2001),
           passwordEnabled: false,
+          numberOfPlayers: 10,
         },
         validation.CHANNEL_DESCRIPTION_LENGTH,
       ],
@@ -738,6 +826,7 @@ describe('/settings, /join, /left', () => {
         {
           passwordEnabled: true,
           password: '1234567',
+          numberOfPlayers: 10,
         },
         validation.PASSWORD_LENGTH,
       ],
@@ -746,8 +835,33 @@ describe('/settings, /join, /left', () => {
         {
           passwordEnabled: true,
           password: 'a'.repeat(65),
+          numberOfPlayers: 10,
         },
         validation.PASSWORD_LENGTH,
+      ],
+      [
+        'プレイヤー数がundefined',
+        {
+          passwordEnabled: false,
+          numberOfPlayers: undefined,
+        },
+        validation.NUMBER_OF_PLAYERS,
+      ],
+      [
+        'プレイヤー数が少なすぎる',
+        {
+          passwordEnabled: false,
+          numberOfPlayers: 4,
+        },
+        validation.NUMBER_OF_PLAYERS,
+      ],
+      [
+        'プレイヤー数が多すぎる',
+        {
+          passwordEnabled: false,
+          numberOfPlayers: 21,
+        },
+        validation.NUMBER_OF_PLAYERS,
       ],
     ])('%s', async (_, requestBody, errorMessage) => {
       (decodeToken as jest.Mock).mockReturnValue({ userId: testUserId });
