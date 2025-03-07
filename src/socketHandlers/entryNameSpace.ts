@@ -21,25 +21,20 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
 
   entryNameSpace.on('connection', (socket: CustomSocket) => {
     const userId = socket.userId;
+    const channelId = socket.channelId as string;
 
     const gameId = userId && isUserPlayingGame(userId);
-    if (gameId) socket.emit('connect_response', gameId);
+    socket.emit('connect_response', gameId || null);
 
-    socket.on('joinChannel', async (channelId, callback) => {
-      // チャンネルに参加していなければエラーを返す
-      if (!(await ChannelUser.exists({ channelId, userId })))
-        return handleSocketError(socket, errors.CHANNEL_ACCESS_FORBIDDEN);
-
+    socket.on('joinChannel', async (callback) => {
       socket.join(channelId);
-      socket.channelId = channelId;
 
       // インスタンスが存在しない場合作成する
       if (!entryManagers[channelId]) {
         const channel = await Channel.findById(channelId)
           .select('numberOfPlayers')
           .lean();
-        if (!channel)
-          return handleSocketError(socket, errors.CHANNEL_NOT_FOUND);
+        if (!channel) return;
 
         entryManagers[channelId] = new EntryManager(
           channelId,
@@ -52,27 +47,37 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
       });
     });
 
-    socket.on('registerEntry', async () => {
+    socket.on('registerEntry', async (callback) => {
       const { userId, channelId, id } = socket;
-      if (!userId || !channelId)
-        return handleSocketError(socket, errors.CHANNEL_ACCESS_FORBIDDEN);
+      if (!userId || !channelId) return;
 
-      await entryManagers[channelId]?.register(userId, id);
+      try {
+        await entryManagers[channelId]?.register(userId, id);
+        callback({ success: true });
+      } catch (error) {
+        callback({ success: false });
+      }
     });
 
-    socket.on('cancelEntry', () => {
+    socket.on('cancelEntry', (callback) => {
       const { channelId, id } = socket;
-      if (!channelId)
-        return handleSocketError(socket, errors.CHANNEL_ACCESS_FORBIDDEN);
+      if (!channelId) return;
 
-      entryManagers[channelId]?.cancel(id);
+      try {
+        entryManagers[channelId]?.cancel(id);
+        callback({ success: true });
+      } catch (error) {
+        callback({ success: false });
+      }
     });
 
     socket.on('disconnect', () => {
       const { channelId, id } = socket;
       if (!channelId) return;
 
-      entryManagers[channelId]?.cancel(id);
+      try {
+        entryManagers[channelId]?.cancel(id);
+      } catch (error) {}
     });
 
     entryEvents.on('entryUpdate', (data) => {
@@ -81,9 +86,9 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
     });
 
     entryEvents.on('gameStart', (data) => {
-      const { socketIds, gameId } = data;
+      const { users, gameId } = data;
 
-      socketIds.forEach((socketId: string) => {
+      users.forEach((socketId: string) => {
         entryNameSpace.to(socketId).emit('gameStart', gameId);
       });
     });

@@ -21,7 +21,7 @@ export default class EntryManager {
   }
 
   async register(userId: string, socketId: string) {
-    if (this.isProcessing) return;
+    if (this.isProcessing) throw new Error();
 
     this.users[socketId] = userId;
 
@@ -34,7 +34,7 @@ export default class EntryManager {
   }
 
   cancel(socketId: string) {
-    if (this.isProcessing) return;
+    if (this.isProcessing) throw new Error();
 
     delete this.users[socketId];
     this.entryUpdate();

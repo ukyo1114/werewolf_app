@@ -92,10 +92,16 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
+import { socketHandler } from './socketHandlers/socketHandler';
+
 // サーバーの起動
 const port: number = parseInt(process.env.PORT || '5000', 10);
-server.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
-});
+if (process.env.NODE_ENV !== 'test') {
+  server.listen(port, () => {
+    console.log(`Server is running at http://localhost:${port}`);
+  });
+
+  socketHandler(server);
+}
 
 export default server;

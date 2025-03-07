@@ -2,7 +2,7 @@ import { Server } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import { entryNameSpaceHandler } from './entryNameSpace';
 
-export const socketHandler = (server: Server): void => {
+export const socketHandler = (server: Server): SocketIOServer => {
   const io = new SocketIOServer(server, {
     pingTimeout: 60 * 1000,
     cors:
@@ -12,4 +12,6 @@ export const socketHandler = (server: Server): void => {
   });
 
   entryNameSpaceHandler(io.of('/entry'));
+
+  return io;
 };
