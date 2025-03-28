@@ -65,6 +65,7 @@ export const sendMail = async (
   try {
     await transporter.sendMail(mailOptions);
   } catch (error) {
+    console.error(error);
     throw new AppError(500, errors.EMAIL_SEND_FAILED);
   }
 };

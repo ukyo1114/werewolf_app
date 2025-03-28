@@ -1,7 +1,3 @@
-jest.mock('../../src/utils/decodeToken', () => ({
-  decodeToken: jest.fn(),
-}));
-
 import app, { appState } from '../../src/app';
 import { decodeToken } from '../../src/utils/decodeToken';
 import request from 'supertest';

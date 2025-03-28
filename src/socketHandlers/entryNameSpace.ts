@@ -5,7 +5,6 @@ import { errors } from '../config/messages';
 import { appState, Events } from '../app';
 import EntryManager from '../classes/EntryManager';
 import Channel from '../models/channelModel';
-import { handleSocketError } from '../utils/handleSocketError';
 import ChannelUser from '../models/channelUserModel';
 
 const { entryManagers } = appState;
@@ -19,40 +18,38 @@ interface CustomSocket extends Socket {
 export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
   entryNameSpace.use(authSocketUser);
 
-  entryNameSpace.on('connection', (socket: CustomSocket) => {
-    const userId = socket.userId;
+  entryNameSpace.on('connection', async (socket: CustomSocket) => {
+    const userId = socket.userId as string;
     const channelId = socket.channelId as string;
+    const socketId = socket.id;
 
-    const gameId = userId && isUserPlayingGame(userId);
-    socket.emit('connect_response', gameId || null);
+    try {
+      const [channel, channelUserExists] = await Promise.all([
+        Channel.findById(channelId).select('numberOfPlaysers').lean(),
+        ChannelUser.exists({ channelId, userId }),
+      ]);
+      if (!channel || !channelUserExists) {
+        socket.emit('connect_error', errors.CHANNEL_ACCESS_FORBIDDEN);
+        socket.disconnect();
+        return;
+      }
 
-    socket.on('joinChannel', async (callback) => {
-      socket.join(channelId);
-
-      // インスタンスが存在しない場合作成する
       if (!entryManagers[channelId]) {
-        const channel = await Channel.findById(channelId)
-          .select('numberOfPlayers')
-          .lean();
-        if (!channel) return;
-
         entryManagers[channelId] = new EntryManager(
           channelId,
           channel.numberOfPlayers,
         );
       }
-
-      callback({
-        users: entryManagers[channelId].getUserList(),
-      });
-    });
+    } catch (error) {
+      console.error(error);
+      socket.emit('connect_error');
+      socket.disconnect();
+      return;
+    }
 
     socket.on('registerEntry', async (callback) => {
-      const { userId, channelId, id } = socket;
-      if (!userId || !channelId) return;
-
       try {
-        await entryManagers[channelId]?.register(userId, id);
+        await entryManagers[channelId]?.register(userId, socketId);
         callback({ success: true });
       } catch (error) {
         callback({ success: false });
@@ -60,11 +57,8 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
     });
 
     socket.on('cancelEntry', (callback) => {
-      const { channelId, id } = socket;
-      if (!channelId) return;
-
       try {
-        entryManagers[channelId]?.cancel(id);
+        entryManagers[channelId]?.cancel(socketId);
         callback({ success: true });
       } catch (error) {
         callback({ success: false });
@@ -72,11 +66,8 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
     });
 
     socket.on('disconnect', () => {
-      const { channelId, id } = socket;
-      if (!channelId) return;
-
       try {
-        entryManagers[channelId]?.cancel(id);
+        entryManagers[channelId]?.cancel(socketId);
       } catch (error) {}
     });
 

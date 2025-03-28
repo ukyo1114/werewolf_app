@@ -24,13 +24,13 @@ export default class ChannelManager {
   }
 
   async userJoined(userId: string, socketId: string) {
-    const channelId = this.channelId;
+    // const channelId = this.channelId;
     const game = this.game;
 
-    const userExists = game
+    /*     const userExists = game
       ? await GameUser.exists({ gameId: channelId, userId })
       : await ChannelUser.exists({ channelId, userId });
-    if (!userExists) throw new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN);
+    if (!userExists) throw new Error(); */
 
     const user: IChannelUser = { userId, socketId, status: 'normal' };
 

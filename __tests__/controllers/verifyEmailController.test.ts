@@ -1,19 +1,8 @@
-jest.mock('nodemailer');
-
-import nodemailer from 'nodemailer';
 import { sendMail } from '../../src/controllers/verifyEmailController/utils';
+import { sendMailMock } from '../../jest.setup';
 
 describe('sendMail', () => {
-  let sendMailMock: jest.Mock;
-
-  beforeAll(() => {
-    (nodemailer.createTransport as jest.Mock).mockReturnValue({
-      sendMail: jest.fn(() => Promise.resolve({})),
-    });
-    sendMailMock = (nodemailer.createTransport() as any).sendMail;
-  });
-
-  beforeEach(() => {
+  afterEach(() => {
     jest.clearAllMocks();
   });
 

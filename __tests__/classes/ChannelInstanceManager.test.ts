@@ -5,10 +5,6 @@
  * An error occurs if the game is not in progress
  * An error occurs if neither the channel nor the game exists
  */
-
-jest.mock('../../src/app', () => ({
-  appState: { gameManagers: {} },
-}));
 import { ObjectId } from 'mongodb';
 import Channel from '../../src/models/channelModel';
 import Game from '../../src/models/gameModel';

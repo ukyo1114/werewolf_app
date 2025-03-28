@@ -5,9 +5,7 @@ import AppError from '../utils/AppError';
 import { errors } from '../config/messages';
 import { appState } from '../app';
 
-const { gameManagers } = appState;
-
-export const channels: { [key: string]: ChannelManager } = {};
+const { channelManagers, gameManagers } = appState;
 
 export const createChannelInstance = async (channelId: string) => {
   const [isChannel, isGame] = await Promise.all([
@@ -16,14 +14,14 @@ export const createChannelInstance = async (channelId: string) => {
   ]);
 
   if (isChannel) {
-    channels[channelId] = new ChannelManager(channelId);
-    return channels[channelId];
+    channelManagers[channelId] = new ChannelManager(channelId);
+    return channelManagers[channelId];
   } else if (isGame) {
     const game = gameManagers[channelId];
 
     if (game) {
-      channels[channelId] = new ChannelManager(channelId, game);
-      return channels[channelId];
+      channelManagers[channelId] = new ChannelManager(channelId, game);
+      return channelManagers[channelId];
     } else {
       throw new AppError(404, errors.GAME_NOT_FOUND);
     }

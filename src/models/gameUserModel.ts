@@ -24,7 +24,6 @@ const gameUserSchema = new Schema<IGameUser>(
     gameId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      index: true,
     },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -54,7 +53,6 @@ const gameUserSchema = new Schema<IGameUser>(
   },
 );
 
-// 同じゲームとユーザーの組み合わせは一意である必要がある
 gameUserSchema.index({ gameId: 1, userId: 1 }, { unique: true });
 
 const GameUser = mongoose.model('GameUser', gameUserSchema);

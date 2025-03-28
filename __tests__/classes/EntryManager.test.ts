@@ -8,11 +8,11 @@
  ** 正しくゲームが開始されること
  ** ゲームの開始中にエラーが発生したとき通知されること
  */
-import EventEmitter from 'events';
-jest.mock('../../src/app', () => ({
+// import EventEmitter from 'events';
+/* jest.mock('../../src/app', () => ({
   appState: { gameManagers: {} },
   Events: { entryEvents: new EventEmitter() },
-}));
+})); */
 
 import User from '../../src/models/userModel';
 import Game from '../../src/models/gameModel';
@@ -107,7 +107,10 @@ describe('test register', () => {
   it('処理中のときスキップする', async () => {
     // const entryUpdateSpy = jest.spyOn(entryManager, 'entryUpdate');
     entryManager.isProcessing = true;
-    await entryManager.register(mockUserId, 'testSocketId');
+
+    await expect(() =>
+      entryManager.register(mockUserId, 'testSocketId'),
+    ).rejects.toThrow();
 
     expect(entryManager.users).not.toHaveProperty('testSocketId');
     expect(entryUpdateSpy).not.toHaveBeenCalled();
@@ -139,7 +142,7 @@ describe('test cancel', () => {
   it('処理中の時スキップする', () => {
     entryManager.isProcessing = true;
 
-    entryManager.cancel('testSocketId');
+    expect(() => entryManager.cancel('testSocketId')).toThrow();
 
     expect(entryManager.users).toHaveProperty('testSocketId');
     expect(entryUpdateSpy).not.toHaveBeenCalled();

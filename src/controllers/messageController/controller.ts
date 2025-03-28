@@ -3,9 +3,10 @@ import asyncHandler from 'express-async-handler';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 import Message, { MessageType } from '../../models/messageModel';
-import { appState } from '../../app';
+import { appState, Events } from '../../app';
 
 const { channelManagers } = appState;
+const { channelEvents } = Events;
 
 interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
   extends Request<TParams, any, TBody, TQuery> {
@@ -77,7 +78,7 @@ export const sendMessage = asyncHandler(
       messageType,
     });
 
-    // channel#vents.emit("newMessage", newMessage, messageReceivers);
+    channelEvents.emit('newMessage', channelId, newMessage, messageReceivers);
 
     res.status(200).send();
   },

@@ -10,8 +10,6 @@ const connectDB = async (): Promise<void> => {
       }
       await mongoose.connect(mongoURI);
       console.log(database.CONNECT_SUCCESS);
-    } else {
-      console.log(database.CONNECT_SKIPPED);
     }
   } catch (err) {
     console.error(`Error: ${err instanceof Error ? err.message : err}`);

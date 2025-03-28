@@ -10,9 +10,6 @@
  * Returns null if the game is not in progress
  * Returns null if the player is not alive
  */
-jest.mock('../../src/app', () => ({
-  appState: { gameManagers: {} },
-}));
 import {
   checkIsUserInGame,
   isUserPlayingGame,

@@ -14,7 +14,6 @@ import EntryManager from './classes/EntryManager';
 import ChannelManager from './classes/ChannelManager';
 import GameManager from './classes/GameManager';
 import EventEmitter from 'events';
-// import errorHandler from './middleware/errorHandler';
 
 const app = express();
 connectDB();
@@ -33,6 +32,8 @@ export const Events: {
   [key: string]: EventEmitter;
 } = {
   entryEvents: new EventEmitter(),
+  channelEvents: new EventEmitter(),
+  gameEvents: new EventEmitter(),
 };
 
 // ミドルウェアの設定
@@ -92,9 +93,8 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-import { socketHandler } from './socketHandlers/socketHandler';
-
 // サーバーの起動
+import { socketHandler } from './socketHandlers/socketHandler';
 const port: number = parseInt(process.env.PORT || '5000', 10);
 if (process.env.NODE_ENV !== 'test') {
   server.listen(port, () => {

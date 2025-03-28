@@ -16,9 +16,6 @@ import Channel from '../../src/models/channelModel';
 import ChannelUser from '../../src/models/channelUserModel';
 import EntryManager from '../../src/classes/EntryManager';
 
-jest.spyOn(EntryManager.prototype, 'getUsersDetail').mockImplementation();
-jest.spyOn(EntryManager.prototype, 'createGame').mockResolvedValue(mockGameId);
-
 const { entryManagers } = appState;
 
 let baseUrl: string;
@@ -206,6 +203,11 @@ describe('test entryNameSpace', () => {
     });
 
     it('ゲーム開始人数に達したとき', async () => {
+      jest.spyOn(EntryManager.prototype, 'getUsersDetail').mockImplementation();
+      jest
+        .spyOn(EntryManager.prototype, 'createGame')
+        .mockResolvedValue(mockGameId);
+
       entryManagers[testChannelId] = new EntryManager(testChannelId, 1);
 
       const token = genUserToken(testUserId);
@@ -220,7 +222,36 @@ describe('test entryNameSpace', () => {
 
           await clientSocket.emitWithAck('joinChannel');
           const response = await clientSocket.emitWithAck('registerEntry');
-          expect(response.success).toBe(true);
+        });
+
+        clientSocket.connect();
+      });
+
+      clientSocket.close();
+
+      const entryUsers = entryManagers[testChannelId].getUserList();
+      expect(entryUsers).toEqual([]);
+    });
+
+    it('ゲーム開始中にエラーが発生したとき', async () => {
+      jest
+        .spyOn(EntryManager.prototype, 'getUsersDetail')
+        .mockRejectedValue(new Error());
+
+      entryManagers[testChannelId] = new EntryManager(testChannelId, 1);
+
+      const token = genUserToken(testUserId);
+      const clientSocket = createClientSocket(token, testChannelId);
+
+      await new Promise<void>((resolve) => {
+        clientSocket.on('connect', async () => {
+          clientSocket.on('gameCreationFailed', (error) => {
+            expect(error.message).toBe(errors.GAME_CREATION_FAILED);
+            resolve();
+          });
+
+          await clientSocket.emitWithAck('joinChannel');
+          await clientSocket.emitWithAck('registerEntry');
         });
 
         clientSocket.connect();

@@ -1,6 +1,3 @@
-jest.mock('../../src/app', () => ({
-  appState: { gameManagers: {} },
-}));
 import { ObjectId } from 'mongodb';
 import User from '../../src/models/userModel';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';

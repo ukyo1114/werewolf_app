@@ -34,6 +34,7 @@ export const errors = {
   MESSAGE_NOT_FOUND: 'メッセージが見つかりません。',
   EMAIL_NOT_REGISTERED: 'メールアドレスが登録されていません。',
   GAME_CREATION_FAILED: 'ゲームの開始中にエラーが発生しました',
+  PLAYING_GAME: 'ゲームをプレイ中です。',
 };
 
 export const validation = {

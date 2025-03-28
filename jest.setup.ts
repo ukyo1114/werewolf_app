@@ -1,6 +1,7 @@
 jest.mock('./src/utils/decodeToken', () => ({
   decodeToken: jest.fn(),
 }));
+jest.mock('nodemailer');
 
 import dotenv from 'dotenv';
 dotenv.config({
@@ -8,7 +9,7 @@ dotenv.config({
 });
 
 import app from './src/app';
-
+import nodemailer from 'nodemailer';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
@@ -18,8 +19,14 @@ import { Server as SocketIOServer } from 'socket.io';
 
 let mongoServer: MongoMemoryServer;
 let io: SocketIOServer;
+export let sendMailMock: jest.Mock;
 
 beforeAll(async () => {
+  (nodemailer.createTransport as jest.Mock).mockReturnValue({
+    sendMail: jest.fn(() => Promise.resolve({})),
+  });
+  sendMailMock = (nodemailer.createTransport() as any).sendMail;
+
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
 
