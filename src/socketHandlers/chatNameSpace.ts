@@ -1,10 +1,5 @@
 import { Namespace, Socket } from 'socket.io';
-import { authSocketUser } from '../middleware/authSocketUser';
-import { isUserPlayingGame } from '../classes/GameInstanceManager';
-import { errors } from '../config/messages';
 import { appState, Events } from '../app';
-import EntryManager from '../classes/EntryManager';
-import Channel from '../models/channelModel';
 import { createChannelInstance } from '../classes/ChannelInstanceManager';
 import { IMessage } from '../models/messageModel';
 

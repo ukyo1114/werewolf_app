@@ -1,6 +1,4 @@
 import { Namespace, Socket } from 'socket.io';
-import { authSocketUser } from '../middleware/authSocketUser';
-import { isUserPlayingGame } from '../classes/GameInstanceManager';
 import { errors } from '../config/messages';
 import { appState, Events } from '../app';
 import EntryManager from '../classes/EntryManager';
@@ -23,7 +21,7 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
 
     try {
       const [channel, channelUserExists] = await Promise.all([
-        Channel.findById(channelId).select('numberOfPlaysers').lean(),
+        Channel.findById(channelId).select('numberOfPlayers').lean(),
         ChannelUser.exists({ channelId, userId }),
       ]);
       if (!channel || !channelUserExists) {

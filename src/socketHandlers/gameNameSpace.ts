@@ -5,12 +5,18 @@ const { gameManagers } = appState;
 const { gameEvents } = Events;
 
 interface CustomSocket extends Socket {
-  gameId?: string;
+  channelId?: string;
 }
 
 export const gameNameSpaceHandler = (gameNameSpace: Namespace) => {
   gameNameSpace.on('connection', async (socket: CustomSocket) => {
-    const gameId = socket.gameId as string;
+    const gameId = socket.channelId;
+    if (!gameId) {
+      socket.emit('connect_error');
+      socket.disconnect();
+      return;
+    }
+
     const game = gameManagers[gameId];
 
     if (!game) {
