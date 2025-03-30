@@ -17,8 +17,6 @@ interface CustomSocket extends Socket {
 }
 
 export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
-  chatNameSpace.use(authSocketUser);
-
   chatNameSpace.on('connection', async (socket: CustomSocket) => {
     const userId = socket.userId as string;
     const channelId = socket.channelId as string;

@@ -1,11 +1,9 @@
 import { Socket } from 'socket.io';
-import jwt, { JwtPayload } from 'jsonwebtoken';
 import { decodeToken } from '../utils/decodeToken';
 import User from '../models/userModel';
-import Game from '../models/gameModel';
+import ChannelUser from '../models/channelUserModel';
 import GameUser from '../models/gameUserModel';
 import { isUserPlayingGame } from '../classes/GameInstanceManager';
-import ChannelUser from '../models/channelUserModel';
 
 export const authSocketUser = async (
   socket: Socket,
@@ -20,18 +18,14 @@ export const authSocketUser = async (
     if (!userId) return errorHandler(socket);
 
     // プレイ中のゲームがあるかどうかチェック
-    const gameId = isUserPlayingGame(userId);
-    if (gameId && gameId !== channelId) return errorHandler(socket, gameId);
-
-    // ユーザーが存在しないかチャンネルまたはゲームに参加していないとエラー
-    const [userExists, channelUserExists, gameUserExists] = await Promise.all([
-      User.exists({ _id: userId }),
-      ChannelUser.exists({ channelId, userId }),
-      GameUser.exists({ gameId: channelId, userId }),
-    ]);
-    if (!userExists || !(channelUserExists || gameUserExists)) {
-      return errorHandler(socket);
+    const currentGameId = isUserPlayingGame(userId);
+    if (currentGameId && currentGameId !== channelId) {
+      return errorHandler(socket, currentGameId);
     }
+
+    // DBチェック（ユーザーと、チャンネルかゲームどちらかに参加してること）
+    const isValid = await validateUserInChannelOrGame(userId, channelId);
+    if (!isValid) return errorHandler(socket);
 
     (socket as any).userId = userId;
     (socket as any).channelId = channelId;
@@ -41,7 +35,19 @@ export const authSocketUser = async (
   }
 };
 
-function errorHandler(socket: Socket, gameId?: string) {
+const validateUserInChannelOrGame = async (
+  userId: string,
+  channelId: string,
+): Promise<boolean> => {
+  const [userExists, inChannel, inGame] = await Promise.all([
+    User.exists({ _id: userId }),
+    ChannelUser.exists({ channelId, userId }),
+    GameUser.exists({ gameId: channelId, userId }),
+  ]);
+  return Boolean(userExists && (inChannel || inGame));
+};
+
+const errorHandler = (socket: Socket, gameId?: string): void => {
   socket.emit('authError', gameId);
   socket.disconnect();
-}
+};

@@ -1,5 +1,4 @@
 import { Namespace, Socket } from 'socket.io';
-import { authGameNameSpace } from '../middleware/authSocketUser';
 import { appState, Events } from '../app';
 
 const { gameManagers } = appState;
@@ -10,8 +9,6 @@ interface CustomSocket extends Socket {
 }
 
 export const gameNameSpaceHandler = (gameNameSpace: Namespace) => {
-  gameNameSpace.use(authGameNameSpace);
-
   gameNameSpace.on('connection', async (socket: CustomSocket) => {
     const gameId = socket.gameId as string;
     const game = gameManagers[gameId];
