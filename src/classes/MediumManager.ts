@@ -1,11 +1,9 @@
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-import AppError from '../utils/AppError';
-import { gameError } from '../config/messages';
 
 // Medium result structure: Day -> Target -> Result
 interface IMediumResult {
-  [key: string]: { [key: string]: string };
+  [key: string]: { [key: string]: 'villagers' | 'werewolves' };
 }
 
 export default class MediumManager {
@@ -29,12 +27,8 @@ export default class MediumManager {
   }
 
   getMediumResult(userId: string): IMediumResult {
-    const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[userId];
-
-    if (player?.role !== 'medium' || currentPhase === 'pre') {
-      throw new AppError(403, gameError.MEDIUM_RESULT_NOT_FOUND);
-    }
+    if (!player || player.role !== 'medium') throw new Error();
 
     return this.mediumResult;
   }

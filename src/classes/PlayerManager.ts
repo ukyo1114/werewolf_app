@@ -1,4 +1,4 @@
-import { shuffle, mapValues, omit, pick } from 'lodash';
+import _ from 'lodash';
 import GameUser from '../models/gameUserModel';
 import { Role, roleConfig } from '../config/roles';
 import AppError from '../utils/AppError';
@@ -31,7 +31,7 @@ export default class PlayerManager {
 
   setPlayers(users: IUser[]) {
     const roles = roleConfig[users.length];
-    const shuffledRoles = shuffle(roles);
+    const shuffledRoles = _.shuffle(roles);
 
     users.forEach((user) => {
       const { userId, userName } = user;
@@ -133,16 +133,34 @@ export default class PlayerManager {
   }
 
   getPlayersWithRole() {
-    const players = mapValues(this.players, (user) => omit(user, 'userName'));
+    const players = _.mapValues(this.players, (user) =>
+      _.omit(user, 'userName'),
+    );
 
     return players;
   }
 
   getPlayersWithoutRole() {
-    const players = mapValues(this.players, (user) =>
-      omit(user, ['userName', 'role']),
+    const players = _.mapValues(this.players, (user) =>
+      _.omit(user, ['userName', 'role']),
     );
 
     return players;
+  }
+
+  getRandomTarget(excludedRole: Role | undefined): string {
+    const players = this.players;
+    const randomTargets = Object.values(players)
+      .filter(
+        (player) =>
+          player.status === 'alive' &&
+          (!excludedRole || player.role !== excludedRole),
+      )
+      .map((player) => player.userId);
+
+    const target = _.sample(randomTargets);
+    if (!target) throw new Error();
+
+    return target;
   }
 }

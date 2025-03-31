@@ -14,17 +14,14 @@ export const createChannelInstance = async (
     Channel.exists({ _id: channelId }),
     Game.exists({ _id: channelId }),
   ]);
-
   if (!(isChannel || isGame)) throw new AppError(404, errors.CHANNEL_NOT_FOUND);
 
   if (isChannel) {
-    channelManagers[channelId] = new ChannelManager(channelId);
-    return channelManagers[channelId];
-  } else {
-    const game = gameManagers[channelId];
-    if (!game) throw new AppError(404, errors.GAME_NOT_FOUND);
-
-    channelManagers[channelId] = new ChannelManager(channelId, game);
-    return channelManagers[channelId];
+    return (channelManagers[channelId] = new ChannelManager(channelId));
   }
+
+  const game = gameManagers[channelId];
+  if (!game) throw new AppError(404, errors.GAME_NOT_FOUND);
+
+  return (channelManagers[channelId] = new ChannelManager(channelId, game));
 };

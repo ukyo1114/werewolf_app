@@ -1,12 +1,9 @@
-import { sample } from 'lodash';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-import AppError from '../utils/AppError';
-import { gameError } from '../config/messages';
 
 // Devine result structure: Day -> Target -> Result
 interface IDevineResult {
-  [key: string]: { [key: string]: string };
+  [key: string]: { [key: string]: 'villagers' | 'werewolves' };
 }
 
 export default class DevineManager {
@@ -31,20 +28,19 @@ export default class DevineManager {
       player.role !== 'seer' ||
       target?.status !== 'alive' ||
       target.role === 'seer'
-    )
-      throw new AppError(400, gameError.INVALID_FORTUNE);
+    ) {
+      throw new Error();
+    }
 
     this.devineRequest = targetId;
   }
 
   devine(): string {
-    const { currentDay } = this.phaseManager;
-
     const DevineTargetId: string =
-      this.devineRequest || this.getRandomDevineTarget();
+      this.devineRequest || this.playerManager.getRandomTarget('seer');
     const devineTarget = this.playerManager.players[DevineTargetId];
 
-    this.devineResult[currentDay] = {
+    this.devineResult[this.phaseManager.currentDay] = {
       [DevineTargetId]:
         devineTarget.role !== 'werewolf' ? 'villagers' : 'werewolves',
     };
@@ -55,22 +51,9 @@ export default class DevineManager {
     return DevineTargetId;
   }
 
-  getRandomDevineTarget(): string {
-    const players = this.playerManager.players;
-    const devineTargets = Object.values(players)
-      .filter((user) => user.status === 'alive' && user.role !== 'seer')
-      .map((user) => user.userId);
-
-    return sample(devineTargets)!;
-  }
-
   getDevineResult(userId: string): IDevineResult {
-    const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[userId];
-
-    if (player?.role !== 'seer' || currentPhase === 'pre') {
-      throw new AppError(403, gameError.FORTUNE_RESULT_NOT_FOUND);
-    }
+    if (!player || player.role !== 'seer') throw new Error();
 
     return this.devineResult;
   }

@@ -1,8 +1,5 @@
-import { sample } from 'lodash';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-import AppError from '../utils/AppError';
-import { gameError } from '../config/messages';
 
 // Guard history structure: Day -> Target
 interface IGuardHistory {
@@ -31,8 +28,9 @@ export default class GuardManager {
       player.role !== 'hunter' ||
       target?.status !== 'alive' ||
       target.role === 'hunter'
-    )
-      throw new AppError(400, gameError.INVALID_GUARD);
+    ) {
+      throw new Error();
+    }
 
     this.guardRequest = targetId;
   }
@@ -40,7 +38,8 @@ export default class GuardManager {
   guard(attackTargetId: string): boolean {
     const { currentDay } = this.phaseManager;
 
-    const guardTargetId = this.guardRequest || this.getRandomGuardTarget();
+    const guardTargetId =
+      this.guardRequest || this.playerManager.getRandomTarget('hunter');
     this.guardHistory[currentDay] = guardTargetId;
 
     this.guardRequest = null;
@@ -48,22 +47,9 @@ export default class GuardManager {
     return attackTargetId === guardTargetId;
   }
 
-  getRandomGuardTarget(): string {
-    const players = this.playerManager.players;
-    const guardTargets = Object.values(players)
-      .filter((user) => user.status === 'alive' && user.role !== 'hunter')
-      .map((user) => user.userId);
-
-    return sample(guardTargets)!;
-  }
-
   getGuardHistory(userId: string): IGuardHistory {
-    const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[userId];
-
-    if (player?.role !== 'hunter' || currentPhase === 'pre') {
-      throw new AppError(403, gameError.GUARD_HISTORY_NOT_FOUND);
-    }
+    if (!player || player.role !== 'hunter') throw new Error();
 
     return this.guardHistory;
   }

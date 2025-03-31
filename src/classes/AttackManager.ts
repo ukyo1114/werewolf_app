@@ -1,9 +1,6 @@
-import { sample } from 'lodash';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 import GuardManager from './GuardManager';
-import AppError from '../utils/AppError';
-import { gameError } from '../config/messages';
 
 // Attack history structure: Day -> Target
 interface IAttackHistory {
@@ -38,15 +35,17 @@ export default class AttackManager {
       player.role !== 'werewolf' ||
       target?.status !== 'alive' ||
       target.role === 'werewolf'
-    )
-      throw new AppError(400, gameError.INVALID_ATTACK);
+    ) {
+      throw new Error();
+    }
 
     this.attackRequest = targetId;
   }
 
   attack(): string | null {
     const { currentDay } = this.phaseManager;
-    const attackTargetId = this.attackRequest || this.getRandomAttackTarget();
+    const attackTargetId =
+      this.attackRequest || this.playerManager.getRandomTarget('werewolf');
 
     this.attackHistory[currentDay] = attackTargetId;
     this.attackRequest = null;
@@ -65,22 +64,9 @@ export default class AttackManager {
     return attackTargetId;
   }
 
-  getRandomAttackTarget(): string {
-    const players = this.playerManager.players;
-    const attackTargets = Object.values(players)
-      .filter((user) => user.status === 'alive' && user.role !== 'werewolf')
-      .map((user) => user.userId);
-
-    return sample(attackTargets)!;
-  }
-
   getAttackHistory(userId: string): IAttackHistory {
-    const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[userId];
-
-    if (player?.role !== 'werewolf' || currentPhase === 'pre') {
-      throw new AppError(403, gameError.ATTACK_HISTORY_NOT_FOUND);
-    }
+    if (!player || player.role !== 'werewolf') throw new Error();
 
     return this.attackHistory;
   }
