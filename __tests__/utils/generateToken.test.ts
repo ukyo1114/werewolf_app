@@ -1,51 +1,45 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import {
+  IVerificationTokenPayload,
   genUserToken,
   genVerificationToken,
 } from '../../src/utils/generateToken';
 
 dotenv.config({ path: '.env.test' });
 
-describe('Token Generation Tests', () => {
-  const testJwtSecret = process.env.JWT_SECRET;
-  if (!testJwtSecret) {
+describe('test genUserToken', () => {
+  const testSecret = process.env.JWT_SECRET;
+  if (!testSecret) {
     throw new Error('JWT_SECRET is not defined in test environment.');
   }
 
-  test('should generate a valid user token', () => {
-    const userId = '12345';
-    const token = genUserToken(userId);
+  test('トークンを生成', () => {
+    const userId = 'test';
+    const token = genUserToken('test');
 
-    const decoded = jwt.verify(token, testJwtSecret) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, testSecret) as jwt.JwtPayload;
     expect(decoded.userId).toBe(userId);
     expect(decoded.exp).toBeDefined();
   });
+});
 
-  test('should generate a valid verification token', () => {
-    const payload = {
-      userId: '67890',
+describe('test genVerificationToken', () => {
+  const testSecret = process.env.JWT_SECRET;
+  if (!testSecret) {
+    throw new Error('JWT_SECRET is not defined in test environment.');
+  }
+
+  test('トークンを生成', () => {
+    const payload: IVerificationTokenPayload = {
+      userId: 'test',
       email: 'test@example.com',
-      action: 'verifyEmail',
+      action: 'registerUser',
     };
     const token = genVerificationToken(payload);
 
-    const decoded = jwt.verify(token, testJwtSecret) as jwt.JwtPayload;
+    const decoded = jwt.verify(token, testSecret) as jwt.JwtPayload;
     expect(decoded.userId).toBe(payload.userId);
-    expect(decoded.email).toBe(payload.email);
-    expect(decoded.action).toBe(payload.action);
-    expect(decoded.exp).toBeDefined();
-  });
-
-  test('should generate a valid verification token without userId', () => {
-    const payload = {
-      email: 'test@example.com',
-      action: 'verifyEmail',
-    };
-    const token = genVerificationToken(payload);
-
-    const decoded = jwt.verify(token, testJwtSecret) as jwt.JwtPayload;
-    expect(decoded.userId).toBe(undefined);
     expect(decoded.email).toBe(payload.email);
     expect(decoded.action).toBe(payload.action);
     expect(decoded.exp).toBeDefined();

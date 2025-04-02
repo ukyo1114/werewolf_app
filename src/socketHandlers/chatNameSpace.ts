@@ -1,6 +1,6 @@
 import { Namespace, Socket } from 'socket.io';
 import { appState, Events } from '../app';
-import { createChannelInstance } from '../classes/ChannelInstanceManager';
+import { createChannelInstance } from '../utils/createChannelInstance';
 import { IMessage } from '../models/messageModel';
 
 const { channelManagers } = appState;

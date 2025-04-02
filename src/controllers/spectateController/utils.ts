@@ -1,5 +1,5 @@
-import { getGamesByChannelId } from '../../classes/GameInstanceManager';
 import User from '../../models/userModel';
+import { getGamesByChannelId } from '../../utils/gameUtils';
 
 export const createGameList = async (channelId: string) => {
   const filteredGames = getGamesByChannelId(channelId);

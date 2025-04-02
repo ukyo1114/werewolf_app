@@ -1,9 +1,9 @@
 import { Socket } from 'socket.io';
-import { decodeToken } from '../utils/decodeToken';
 import User from '../models/userModel';
 import ChannelUser from '../models/channelUserModel';
 import GameUser from '../models/gameUserModel';
-import { isUserPlayingGame } from '../classes/GameInstanceManager';
+import { isUserPlayingGame } from '../utils/gameUtils';
+import { decodeToken } from '../utils/decodeToken';
 
 export const authSocketUser = async (
   socket: Socket,
