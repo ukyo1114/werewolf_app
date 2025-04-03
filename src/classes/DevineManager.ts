@@ -22,33 +22,34 @@ export default class DevineManager {
     const player = this.playerManager.players[playerId];
     const target = this.playerManager.players[targetId];
 
-    if (
-      currentPhase !== 'night' ||
-      player?.status !== 'alive' ||
-      player.role !== 'seer' ||
-      target?.status !== 'alive' ||
-      target.role === 'seer'
-    ) {
-      throw new Error();
-    }
+    const isNightPhase = currentPhase === 'night';
+    const isPlayerValid =
+      player && player.status === 'alive' && player.role === 'seer';
+    const isTargetValid =
+      target && target.status === 'alive' && target.role !== 'seer';
+
+    if (!isNightPhase || !isPlayerValid || !isTargetValid) throw new Error();
 
     this.devineRequest = targetId;
   }
 
-  devine(): string {
-    const DevineTargetId: string =
+  decideDevineTarget(): string {
+    const devineTarget =
       this.devineRequest || this.playerManager.getRandomTarget('seer');
-    const devineTarget = this.playerManager.players[DevineTargetId];
+    this.devineRequest = null;
+    return devineTarget;
+  }
+
+  devine(): string {
+    const devineTargetId = this.decideDevineTarget();
+    const devineTarget = this.playerManager.players[devineTargetId];
 
     this.devineResult[this.phaseManager.currentDay] = {
-      [DevineTargetId]:
-        devineTarget.role !== 'werewolf' ? 'villagers' : 'werewolves',
+      [devineTargetId]:
+        devineTarget.role === 'werewolf' ? 'werewolves' : 'villagers',
     };
 
-    this.devineRequest = null;
-
-    // 狐の呪殺判定用にtargetId を返す
-    return DevineTargetId;
+    return devineTargetId;
   }
 
   getDevineResult(userId: string): IDevineResult {

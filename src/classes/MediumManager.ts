@@ -18,7 +18,6 @@ export default class MediumManager {
 
   medium(targetId: string) {
     const { currentDay } = this.phaseManager;
-
     const target = this.playerManager.players[targetId];
 
     this.mediumResult[currentDay] = {

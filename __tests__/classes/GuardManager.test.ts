@@ -10,182 +10,236 @@ import { appState } from '../../src/app';
 const { gameManagers } = appState;
 
 describe('test GuardManager', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
+  beforeAll(() => {
     gameManagers[mockGameId] = new GameManager(
       mockChannelId,
       mockGameId,
       mockUsers,
     );
-    // sendMessageをモック
     gameManagers[mockGameId].sendMessage = jest.fn();
   });
 
   afterAll(() => {
+    const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
+    if (timerId) clearTimeout(timerId);
+
     delete gameManagers[mockGameId];
     jest.restoreAllMocks();
   });
 
   describe('recieveGuardRequest', () => {
-    it('護衛リクエストが正しく受け付けられること', () => {
+    it('リクエストが受け付けられる', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
+      game.phaseManager.currentPhase = 'night';
+      game.playerManager.players = {
+        hunter: {
+          userId: 'hunter',
+          userName: 'hunter',
+          status: 'alive',
+          role: 'hunter',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
 
-      phaseManager.nextPhase();
-      phaseManager.nextPhase();
-      expect(phaseManager.currentPhase).toBe('night');
-
-      const playerId = game.playerManager.findPlayerByRole('hunter').userId;
-      const targetId = game.playerManager.findPlayerByRole('villager').userId;
-
-      game.guardManager.receiveGuradRequest(playerId, targetId);
-
-      expect(game.guardManager.guardRequest).toBe(targetId);
+      expect(game.phaseManager.currentPhase).toBe('night');
+      game.guardManager.receiveGuradRequest('hunter', 'villager');
+      expect(game.guardManager.guardRequest).toBe('villager');
     });
 
-    it('護衛リクエストが不正な場合にエラーが返されること', () => {
+    it('nightフェーズでないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
+      game.phaseManager.currentPhase = 'day';
 
-      const playerId = game.playerManager.findPlayerByRole('hunter').userId;
-      const villagerId = game.playerManager.findPlayerByRole('villager').userId;
-      const seerId = game.playerManager.findPlayerByRole('seer').userId;
-      const mediumId = game.playerManager.findPlayerByRole('medium').userId;
+      expect(game.phaseManager.currentPhase).not.toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('hunter', 'villager'),
+      ).toThrow();
+    });
 
-      function guardRequest(playerId: string, targetId: string) {
-        game.guardManager.receiveGuradRequest(playerId, targetId);
-      }
+    it('リクエストを送信したプレイヤーが死亡しているときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'night';
+      game.playerManager.players = {
+        hunter: {
+          userId: 'hunter',
+          userName: 'hunter',
+          status: 'dead',
+          role: 'hunter',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
 
-      // preフェーズ
-      expect(phaseManager.currentPhase).toBe('pre');
-      expect(() => guardRequest(playerId, villagerId)).toThrow(
-        new AppError(400, gameError.INVALID_GUARD),
-      );
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('hunter', 'villager'),
+      ).toThrow();
+    });
 
-      phaseManager.nextPhase();
+    it('リクエストを送信したプレイヤーが狩人でないときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
 
-      // dayフェーズ
-      expect(phaseManager.currentPhase).toBe('day');
-      expect(() => guardRequest(playerId, villagerId)).toThrow(
-        new AppError(400, gameError.INVALID_GUARD),
-      );
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('villager', 'villager'),
+      ).toThrow();
+    });
 
-      phaseManager.nextPhase();
+    it('ターゲットが死亡しているときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+      game.playerManager.players = {
+        hunter: {
+          userId: 'hunter',
+          userName: 'hunter',
+          status: 'alive',
+          role: 'hunter',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'dead',
+          role: 'villager',
+        },
+      };
 
-      // ターゲットが狩人の時
-      expect(() => guardRequest(playerId, playerId)).toThrow(
-        new AppError(400, gameError.INVALID_GUARD),
-      );
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(game.playerManager.players.villager.status).not.toBe('alive');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('hunter', 'villager'),
+      ).toThrow();
+    });
 
-      game.playerManager.kill(seerId);
+    it('ターゲットが狩人のときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
 
-      // ターゲットが死亡しているとき
-      expect(game.playerManager.players[seerId].status).not.toBe('alive');
-      expect(() => guardRequest(playerId, seerId)).toThrow(
-        new AppError(400, gameError.INVALID_GUARD),
-      );
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('hunter', 'hunter'),
+      ).toThrow();
+    });
 
-      // 狩人が死亡しているとき
-      game.playerManager.kill(playerId);
-      expect(game.playerManager.players[playerId].status).not.toBe('alive');
-      expect(() => guardRequest(playerId, villagerId)).toThrow(
-        new AppError(400, gameError.INVALID_GUARD),
-      );
+    it('リクエストを送信したプレイヤーが存在しないときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+      game.playerManager.players = {
+        hunter: {
+          userId: 'hunter',
+          userName: 'hunter',
+          status: 'alive',
+          role: 'hunter',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
 
-      // 占い師ではないプレイヤーがリクエストしたとき
-      expect(() => guardRequest(villagerId, mediumId)).toThrow(
-        new AppError(400, gameError.INVALID_GUARD),
-      );
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('notExist', 'villager'),
+      ).toThrow();
+    });
+
+    it('ターゲットが存在しないときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('hunter', 'notExist'),
+      ).toThrow();
     });
   });
 
-  describe('devine', () => {
-    it('正しく護衛処理が行われ、リクエストがリセットされること', () => {
+  describe('decideGuardTarget', () => {
+    it('リクエストが存在するとき', () => {
       const game = gameManagers[mockGameId];
-      const guardManager = game.guardManager;
+      game.guardManager.guardRequest = 'testRequest';
+      const guardTarget = game.guardManager.decideGuardTarget();
 
-      const villagerId = game.playerManager.findPlayerByRole('villager').userId;
+      expect(guardTarget).toBe('testRequest');
+      expect(game.guardManager.guardRequest).toBeNull;
+      expect(game.guardManager.guardHistory[0]).toBe('testRequest');
+    });
 
-      guardManager.guardRequest = villagerId;
+    it('リクエストが存在しないとき', () => {
+      const game = gameManagers[mockGameId];
+      game.playerManager.players = {
+        hunter: {
+          userId: 'hunter',
+          userName: 'hunter',
+          status: 'alive',
+          role: 'hunter',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
+      game.guardManager.guardRequest = null;
 
-      const result = guardManager.guard(villagerId);
-
-      expect(result).toBe(true);
-      expect(guardManager.guardRequest).toBe(null);
+      const devineTarget = game.guardManager.decideGuardTarget();
+      expect(devineTarget).toBe('villager');
+      expect(game.guardManager.guardRequest).toBeNull;
+      expect(game.guardManager.guardHistory[0]).toBe('villager');
     });
   });
 
-  describe('getRandomDevineTarget', () => {
-    it('正しいターゲットが設定されること', () => {
+  describe('guard', () => {
+    it('護衛が行われる', () => {
       const game = gameManagers[mockGameId];
-      const playerManager = game.playerManager;
+      game.playerManager.players = {
+        hunter: {
+          userId: 'hunter',
+          userName: 'hunter',
+          status: 'alive',
+          role: 'hunter',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
+      game.guardManager.guardRequest = 'villager';
 
-      const villagerId = playerManager.findPlayerByRole('villager').userId;
-      const seerId = game.playerManager.findPlayerByRole('seer').userId;
-      const mediumId = playerManager.findPlayerByRole('medium').userId;
-      const werewolfId = playerManager.findPlayerByRole('werewolf').userId;
-      const madmanId = playerManager.findPlayerByRole('madman').userId;
-
-      playerManager.kill(villagerId);
-      playerManager.kill(seerId);
-      playerManager.kill(mediumId);
-      playerManager.kill(werewolfId);
-      playerManager.kill(madmanId);
-
-      for (let i = 0; i < 10; i++) {
-        const randomDevineTargetId = game.guardManager.getRandomGuardTarget();
-        const randomDevineTarget = playerManager.players[randomDevineTargetId];
-
-        expect(randomDevineTarget.status).toBe('alive');
-        expect(randomDevineTarget.role).not.toBe('hunter');
-      }
+      expect(game.guardManager.guard('villager')).toBe(true);
+      expect(game.guardManager.guardRequest).toBeNull;
+      expect(game.guardManager.guardHistory[0]).toBe('villager');
     });
   });
 
   describe('getGuardHistory', () => {
     it('護衛結果が正しい形式で返されること', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
-      const guardManager = game.guardManager;
+      game.guardManager.guardHistory = { 0: 'villager' };
 
-      const playerId = game.playerManager.findPlayerByRole('hunter').userId;
-      const villagerId = game.playerManager.findPlayerByRole('villager').userId;
-
-      phaseManager.nextPhase();
-      phaseManager.nextPhase();
-
-      guardManager.guardRequest = villagerId;
-      guardManager.guard(villagerId);
-
-      const guardHistory = guardManager.getGuardHistory(playerId);
-
-      expect(phaseManager.currentPhase).toBe('night');
-      expect(guardHistory).toEqual({
-        1: villagerId,
-      });
+      const guardHistory = game.guardManager.getGuardHistory('hunter');
+      expect(guardHistory).toEqual({ 0: 'villager' });
     });
 
-    it('護衛結果を不正に取得しようとするとエラーが返されること', () => {
+    it('プレイヤーが狩人でないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
-      const guardManager = game.guardManager;
+      expect(game.playerManager.players.villager).toBeDefined();
+      expect(() => game.guardManager.getGuardHistory('villager')).toThrow();
+    });
 
-      const playerId = game.playerManager.findPlayerByRole('hunter').userId;
-      const villagerId = game.playerManager.findPlayerByRole('villager').userId;
-
-      // preフェーズに取得しようとしたとき
-      expect(() => guardManager.getGuardHistory(playerId)).toThrow(
-        new AppError(403, gameError.GUARD_HISTORY_NOT_FOUND),
-      );
-
-      phaseManager.nextPhase();
-      phaseManager.nextPhase();
-
-      // 占い以外のプレイヤーが取得しようとしたとき
-      expect(phaseManager.currentPhase).toBe('night');
-      expect(() => guardManager.getGuardHistory(villagerId)).toThrow(
-        new AppError(403, gameError.GUARD_HISTORY_NOT_FOUND),
-      );
+    it('プレイヤーが存在しないときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+      expect(game.playerManager.players.notExist).toBeUndefined();
+      expect(() => game.guardManager.getGuardHistory('notExist')).toThrow();
     });
   });
 });

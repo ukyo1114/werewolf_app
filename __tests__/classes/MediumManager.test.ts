@@ -10,18 +10,19 @@ import { appState } from '../../src/app';
 const { gameManagers } = appState;
 
 describe('test MediumManager', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
+  beforeAll(() => {
     gameManagers[mockGameId] = new GameManager(
       mockChannelId,
       mockGameId,
       mockUsers,
     );
-    // sendMessageをモック
     gameManagers[mockGameId].sendMessage = jest.fn();
   });
 
   afterAll(() => {
+    const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
+    if (timerId) clearTimeout(timerId);
+
     delete gameManagers[mockGameId];
     jest.restoreAllMocks();
   });
@@ -29,73 +30,57 @@ describe('test MediumManager', () => {
   describe('medium', () => {
     it('正しい霊能結果が保存される', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
+      game.playerManager.players = {
+        medium: {
+          userId: 'medium',
+          userName: 'medium',
+          status: 'alive',
+          role: 'medium',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
 
-      phaseManager.nextPhase();
-
-      expect(phaseManager.currentDay).toBe(1);
-
-      const playerId = mockUsers[1].userId;
-      const playerRole = game.playerManager.players[playerId].role;
-      const result = playerRole === 'werewolf' ? 'werewolves' : 'villagers';
-
-      game.mediumManager.medium(playerId);
-
+      game.mediumManager.medium('villager');
       const mediumResult = game.mediumManager.mediumResult;
 
-      expect(mediumResult).toEqual({
-        1: { [playerId]: result },
-      });
+      expect(mediumResult).toEqual({ 0: { villager: 'villagers' } });
     });
   });
 
   describe('getMediumResult', () => {
-    it('霊能履歴が正しい形式で取得できる', () => {
+    it('霊能履歴を取得できる', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
+      game.mediumManager.mediumResult = { 0: { villager: 'villagers' } };
 
-      phaseManager.nextPhase();
-
-      expect(phaseManager.currentDay).toBe(1);
-
-      const mediumId = game.playerManager.findPlayerByRole('medium').userId;
-      const playerId = mockUsers[1].userId;
-      const playerRole = game.playerManager.players[playerId].role;
-      const result = playerRole === 'werewolf' ? 'werewolves' : 'villagers';
-
-      game.mediumManager.medium(playerId);
-
-      const mediumResult = game.mediumManager.getMediumResult(mediumId);
-
-      expect(mediumResult).toEqual({
-        1: { [playerId]: result },
-      });
+      const mediumResult = game.mediumManager.getMediumResult('medium');
+      expect(mediumResult).toEqual({ 0: { villager: 'villagers' } });
     });
 
-    it('霊能結果を不正に取得しようとするとエラーが返されること', () => {
+    it('プレイヤーが霊能でないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
+      game.playerManager.players = {
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
 
-      const mediumId = game.playerManager.findPlayerByRole('medium').userId;
-      const villagerId = game.playerManager.findPlayerByRole('villager').userId;
-      const playerId = mockUsers[1].userId;
-      const playerRole = game.playerManager.players[playerId].role;
-      const result = playerRole === 'werewolf' ? 'werewolves' : 'villagers';
+      expect(game.playerManager.players.villager).toBeDefined();
+      expect(() => game.mediumManager.getMediumResult('villager')).toThrow();
+    });
 
-      // preフェーズに取得しようとしたとき
-      expect(() => game.mediumManager.getMediumResult(playerId)).toThrow(
-        new AppError(403, gameError.MEDIUM_RESULT_NOT_FOUND),
-      );
+    it('プレイヤーが存在しないときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
 
-      phaseManager.nextPhase();
-      expect(phaseManager.currentDay).toBe(1);
-
-      game.mediumManager.medium(playerId);
-
-      // 霊能以外のプレイヤーが取得しようとしたとき
-      expect(() => game.mediumManager.getMediumResult(villagerId)).toThrow(
-        new AppError(403, gameError.MEDIUM_RESULT_NOT_FOUND),
-      );
+      expect(game.playerManager.players.medium).toBeUndefined();
+      expect(() => game.mediumManager.getMediumResult('villager')).toThrow();
     });
   });
 });

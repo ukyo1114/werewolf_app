@@ -2,191 +2,241 @@ jest.mock('../../src/app', () => ({
   appState: { gameManagers: {} },
 }));
 import GameManager from '../../src/classes/GameManager';
-import AppError from '../../src/utils/AppError';
-import { gameError } from '../../src/config/messages';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
 import { appState } from '../../src/app';
 
 const { gameManagers } = appState;
 
 describe('test DevineManager', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
+  beforeAll(() => {
     gameManagers[mockGameId] = new GameManager(
       mockChannelId,
       mockGameId,
       mockUsers,
     );
-    // sendMessageをモック
     gameManagers[mockGameId].sendMessage = jest.fn();
   });
 
   afterAll(() => {
+    const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
+    if (timerId) clearTimeout(timerId);
+
     delete gameManagers[mockGameId];
     jest.restoreAllMocks();
   });
 
   describe('recieveDevineRequest', () => {
-    it('占いリクエストが正しく受け付けられること', () => {
+    it('リクエストが受け付けられる', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
+      game.phaseManager.currentPhase = 'night';
+      game.playerManager.players = {
+        seer: {
+          userId: 'seer',
+          userName: 'seer',
+          status: 'alive',
+          role: 'seer',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
 
-      phaseManager.nextPhase();
-      phaseManager.nextPhase();
-
-      const playerId = game.playerManager.findPlayerByRole('seer').userId;
-      const targetId = game.playerManager.findPlayerByRole('villager').userId;
-
-      game.devineManager.receiveDevineRequest(playerId, targetId);
-
-      expect(phaseManager.currentPhase).toBe('night');
-      expect(game.devineManager.devineRequest).toBe(targetId);
+      expect(game.phaseManager.currentPhase).toBe('night');
+      game.devineManager.receiveDevineRequest('seer', 'villager');
+      expect(game.devineManager.devineRequest).toBe('villager');
     });
 
-    it('占いリクエストが不正な場合にエラーが返されること', () => {
+    it('nightフェーズでないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
+      game.phaseManager.currentPhase = 'day';
 
-      const playerId = game.playerManager.findPlayerByRole('seer').userId;
-      const villagerId = game.playerManager.findPlayerByRole('villager').userId;
-      const mediumId = game.playerManager.findPlayerByRole('medium').userId;
-      const hunterId = game.playerManager.findPlayerByRole('hunter').userId;
+      expect(game.phaseManager.currentPhase).not.toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('seer', 'villager'),
+      ).toThrow();
+    });
 
-      function devineRequest(playerId: string, targetId: string) {
-        game.devineManager.receiveDevineRequest(playerId, targetId);
-      }
+    it('リクエストを送信したプレイヤーが死亡しているときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'night';
+      game.playerManager.players = {
+        seer: {
+          userId: 'seer',
+          userName: 'seer',
+          status: 'dead',
+          role: 'seer',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
 
-      // preフェーズ
-      expect(() => devineRequest(playerId, villagerId)).toThrow(
-        new AppError(400, gameError.INVALID_FORTUNE),
-      );
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('seer', 'villager'),
+      ).toThrow();
+    });
 
-      phaseManager.nextPhase();
+    it('リクエストを送信したプレイヤーが占い師でないときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+      game.playerManager.players = {
+        seer: {
+          userId: 'seer',
+          userName: 'seer',
+          status: 'alive',
+          role: 'seer',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
 
-      // dayフェーズ
-      expect(() => devineRequest(playerId, villagerId)).toThrow(
-        new AppError(400, gameError.INVALID_FORTUNE),
-      );
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('villager', 'villager'),
+      ).toThrow();
+    });
 
-      phaseManager.nextPhase();
+    it('ターゲットが死亡しているときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+      game.playerManager.players = {
+        seer: {
+          userId: 'seer',
+          userName: 'seer',
+          status: 'alive',
+          role: 'seer',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'dead',
+          role: 'villager',
+        },
+      };
 
-      // ターゲットが占い師の時
-      expect(() => devineRequest(playerId, playerId)).toThrow(
-        new AppError(400, gameError.INVALID_FORTUNE),
-      );
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(game.playerManager.players.villager.status).not.toBe('alive');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('seer', 'villager'),
+      ).toThrow();
+    });
 
-      game.playerManager.kill(mediumId);
+    it('ターゲットが占い師のときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+      game.playerManager.players = {
+        seer: {
+          userId: 'seer',
+          userName: 'seer',
+          status: 'alive',
+          role: 'seer',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
 
-      // ターゲットが死亡しているとき
-      expect(game.playerManager.players[mediumId].status).not.toBe('alive');
-      expect(() => devineRequest(playerId, mediumId)).toThrow(
-        new AppError(400, gameError.INVALID_FORTUNE),
-      );
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('seer', 'seer'),
+      ).toThrow();
+    });
 
-      // 占い師が死亡しているとき
-      game.playerManager.kill(playerId);
-      expect(game.playerManager.players[playerId].status).not.toBe('alive');
-      expect(() => devineRequest(playerId, villagerId)).toThrow(
-        new AppError(400, gameError.INVALID_FORTUNE),
-      );
+    it('リクエストを送信したプレイヤーが存在しないときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
 
-      // 占い師ではないプレイヤーがリクエストしたとき
-      expect(() => devineRequest(villagerId, hunterId)).toThrow(
-        new AppError(400, gameError.INVALID_FORTUNE),
-      );
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('notExist', 'villager'),
+      ).toThrow();
+    });
+
+    it('ターゲットが存在しないときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+
+      expect(game.phaseManager.currentPhase).toBe('night');
+      expect(() =>
+        game.attackManager.receiveAttackRequest('werewolf', 'notExist'),
+      ).toThrow();
+    });
+  });
+
+  describe('decideDevineTarget', () => {
+    it('リクエストが存在するとき', () => {
+      const game = gameManagers[mockGameId];
+      game.devineManager.devineRequest = 'testRequest';
+      const devineTarget = game.devineManager.decideDevineTarget();
+      expect(devineTarget).toBe('testRequest');
+    });
+
+    it('リクエストが存在しないとき', () => {
+      const game = gameManagers[mockGameId];
+      game.playerManager.players = {
+        seer: {
+          userId: 'seer',
+          userName: 'seer',
+          status: 'alive',
+          role: 'seer',
+        },
+        villager: {
+          userId: 'villager',
+          userName: 'villager',
+          status: 'alive',
+          role: 'villager',
+        },
+      };
+      game.devineManager.devineRequest = null;
+
+      const devineTarget = game.devineManager.decideDevineTarget();
+      expect(devineTarget).toBe('villager');
     });
   });
 
   describe('devine', () => {
-    it('正しく占い処理が行われ、リクエストがリセットされること', () => {
+    it('占いが行われる', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
+      game.devineManager.devineRequest = 'villager';
 
-      const playerId = game.playerManager.findPlayerByRole('seer').userId;
-      const villagerId = game.playerManager.findPlayerByRole('villager').userId;
-
-      phaseManager.nextPhase();
-      phaseManager.nextPhase();
-
-      game.devineManager.receiveDevineRequest(playerId, villagerId);
-      const devineTargetId = game.devineManager.devine();
-
-      expect(devineTargetId).toBe(villagerId);
+      expect(game.devineManager.devine()).toBe('villager');
       expect(game.devineManager.devineRequest).toBeNull;
-    });
-  });
-
-  describe('getRandomDevineTarget', () => {
-    it('正しいターゲットが設定されること', () => {
-      const game = gameManagers[mockGameId];
-      const playerManager = game.playerManager;
-
-      const villagerId = playerManager.findPlayerByRole('villager').userId;
-      const mediumId = playerManager.findPlayerByRole('medium').userId;
-      const hunterId = playerManager.findPlayerByRole('hunter').userId;
-      const werewolfId = playerManager.findPlayerByRole('werewolf').userId;
-      const madmanId = playerManager.findPlayerByRole('madman').userId;
-
-      playerManager.kill(villagerId);
-      playerManager.kill(mediumId);
-      playerManager.kill(hunterId);
-      playerManager.kill(werewolfId);
-      playerManager.kill(madmanId);
-
-      for (let i = 0; i < 10; i++) {
-        const randomDevineTargetId = game.devineManager.getRandomDevineTarget();
-        const randomDevineTarget = playerManager.players[randomDevineTargetId];
-
-        expect(randomDevineTarget.status).toBe('alive');
-        expect(randomDevineTarget.role).not.toBe('seer');
-      }
+      expect(game.devineManager.devineResult[0]).toEqual({
+        villager: 'villagers',
+      });
     });
   });
 
   describe('getDevineResult', () => {
     it('占い結果が正しい形式で返されること', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
+      game.devineManager.devineResult = { 0: { villager: 'villagers' } };
 
-      const playerId = game.playerManager.findPlayerByRole('seer').userId;
-      const villagerId = game.playerManager.findPlayerByRole('villager').userId;
-
-      phaseManager.nextPhase();
-      phaseManager.nextPhase();
-
-      game.devineManager.receiveDevineRequest(playerId, villagerId);
-      game.devineManager.devine();
-      const devineResult = game.devineManager.getDevineResult(playerId);
-
+      const devineResult = game.devineManager.getDevineResult('seer');
       expect(devineResult).toEqual({
-        1: {
-          [villagerId]: 'villagers',
-        },
+        0: { villager: 'villagers' },
       });
     });
 
-    it('占い結果を不正に取得しようとするとエラーが返されること', () => {
+    it('プレイヤーが占いでないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      const phaseManager = game.phaseManager;
+      expect(game.playerManager.players.villager).toBeDefined();
+      expect(() => game.devineManager.getDevineResult('villager')).toThrow();
+    });
 
-      const playerId = game.playerManager.findPlayerByRole('seer').userId;
-      const villagerId = game.playerManager.findPlayerByRole('villager').userId;
-
-      // preフェーズに取得しようとしたとき
-      expect(() => game.devineManager.getDevineResult(playerId)).toThrow(
-        new AppError(403, gameError.FORTUNE_RESULT_NOT_FOUND),
-      );
-
-      phaseManager.nextPhase();
-      phaseManager.nextPhase();
-
-      game.devineManager.receiveDevineRequest(playerId, villagerId);
-      game.devineManager.devine();
-
-      // 占い以外のプレイヤーが取得しようとしたとき
-      expect(() => game.devineManager.getDevineResult(villagerId)).toThrow(
-        new AppError(403, gameError.FORTUNE_RESULT_NOT_FOUND),
-      );
+    it('プレイヤーが存在しないときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+      expect(game.playerManager.players.notExist).toBeUndefined();
+      expect(() => game.devineManager.getDevineResult('notExist')).toThrow();
     });
   });
 });

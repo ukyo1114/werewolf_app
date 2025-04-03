@@ -222,7 +222,7 @@ export default class GameManager {
   }
 
   async sendMessage(message: string) {
-    const newMessage: IMessage = await this.createMessage(message);
+    const newMessage = await this.createMessage(message);
 
     // channelEvents.emit("newMessage", newMessage);
   }

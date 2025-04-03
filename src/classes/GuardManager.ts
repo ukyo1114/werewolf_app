@@ -22,28 +22,30 @@ export default class GuardManager {
     const player = this.playerManager.players[playerId];
     const target = this.playerManager.players[targetId];
 
-    if (
-      currentPhase !== 'night' ||
-      player?.status !== 'alive' ||
-      player.role !== 'hunter' ||
-      target?.status !== 'alive' ||
-      target.role === 'hunter'
-    ) {
-      throw new Error();
-    }
+    const isNightPhase = currentPhase === 'night';
+    const isPlayerValid =
+      player && player.status === 'alive' && player.role === 'hunter';
+    const isTargetValid =
+      target && target.status === 'alive' && target.role !== 'hunter';
+
+    if (!isNightPhase || !isPlayerValid || !isTargetValid) throw new Error();
 
     this.guardRequest = targetId;
   }
 
-  guard(attackTargetId: string): boolean {
-    const { currentDay } = this.phaseManager;
-
+  decideGuardTarget(): string {
     const guardTargetId =
       this.guardRequest || this.playerManager.getRandomTarget('hunter');
-    this.guardHistory[currentDay] = guardTargetId;
 
+    const { currentDay } = this.phaseManager;
+    this.guardHistory[currentDay] = guardTargetId;
     this.guardRequest = null;
 
+    return guardTargetId;
+  }
+
+  guard(attackTargetId: string): boolean {
+    const guardTargetId = this.decideGuardTarget();
     return attackTargetId === guardTargetId;
   }
 

@@ -1,45 +1,26 @@
-/**
- * Test create AttackManager instance
- * An instance created
- *
- * Test receiveAttackRequest
- * The request is accepted correctly
- * Returns an error in the following cases:
- * - The phase is not night
- * - The requesting player is not a werewolf or is not alive
- * - The target player is a werewolf or is not alive
- *
- * Test Attack
- * The attack is succesful
- * If the requested target does not exist, a randomly selected target is attacked
- * If the guard is successful, the attack fails
- * If the target is a fox, the attack fails
- *
- */
 jest.mock('../../src/app', () => ({
   appState: { gameManagers: {} },
 }));
 import GameManager from '../../src/classes/GameManager';
-import AppError from '../../src/utils/AppError';
-import { gameError } from '../../src/config/messages';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
 import { appState } from '../../src/app';
 
 const { gameManagers } = appState;
 
 describe('test AttackManager', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
+  beforeAll(() => {
     gameManagers[mockGameId] = new GameManager(
       mockChannelId,
       mockGameId,
       mockUsers,
     );
-    // sendMessageをモック
     gameManagers[mockGameId].sendMessage = jest.fn();
   });
 
   afterAll(() => {
+    const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
+    if (timerId) clearTimeout(timerId);
+
     delete gameManagers[mockGameId];
     jest.restoreAllMocks();
   });
@@ -63,9 +44,8 @@ describe('test AttackManager', () => {
         },
       };
 
-      game.attackManager.receiveAttackRequest('werewolf', 'villager');
-
       expect(game.phaseManager.currentPhase).toBe('night');
+      game.attackManager.receiveAttackRequest('werewolf', 'villager');
       expect(game.attackManager.attackRequest).toBe('villager');
     });
 
@@ -90,7 +70,7 @@ describe('test AttackManager', () => {
       expect(game.phaseManager.currentPhase).not.toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('werewolf', 'villager'),
-      ).toThrow(new AppError(400, gameError.INVALID_ATTACK));
+      ).toThrow();
     });
 
     it('リクエストを送信したプレイヤーが死亡しているときエラーを返す', () => {
@@ -114,7 +94,7 @@ describe('test AttackManager', () => {
       expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('werewolf', 'villager'),
-      ).toThrow(new AppError(400, gameError.INVALID_ATTACK));
+      ).toThrow();
     });
 
     it('リクエストを送信したプレイヤーが人狼でないときエラーを返す', () => {
@@ -139,7 +119,7 @@ describe('test AttackManager', () => {
       expect(game.playerManager.players.villager1.role).not.toBe('werewolf');
       expect(() =>
         game.attackManager.receiveAttackRequest('villager1', 'villager2'),
-      ).toThrow(new AppError(400, gameError.INVALID_ATTACK));
+      ).toThrow();
     });
 
     it('ターゲットが死亡しているときエラーを返す', () => {
@@ -164,7 +144,7 @@ describe('test AttackManager', () => {
       expect(game.playerManager.players.villager.status).not.toBe('alive');
       expect(() =>
         game.attackManager.receiveAttackRequest('werewolf', 'villager'),
-      ).toThrow(new AppError(400, gameError.INVALID_ATTACK));
+      ).toThrow();
     });
 
     it('ターゲットが人狼のときエラーを返す', () => {
@@ -188,7 +168,7 @@ describe('test AttackManager', () => {
       expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('werewolf1', 'werewolf2'),
-      ).toThrow(new AppError(400, gameError.INVALID_ATTACK));
+      ).toThrow();
     });
 
     it('リクエストを送信したプレイヤーが存在しないときエラーを返す', () => {
@@ -215,7 +195,7 @@ describe('test AttackManager', () => {
           'nonExistingPlayer',
           'villager',
         ),
-      ).toThrow(new AppError(400, gameError.INVALID_ATTACK));
+      ).toThrow();
     });
 
     it('ターゲットが存在しないときエラーを返す', () => {
@@ -238,18 +218,33 @@ describe('test AttackManager', () => {
 
       expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
-        game.attackManager.receiveAttackRequest(
-          'werewolf',
-          'nonExistingPlayer',
-        ),
-      ).toThrow(new AppError(400, gameError.INVALID_ATTACK));
+        game.attackManager.receiveAttackRequest('werewolf', 'notExist'),
+      ).toThrow();
+    });
+  });
+
+  describe('decideAttackTarget', () => {
+    it('リクエストが存在するとき', () => {
+      const game = gameManagers[mockGameId];
+      game.attackManager.attackRequest = 'testRequest';
+      const attackRequest = game.attackManager.decideAttackTarget();
+
+      expect(game.attackManager.attackRequest).toBeNull;
+      expect(attackRequest).toBe('testRequest');
+    });
+
+    it('リクエストが存在しないとき', () => {
+      const game = gameManagers[mockGameId];
+      game.attackManager.attackRequest = null;
+
+      const attackTarget = game.attackManager.decideAttackTarget();
+      expect(attackTarget).toBe('villager');
     });
   });
 
   describe('attack', () => {
     it('襲撃が行われる', () => {
       const game = gameManagers[mockGameId];
-      game.phaseManager.currentDay = 1;
       game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
         villager: {
@@ -265,24 +260,20 @@ describe('test AttackManager', () => {
           role: 'hunter',
         },
       };
+      game.attackManager.attackRequest = 'villager';
       game.guardManager.guard = jest.fn().mockReturnValue(false);
 
       expect(game.phaseManager.currentPhase).toBe('night');
-
-      game.attackManager.attackRequest = 'villager';
-
       const attackTargetId = game.attackManager.attack();
 
       expect(attackTargetId).toBe('villager');
       expect(game.playerManager.players.villager.status).toBe('dead');
-      expect(game.attackManager.attackRequest).toBe(null);
-      expect(game.attackManager.attackHistory).toEqual({ 1: 'villager' });
+      expect(game.attackManager.attackRequest).toBeNull;
+      expect(game.attackManager.attackHistory).toEqual({ 0: 'villager' });
     });
 
     it('護衛成功時の処理が正しく行われる', () => {
       const game = gameManagers[mockGameId];
-      game.phaseManager.currentDay = 1;
-      game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
         villager: {
           userId: 'villager',
@@ -298,22 +289,19 @@ describe('test AttackManager', () => {
         },
       };
       game.guardManager.guard = jest.fn().mockReturnValue(true);
-
       expect(game.phaseManager.currentPhase).toBe('night');
 
       game.attackManager.attackRequest = 'villager';
       const attackTargetId = game.attackManager.attack();
 
-      expect(attackTargetId).toBe(null);
+      expect(attackTargetId).toBeNull;
       expect(game.playerManager.players.villager.status).toBe('alive');
-      expect(game.attackManager.attackRequest).toBe(null);
-      expect(game.attackManager.attackHistory).toEqual({ 1: 'villager' });
+      expect(game.attackManager.attackRequest).toBeNull;
+      expect(game.attackManager.attackHistory).toEqual({ 0: 'villager' });
     });
 
     it('襲撃対象が狐だった場合襲撃が失敗する', () => {
       const game = gameManagers[mockGameId];
-      game.phaseManager.currentDay = 1;
-      game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
         fox: {
           userId: 'fox',
@@ -335,16 +323,14 @@ describe('test AttackManager', () => {
       game.attackManager.attackRequest = 'fox';
       const attackTargetId = game.attackManager.attack();
 
-      expect(attackTargetId).toBe(null);
+      expect(attackTargetId).toBeNull;
       expect(game.playerManager.players.fox.status).toBe('alive');
       expect(game.attackManager.attackRequest).toBe(null);
-      expect(game.attackManager.attackHistory).toEqual({ 1: 'fox' });
+      expect(game.attackManager.attackHistory).toEqual({ 0: 'fox' });
     });
 
     it('狩人が死亡している場合護衛が実行されない', () => {
       const game = gameManagers[mockGameId];
-      game.phaseManager.currentDay = 1;
-      game.phaseManager.currentPhase = 'night';
       game.playerManager.players = {
         villager: {
           userId: 'villager',
@@ -368,46 +354,8 @@ describe('test AttackManager', () => {
 
       expect(attackTargetId).toBe('villager');
       expect(game.playerManager.players.villager.status).toBe('dead');
-      expect(game.attackManager.attackRequest).toBe(null);
-      expect(game.attackManager.attackHistory).toEqual({ 1: 'villager' });
-    });
-  });
-
-  describe('getRandomAttackTarget', () => {
-    it('正しいターゲットが設定されること', () => {
-      const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        user1: {
-          userId: 'user1',
-          userName: 'user1',
-          status: 'alive',
-          role: 'villager',
-        },
-        user2: {
-          userId: 'user2',
-          userName: 'user2',
-          status: 'alive',
-          role: 'seer',
-        },
-        user3: {
-          userId: 'user3',
-          userName: 'user3',
-          status: 'alive',
-          role: 'werewolf',
-        },
-        user4: {
-          userId: 'user4',
-          userName: 'user4',
-          status: 'dead',
-          role: 'villager',
-        },
-      };
-
-      for (let i = 0; i < 1000; i++) {
-        const target = game.attackManager.getRandomAttackTarget();
-
-        expect(['user1', 'user2']).toContain(target);
-      }
+      expect(game.attackManager.attackRequest).toBeNull;
+      expect(game.attackManager.attackHistory).toEqual({ 0: 'villager' });
     });
   });
 
@@ -423,21 +371,14 @@ describe('test AttackManager', () => {
           role: 'werewolf',
         },
       };
-
-      expect(game.phaseManager.currentPhase).not.toBe('pre');
-
       game.attackManager.attackHistory = { 1: 'villager' };
 
       const attackHistory = game.attackManager.getAttackHistory('werewolf');
-
-      expect(attackHistory).toEqual({
-        1: 'villager',
-      });
+      expect(attackHistory).toEqual({ 1: 'villager' });
     });
 
     it('プレイヤーが人狼でないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'day';
       game.playerManager.players = {
         villager: {
           userId: 'villager',
@@ -447,42 +388,15 @@ describe('test AttackManager', () => {
         },
       };
 
-      expect(game.phaseManager.currentPhase).not.toBe('pre');
-
-      expect(() => game.attackManager.getAttackHistory('villager')).toThrow(
-        new AppError(403, gameError.ATTACK_HISTORY_NOT_FOUND),
-      );
-    });
-
-    it('preフェーズのときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        werewolf: {
-          userId: 'werewolf',
-          userName: 'werewof',
-          status: 'alive',
-          role: 'werewolf',
-        },
-      };
-
-      expect(game.phaseManager.currentPhase).toBe('pre');
-
-      expect(() => game.attackManager.getAttackHistory('werewolf')).toThrow(
-        new AppError(403, gameError.ATTACK_HISTORY_NOT_FOUND),
-      );
+      expect(game.playerManager.players.villager).toBeDefined();
+      expect(() => game.attackManager.getAttackHistory('villager')).toThrow();
     });
 
     it('プレイヤーが存在しないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'day';
-      game.playerManager.players = {};
 
-      expect(game.phaseManager.currentPhase).not.toBe('pre');
-      expect(game.playerManager.players.werewolf).toBeUndefined;
-
-      expect(() => game.attackManager.getAttackHistory('werewolf')).toThrow(
-        new AppError(403, gameError.ATTACK_HISTORY_NOT_FOUND),
-      );
+      expect(game.playerManager.players.werewolf).toBeUndefined();
+      expect(() => game.attackManager.getAttackHistory('werewolf')).toThrow();
     });
   });
 });

@@ -29,32 +29,38 @@ export default class AttackManager {
     const player = this.playerManager.players[playerId];
     const target = this.playerManager.players[targetId];
 
-    if (
-      currentPhase !== 'night' ||
-      player?.status !== 'alive' ||
-      player.role !== 'werewolf' ||
-      target?.status !== 'alive' ||
-      target.role === 'werewolf'
-    ) {
-      throw new Error();
-    }
+    const isNightPhase = currentPhase === 'night';
+    const isPlayerValid =
+      player && player.status === 'alive' && player.role === 'werewolf';
+    const isTargetValid =
+      target && target.status === 'alive' && target.role !== 'werewolf';
+
+    if (!isNightPhase || !isPlayerValid || !isTargetValid) throw new Error();
 
     this.attackRequest = targetId;
   }
 
-  attack(): string | null {
-    const { currentDay } = this.phaseManager;
+  decideAttackTarget(): string {
     const attackTargetId =
       this.attackRequest || this.playerManager.getRandomTarget('werewolf');
 
+    const { currentDay } = this.phaseManager;
     this.attackHistory[currentDay] = attackTargetId;
     this.attackRequest = null;
 
+    return attackTargetId;
+  }
+
+  attack(): string | null {
+    const attackTargetId = this.decideAttackTarget();
+
+    // 狐を襲撃した場合失敗する
     const attackTarget = this.playerManager.players[attackTargetId];
     if (attackTarget.role === 'fox') return null;
 
+    // 護衛判定
     const hunter = this.playerManager.findPlayerByRole('hunter');
-    if (hunter?.status === 'alive') {
+    if (hunter && hunter.status === 'alive') {
       const guardResult = this.guardManager.guard(attackTargetId);
       if (guardResult) return null;
     }
