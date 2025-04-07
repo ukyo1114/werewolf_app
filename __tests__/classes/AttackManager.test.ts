@@ -1,11 +1,6 @@
-jest.mock('../../src/app', () => ({
-  appState: { gameManagers: {} },
-}));
+import { gameManagers } from '../../jest.setup';
 import GameManager from '../../src/classes/GameManager';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
-import { appState } from '../../src/app';
-
-const { gameManagers } = appState;
 
 describe('test AttackManager', () => {
   beforeAll(() => {

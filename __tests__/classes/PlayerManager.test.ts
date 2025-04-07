@@ -1,15 +1,10 @@
-jest.mock('../../src/app', () => ({
-  appState: { gameManagers: {} },
-}));
+import { gameManagers } from '../../jest.setup';
 import GameUser from '../../src/models/gameUserModel';
 import GameManager from '../../src/classes/GameManager';
 import { roleConfig } from '../../src/config/roles';
 import AppError from '../../src/utils/AppError';
 import { gameError } from '../../src/config/messages';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
-import { appState } from '../../src/app';
-
-const { gameManagers } = appState;
 
 beforeEach(() => {
   gameManagers[mockGameId] = new GameManager(

@@ -1,6 +1,4 @@
-jest.mock('../../src/app', () => ({
-  appState: { gameManagers: {} },
-}));
+import { gameManagers } from '../../jest.setup';
 import { EventEmitter } from 'events';
 import GameManager from '../../src/classes/GameManager';
 import PhaseManager from '../../src/classes/PhaseManager';
@@ -9,9 +7,6 @@ import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
 const startTimerSpy = jest.spyOn(PhaseManager.prototype, 'startTimer');
 const nextPhaseSpy = jest.spyOn(PhaseManager.prototype, 'nextPhase');
 const consoleErrorSpy = jest.spyOn(console, 'error');
-import { appState } from '../../src/app';
-
-const { gameManagers } = appState;
 
 describe('test PhaseManager', () => {
   beforeEach(() => {

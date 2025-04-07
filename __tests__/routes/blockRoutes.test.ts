@@ -9,7 +9,7 @@ import request from 'supertest';
 import User from '../../src/models/userModel';
 import Channel from '../../src/models/channelModel';
 import ChannelBlockUser from '../../src/models/channelBlockUserModel';
-import { mockChannelId, mockUserId } from '../../jest.setup';
+import { mockChannelId } from '../../jest.setup';
 import { errors, validation } from '../../src/config/messages';
 
 let testUserId: string;

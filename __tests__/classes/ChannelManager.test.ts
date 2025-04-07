@@ -1,7 +1,4 @@
-jest.mock('../../src/app', () => ({
-  appState: { gameManagers: {}, channelManagers: {} },
-}));
-import { ObjectId } from 'mongodb';
+import { gameManagers, channelManagers } from '../../jest.setup';
 import GameManager from '../../src/classes/GameManager';
 import ChannelManager from '../../src/classes/ChannelManager';
 import ChannelUserManager from '../../src/classes/ChannelUserManager';
@@ -13,45 +10,34 @@ import {
   mockGameId,
   mockUsers,
 } from '../../jest.setup';
-import AppError from '../../src/utils/AppError';
-import { errors } from '../../src/config/messages';
-import { appState } from '../../src/app';
-
-const { gameManagers, channelManagers } = appState;
 
 const mockSocketId = 'mockSocketId';
 
 beforeAll(async () => {
   await ChannelUser.create({ channelId: mockChannelId, userId: mockUserId });
   await GameUser.create({ gameId: mockGameId, userId: mockUserId });
-});
 
-beforeEach(() => {
   gameManagers[mockGameId] = new GameManager(
     mockChannelId,
     mockGameId,
     mockUsers,
   );
-  // sendMessageをモック
   gameManagers[mockGameId].sendMessage = jest.fn();
 });
 
-afterEach(() => {
+afterAll(() => {
   const timerId = gameManagers[mockGameId].phaseManager.timerId;
-
   if (timerId) {
     clearTimeout(timerId);
   }
-});
 
-afterAll(() => {
   delete gameManagers[mockGameId];
   jest.restoreAllMocks();
 });
 
 describe('test ChannelManager', () => {
   describe('constructor', () => {
-    it('通常のチャンネルでで正しく初期化されること', () => {
+    it('通常のチャンネルで正しく初期化されること', () => {
       const channel = new ChannelManager(mockChannelId);
 
       expect(channel.channelId).toBe(mockChannelId);
@@ -81,15 +67,6 @@ describe('test ChannelManager', () => {
       expect(user.status).toBe('normal');
     });
 
-    it('通常のチャンネルでデータベースに登録されていないユーザーが参加しようとするとエラーになる', async () => {
-      const channel = new ChannelManager(mockChannelId);
-      const nonExistingUser = new ObjectId().toString();
-
-      await expect(() =>
-        channel.userJoined(nonExistingUser, mockSocketId),
-      ).rejects.toThrow(new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN));
-    });
-
     it('ゲーム用のチャンネルでユーザーがチャンネルに参加できる', async () => {
       const game = gameManagers[mockGameId];
       const channel = new ChannelManager(mockGameId, game);
@@ -103,22 +80,11 @@ describe('test ChannelManager', () => {
       };
 
       await channel.userJoined(mockUserId, mockSocketId);
-
       const user = channel.users[mockUserId];
 
       expect(user.userId).toBe(mockUserId);
       expect(user.socketId).toBe(mockSocketId);
       expect(user.status).toBe('normal');
-    });
-
-    it('ゲーム用のチャンネルでデータベースに登録されていないユーザーが参加しようとするとエラーになる', async () => {
-      const game = gameManagers[mockGameId];
-      const channel = new ChannelManager(mockGameId, game);
-      const nonExistingUser = new ObjectId().toString();
-
-      await expect(() =>
-        channel.userJoined(nonExistingUser, mockSocketId),
-      ).rejects.toThrow(new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN));
     });
 
     it('ユーザーが人狼のとき', async () => {
@@ -134,7 +100,6 @@ describe('test ChannelManager', () => {
       };
 
       await channel.userJoined(mockUserId, mockSocketId);
-
       const user = channel.users[mockUserId];
 
       expect(user.userId).toBe(mockUserId);
@@ -155,7 +120,6 @@ describe('test ChannelManager', () => {
       };
 
       await channel.userJoined(mockUserId, mockSocketId);
-
       const user = channel.users[mockUserId];
 
       expect(user.userId).toBe(mockUserId);
@@ -168,7 +132,6 @@ describe('test ChannelManager', () => {
       const channel = new ChannelManager(mockGameId, game);
 
       await channel.userJoined(mockUserId, mockSocketId);
-
       const user = channel.users[mockUserId];
 
       expect(user.userId).toBe(mockUserId);
@@ -200,7 +163,7 @@ describe('test ChannelManager', () => {
       expect(channel.users).toHaveProperty('user2');
     });
 
-    it('最期のユーザーが退出するとchannelオブジェクトを削除する', () => {
+    it('最後のユーザーが退出するとchannelオブジェクトを削除する', () => {
       channelManagers[mockChannelId] = new ChannelManager(mockChannelId);
       const channel = channelManagers[mockChannelId];
       channel.users = {
@@ -248,9 +211,7 @@ describe('test ChannelManager', () => {
     it('ユーザーがチャンネルにいない場合エラーを返す', () => {
       const channel = new ChannelManager(mockChannelId);
 
-      expect(() => channel.getSendMessageType(mockUserId)).toThrow(
-        new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN),
-      );
+      expect(() => channel.getSendMessageType(mockUserId)).toThrow();
     });
 
     it('通常のチャンネルのときnormalを返す', () => {
@@ -348,19 +309,14 @@ describe('test ChannelManager', () => {
       };
       game.phaseManager.currentPhase = 'night';
 
-      expect(() => channel.getSendMessageType('user1')).toThrow(
-        new AppError(403, errors.MESSAGE_SENDING_FORBIDDEN),
-      );
+      expect(() => channel.getSendMessageType('user1')).toThrow();
     });
   });
 
   describe('test checkCanUserAccessChannel', () => {
     it('チャンネルにユーザーがいないときエラーを返す', () => {
       const channel = new ChannelManager(mockChannelId);
-
-      expect(() => channel.checkCanUserAccessChannel('userId')).toThrow(
-        new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN),
-      );
+      expect(() => channel.checkCanUserAccessChannel('userId')).toThrow();
     });
   });
 
@@ -470,27 +426,21 @@ describe('test ChannelManager', () => {
 
     it('ユーザーが見つからないとき', () => {
       const normalChanel = new ChannelManager(mockChannelId);
-
-      expect(() => normalChanel.getReceiveMessageType('user1')).toThrow(
-        new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN),
-      );
+      expect(() => normalChanel.getReceiveMessageType('user1')).toThrow();
     });
 
     it('ユーザーが観戦者', () => {
       const receiveMessageType = channel.getReceiveMessageType('user3');
-
       expect(receiveMessageType).toBe(null);
     });
 
     it('ユーザーがnormal', () => {
       const receiveMessageType = channel.getReceiveMessageType('user1');
-
       expect(receiveMessageType).toEqual({ $in: ['normal'] });
     });
 
     it('ユーザーが人狼', () => {
       const receiveMessageType = channel.getReceiveMessageType('user2');
-
       expect(receiveMessageType).toEqual({ $in: ['normal', 'werewolf'] });
     });
 

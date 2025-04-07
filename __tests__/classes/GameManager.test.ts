@@ -1,6 +1,4 @@
-jest.mock('../../src/app', () => ({
-  appState: { gameManagers: {} },
-}));
+import { gameManagers } from '../../jest.setup';
 import { EventEmitter } from 'events';
 import GameManager from '../../src/classes/GameManager';
 import PlayerManager from '../../src/classes/PlayerManager';
@@ -11,9 +9,6 @@ import MediumManager from '../../src/classes/MediumManager';
 import GuardManager from '../../src/classes/GuardManager';
 import AttackManager from '../../src/classes/AttackManager';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
-import { appState } from '../../src/app';
-
-const { gameManagers } = appState;
 
 describe('test GameManager', () => {
   beforeEach(() => {

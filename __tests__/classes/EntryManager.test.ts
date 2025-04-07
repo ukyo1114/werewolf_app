@@ -1,19 +1,4 @@
-/*
- ** インスタンスが正しく作成できること
- ** ユーザーを追加できること
- ** ユーザーを削除できること
- ** ユーザーリストを取得できること
- ** 更新が行われたとき通知されること
- ** ユーザー数が規定に達したときゲームが始まること
- ** 正しくゲームが開始されること
- ** ゲームの開始中にエラーが発生したとき通知されること
- */
-// import EventEmitter from 'events';
-/* jest.mock('../../src/app', () => ({
-  appState: { gameManagers: {} },
-  Events: { entryEvents: new EventEmitter() },
-})); */
-
+import { gameManagers, entryEvents } from '../../jest.setup';
 import User from '../../src/models/userModel';
 import Game from '../../src/models/gameModel';
 import GameManager from '../../src/classes/GameManager';
@@ -24,7 +9,6 @@ import {
   mockGameId,
   mockUsers,
 } from '../../jest.setup';
-import { appState, Events } from '../../src/app';
 import GameUser from '../../src/models/gameUserModel';
 
 let startGameSpy: any;
@@ -56,7 +40,7 @@ beforeEach(() => {
     .spyOn(EntryManager.prototype, 'entryUpdate')
     .mockImplementation();
 
-  entryEmitSpy = jest.spyOn(Events.entryEvents, 'emit');
+  entryEmitSpy = jest.spyOn(entryEvents, 'emit');
 
   getUsersDetailSpy = jest
     .spyOn(EntryManager.prototype, 'getUsersDetail')
@@ -222,7 +206,7 @@ describe('test createGame', () => {
     testUsers.pop();
 
     const gameId = await entryManager.createGame(testUsers);
-    const game = appState.gameManagers[gameId];
+    const game = gameManagers[gameId];
 
     const registeredUser = await GameUser.exists({
       gameId,

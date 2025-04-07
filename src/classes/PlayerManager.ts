@@ -35,7 +35,8 @@ export default class PlayerManager {
 
     users.forEach((user) => {
       const { userId, userName } = user;
-      const role = shuffledRoles.shift()!;
+      const role = shuffledRoles.shift();
+      if (!role) throw new Error();
 
       this.players[userId] = {
         userId,

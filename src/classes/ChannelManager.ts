@@ -1,11 +1,7 @@
 import { union } from 'lodash';
 import GameManager from './GameManager';
 import ChannelUserManager, { IChannelUser } from './ChannelUserManager';
-import ChannelUser from '../models/channelUserModel';
 import { MessageType } from '../models/messageModel';
-import GameUser from '../models/gameUserModel';
-import AppError from '../utils/AppError';
-import { errors } from '../config/messages';
 import { appState } from '../app';
 
 const { channelManagers } = appState;
@@ -70,7 +66,7 @@ export default class ChannelManager {
       return 'werewolf';
     }
 
-    throw new AppError(403, errors.MESSAGE_SENDING_FORBIDDEN);
+    throw new Error();
   }
 
   getMessageReceivers(messageType: MessageType): string[] | null {
@@ -111,7 +107,6 @@ export default class ChannelManager {
   }
 
   checkCanUserAccessChannel(userId: string) {
-    if (!this.users[userId])
-      throw new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN);
+    if (!this.users[userId]) throw new Error();
   }
 }

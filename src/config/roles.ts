@@ -7,7 +7,8 @@ export type Role =
   | 'werewolf'
   | 'madman'
   | 'fox'
-  | 'immoralist';
+  | 'immoralist'
+  | 'fanatic';
 
 interface IRoleConfig {
   [key: string]: Role[];
