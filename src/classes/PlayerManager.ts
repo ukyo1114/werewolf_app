@@ -16,17 +16,17 @@ interface IPlayer {
   userName: string;
   status: Status;
   role: Role;
+  teammates: string[] | null;
 }
 
 export default class PlayerManager {
   public gameId: string;
-  public players: {
-    [key: string]: IPlayer;
-  } = {};
+  public players: Record<string, IPlayer> = {};
 
   constructor(gameId: string, users: IUser[]) {
     this.gameId = gameId;
     this.setPlayers(users);
+    this.setTeammates();
   }
 
   setPlayers(users: IUser[]) {
@@ -43,7 +43,28 @@ export default class PlayerManager {
         userName,
         status: 'alive',
         role,
+        teammates: null,
       };
+    });
+  }
+
+  setTeammates() {
+    const teammateMapping: Record<string, string> = {
+      werewolf: 'werewolf',
+      freemason: 'freemason',
+      immoralist: 'fox',
+      fanatic: 'warewolf',
+    };
+
+    Object.keys(this.players).forEach((plId) => {
+      const player = this.players[plId];
+      const targetRole = teammateMapping[player.role];
+
+      if (targetRole) {
+        player.teammates = Object.values(this.players)
+          .filter((user) => user.role === targetRole)
+          .map((user) => user.userId);
+      }
     });
   }
 
@@ -77,36 +98,12 @@ export default class PlayerManager {
     const playerState: {
       status: Status;
       role: Role;
-      freemasons?: string[];
-      werewolves?: string[];
-      fox?: string;
-      immoralists?: string[];
+      teammates: string[] | null;
     } = {
       status: player.status,
       role: player.role,
+      teammates: player.teammates,
     };
-
-    // 味方のuserIDを配列に
-    if (player.role === 'freemason') {
-      playerState.freemasons = Object.values(this.players)
-        .filter((user) => user.role === 'freemason')
-        .map((user) => user.userId);
-    }
-
-    if (player.role === 'werewolf') {
-      playerState.werewolves = Object.values(this.players)
-        .filter((user) => user.role === 'werewolf')
-        .map((user) => user.userId);
-    }
-
-    if (player.role === 'immoralist') {
-      const players = Object.values(this.players);
-
-      playerState.fox = players.find((user) => user.role === 'fox')?.userId;
-      playerState.immoralists = players
-        .filter((user) => user.role === 'immoralist')
-        .map((user) => user.userId);
-    }
 
     return playerState;
   }
