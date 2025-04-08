@@ -4,7 +4,7 @@ import { Role, roleConfig } from '../config/roles';
 import AppError from '../utils/AppError';
 import { gameError } from '../config/messages';
 
-export type Status = 'alive' | 'dead';
+export type Status = 'alive' | 'dead' | 'spectator';
 
 export interface IUser {
   userId: string;

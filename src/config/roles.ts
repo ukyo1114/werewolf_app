@@ -27,4 +27,17 @@ export const roleConfig: IRoleConfig = {
     'werewolf',
     'madman',
   ],
+  11: [
+    'villager',
+    'villager',
+    'villager',
+    'villager',
+    'villager',
+    'seer',
+    'medium',
+    'hunter',
+    'werewolf',
+    'werewolf',
+    'madman',
+  ],
 };
