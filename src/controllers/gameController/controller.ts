@@ -70,7 +70,7 @@ const actionMap: Record<
     game.guardManager.receiveGuradRequest(userId, selectedUser),
   attackRequest: (game, userId, selectedUser) =>
     game.attackManager.receiveAttackRequest(userId, selectedUser),
-  voteHistory: (game) => game.voteManager.getVoteHistory(),
+  voteHistory: (game) => game.voteManager.voteHistory,
   devineResult: (game, userId) => game.devineManager.getDevineResult(userId),
   mediumResult: (game, userId) => game.mediumManager.getMediumResult(userId),
   guardHistory: (game, userId) => game.guardManager.getGuardHistory(userId),

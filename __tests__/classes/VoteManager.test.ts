@@ -136,18 +136,4 @@ describe('test VoteManager', () => {
       expect(game.voteManager.votes).toEqual({});
     });
   });
-
-  describe('test getVoteHistory', () => {
-    it('投票履歴が正しい形式で返されること', () => {
-      const game = gameManagers[mockGameId];
-      game.voteManager.voteHistory = {
-        0: { werewolf: ['villager'] },
-      };
-
-      const voteHistory = game.voteManager.getVoteHistory();
-      expect(voteHistory).toEqual({
-        0: { werewolf: ['villager'] },
-      });
-    });
-  });
 });

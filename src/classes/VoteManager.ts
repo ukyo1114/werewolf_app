@@ -1,27 +1,23 @@
-import { max, sample, countBy } from 'lodash';
+import _ from 'lodash';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 
 // Vote history structure: Day -> Votee -> Voters
-interface IVotesByVotee {
-  [key: string]: string[];
-}
-interface IVoteHistory {
-  [key: string]: IVotesByVotee;
-}
+type VotesByVotee = Record<string, string[]>;
+type VoteHistory = Record<string, VotesByVotee>;
 
 export default class VoteManager {
   public votes: Record<string, string> = {};
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
-  public voteHistory: IVoteHistory = {};
+  public voteHistory: VoteHistory = {};
 
   constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
     this.phaseManager = phaseManager;
     this.playerManager = playerManager;
   }
 
-  receiveVote(voterId: string, voteeId: string) {
+  receiveVote(voterId: string, voteeId: string): void {
     if (voterId === voteeId) throw new Error();
 
     const { currentPhase } = this.phaseManager;
@@ -37,33 +33,34 @@ export default class VoteManager {
     this.votes[voterId] = voteeId;
   }
 
-  getExecutionTarget(): string | null {
+  getExecutionTarget(): string {
     const voteCount = this.voteCounter();
 
     // 最多得票者の配列を作成
-    const maxVotes = max(Object.values(voteCount));
+    const maxVotes = _.max(Object.values(voteCount));
     const executionTargets = Object.entries(voteCount)
       .filter(([_, count]) => count === maxVotes)
       .map(([votee]) => votee);
 
+    const target = _.sample(executionTargets);
+    if (!target) throw new Error();
+
     this.genVoteHistory();
 
-    // 配列からランダムに選んだプレイヤーを返す
-    return sample(executionTargets)!;
+    return target;
   }
 
-  voteCounter(): { [key: string]: number } {
+  voteCounter(): Record<string, number> {
     const votes = this.votes;
     if (Object.keys(votes).length === 0) throw new Error();
 
     const voteeArray = Object.values(votes);
-    return countBy(voteeArray);
+    return _.countBy(voteeArray);
   }
 
-  genVoteHistory() {
+  genVoteHistory(): void {
     const { currentDay } = this.phaseManager;
-
-    const votesByVotee: IVotesByVotee = {};
+    const votesByVotee: VotesByVotee = {};
 
     // 投票を得票者 -> 投票者リストに変換
     for (const [voter, votee] of Object.entries(this.votes)) {
@@ -77,9 +74,5 @@ export default class VoteManager {
 
     // 投票をリセット
     this.votes = {};
-  }
-
-  getVoteHistory(): IVoteHistory {
-    return this.voteHistory;
   }
 }
