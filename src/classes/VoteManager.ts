@@ -13,7 +13,7 @@ interface IVoteHistory {
 }
 
 export default class VoteManager {
-  public votes: { [key: string]: string } = {};
+  public votes: Record<string, string> = {};
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
   public voteHistory: IVoteHistory = {};
@@ -24,24 +24,23 @@ export default class VoteManager {
   }
 
   receiveVote(voterId: string, voteeId: string) {
+    if (voterId === voteeId) throw new Error();
+
     const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[voterId];
     const target = this.playerManager.players[voteeId];
 
-    if (
-      player?.status !== 'alive' ||
-      target?.status !== 'alive' ||
-      currentPhase !== 'day'
-    ) {
-      throw new AppError(400, gameError.INVALID_VOTE);
-    }
+    const isDayPhase = currentPhase === 'day';
+    const isPlayerValid = player && player.status === 'alive';
+    const isTargetValid = target && target.status === 'alive';
+
+    if (!isDayPhase || !isPlayerValid || !isTargetValid) throw new Error();
 
     this.votes[voterId] = voteeId;
   }
 
   getExecutionTarget(): string | null {
     const voteCount = this.voteCounter();
-    if (Object.keys(voteCount).length === 0) return null;
 
     // 最多得票者の配列を作成
     const maxVotes = max(Object.values(voteCount));
@@ -57,7 +56,7 @@ export default class VoteManager {
 
   voteCounter(): { [key: string]: number } {
     const votes = this.votes;
-    if (!votes) return {};
+    if (Object.keys(votes).length === 0) throw new Error();
 
     const voteeArray = Object.values(votes);
     return countBy(voteeArray);

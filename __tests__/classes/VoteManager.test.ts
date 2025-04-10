@@ -3,26 +3,29 @@ import GameManager from '../../src/classes/GameManager';
 import AppError from '../../src/utils/AppError';
 import { gameError } from '../../src/config/messages';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { gamePlayers } from '../../__mocks__/mockdata';
 
-beforeEach(() => {
+beforeAll(() => {
   gameManagers[mockGameId] = new GameManager(
     mockChannelId,
     mockGameId,
     mockUsers,
   );
-  // sendMessageをモック
   gameManagers[mockGameId].sendMessage = jest.fn();
 });
 
-afterEach(() => {
+beforeEach(() => {
+  const game = gameManagers[mockGameId];
+  game.playerManager.players = structuredClone(gamePlayers);
+});
+
+afterAll(() => {
   const timerId = gameManagers[mockGameId].phaseManager.timerId;
 
   if (timerId) {
     clearTimeout(timerId);
   }
-});
 
-afterAll(() => {
   delete gameManagers[mockGameId];
   jest.restoreAllMocks();
 });
@@ -31,126 +34,93 @@ describe('test VoteManager', () => {
   describe('receiveVote', () => {
     it('投票が正常に受け付けされる', () => {
       const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'day';
 
-      game.phaseManager.nextPhase();
+      game.voteManager.receiveVote('villager', 'werewolf');
+      expect(game.voteManager.votes.villager).toBe('werewolf');
+    });
 
-      const voter = mockUsers[1].userId;
-      const votee = mockUsers[2].userId;
+    it('自分自身に投票しようとするとエラーが返る', () => {
+      const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'day';
 
-      game.voteManager.receiveVote(voter, votee);
-
-      expect(game.phaseManager.currentPhase).toBe('day');
-      expect(game.voteManager.votes[voter]).toBe(votee);
+      expect(() =>
+        game.voteManager.receiveVote('villager', 'villager'),
+      ).toThrow();
     });
 
     it('投票者が死亡しているとエラーが返る', () => {
       const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'day';
+      game.playerManager.players.villager.status = 'dead';
 
-      game.phaseManager.nextPhase();
-
-      const voter = mockUsers[1].userId;
-      const votee = mockUsers[2].userId;
-
-      game.playerManager.kill(voter);
-
-      expect(() => game.voteManager.receiveVote(voter, votee)).toThrow(
-        new AppError(400, gameError.INVALID_VOTE),
-      );
+      expect(() =>
+        game.voteManager.receiveVote('villager', 'werewolf'),
+      ).toThrow();
     });
 
     it('投票対象が死亡しているとエラーが返る', () => {
       const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'day';
+      game.playerManager.players.werewolf.status = 'dead';
 
-      game.phaseManager.nextPhase();
-
-      const voter = mockUsers[1].userId;
-      const votee = mockUsers[2].userId;
-
-      game.playerManager.kill(votee);
-
-      expect(() => game.voteManager.receiveVote(voter, votee)).toThrow(
-        new AppError(400, gameError.INVALID_VOTE),
-      );
+      expect(() =>
+        game.voteManager.receiveVote('villager', 'werewolf'),
+      ).toThrow();
     });
 
     it('夜に投票しようとするとエラーが返る', () => {
       const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'night';
 
-      game.phaseManager.nextPhase();
-      game.phaseManager.nextPhase();
-
-      const voter = mockUsers[1].userId;
-      const votee = mockUsers[2].userId;
-
-      expect(game.phaseManager.currentPhase).toBe('night');
-      expect(() => game.voteManager.receiveVote(voter, votee)).toThrow(
-        new AppError(400, gameError.INVALID_VOTE),
-      );
+      expect(() =>
+        game.voteManager.receiveVote('villager', 'werewolf'),
+      ).toThrow();
     });
   });
 
   describe('getExcutionTarget', () => {
     it('最多得票者が処刑対象として返される', () => {
       const game = gameManagers[mockGameId];
-
-      game.phaseManager.nextPhase();
-
-      const [
-        user1,
-        user2,
-        user3,
-        user4,
-        user5,
-        user6,
-        user7,
-        user8,
-        user9,
-        user10,
-      ] = mockUsers.map((user) => user.userId);
-
-      game.voteManager.receiveVote(user1, user2);
-      game.voteManager.receiveVote(user2, user1);
-      game.voteManager.receiveVote(user3, user2);
-      game.voteManager.receiveVote(user4, user2);
-      game.voteManager.receiveVote(user5, user2);
-      game.voteManager.receiveVote(user6, user1);
-      game.voteManager.receiveVote(user7, user1);
-      game.voteManager.receiveVote(user8, user1);
-      game.voteManager.receiveVote(user9, user1);
-      game.voteManager.receiveVote(user10, user1);
+      game.voteManager.votes = {
+        villager: 'werewolf',
+        seer: 'werewolf',
+        werewolf: 'villager',
+      };
 
       const executionTarget = game.voteManager.getExecutionTarget();
-
-      expect(executionTarget).toBe(user1);
+      expect(executionTarget).toBe('werewolf');
     });
 
-    it('投票が無かった場合、nullが返される', () => {
+    it('投票が無かった場合エラーを返す', () => {
       const game = gameManagers[mockGameId];
+      game.voteManager.votes = {};
 
-      game.phaseManager.nextPhase();
-
-      const executionTarget = game.voteManager.getExecutionTarget();
-
-      expect(executionTarget).toBeNull();
+      expect(() => game.voteManager.getExecutionTarget()).toThrow();
     });
   });
 
   describe('test voteCounter', () => {
     it('投票カウントが正しい形式で返されること', () => {
       const game = gameManagers[mockGameId];
-
-      game.phaseManager.nextPhase();
-
-      const voter = mockUsers[1].userId;
-      const votee = mockUsers[2].userId;
-
-      game.voteManager.receiveVote(voter, votee);
+      game.voteManager.votes = {
+        villager: 'werewolf',
+        seer: 'werewolf',
+        werewolf: 'villager',
+      };
 
       const voteCount = game.voteManager.voteCounter();
-
       expect(voteCount).toEqual({
-        [votee]: 1,
+        villager: 1,
+        werewolf: 2,
       });
+    });
+
+    it('投票が存在しないときエラーを返す', () => {
+      const game = gameManagers[mockGameId];
+      game.voteManager.votes = {};
+
+      expect(() => game.voteManager.voteCounter()).toThrow();
     });
   });
 
