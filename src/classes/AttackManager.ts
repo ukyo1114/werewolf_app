@@ -2,17 +2,14 @@ import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 import GuardManager from './GuardManager';
 
-// Attack history structure: Day -> Target
-interface IAttackHistory {
-  [key: string]: string;
-}
+type AttackHistory = Record<string, string>;
 
 export default class AttackManager {
   public attackRequest: string | null = null;
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
   public guardManager: GuardManager;
-  public attackHistory: IAttackHistory = {};
+  public attackHistory: AttackHistory = {};
 
   constructor(
     phaseManager: PhaseManager,
@@ -24,7 +21,7 @@ export default class AttackManager {
     this.guardManager = guardManager;
   }
 
-  receiveAttackRequest(playerId: string, targetId: string) {
+  receiveAttackRequest(playerId: string, targetId: string): void {
     const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[playerId];
     const target = this.playerManager.players[targetId];
@@ -70,7 +67,7 @@ export default class AttackManager {
     return attackTargetId;
   }
 
-  getAttackHistory(userId: string): IAttackHistory {
+  getAttackHistory(userId: string): AttackHistory {
     const player = this.playerManager.players[userId];
     if (!player || player.role !== 'werewolf') throw new Error();
 
