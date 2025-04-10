@@ -11,7 +11,7 @@ export interface IUser {
   userName: string;
 }
 
-interface IPlayer {
+export interface IPlayer {
   userId: string;
   userName: string;
   status: Status;
@@ -53,7 +53,7 @@ export default class PlayerManager {
       werewolf: 'werewolf',
       freemason: 'freemason',
       immoralist: 'fox',
-      fanatic: 'warewolf',
+      fanatic: 'werewolf',
     };
 
     Object.keys(this.players).forEach((plId) => {

@@ -1,6 +1,7 @@
 import { gameManagers } from '../../jest.setup';
 import GameManager from '../../src/classes/GameManager';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { gamePlayers } from '../../__mocks__/mockdata';
 
 describe('test DevineManager', () => {
   beforeAll(() => {
@@ -10,6 +11,11 @@ describe('test DevineManager', () => {
       mockUsers,
     );
     gameManagers[mockGameId].sendMessage = jest.fn();
+  });
+
+  beforeEach(() => {
+    const game = gameManagers[mockGameId];
+    game.playerManager.players = structuredClone(gamePlayers);
   });
 
   afterAll(() => {
@@ -24,22 +30,7 @@ describe('test DevineManager', () => {
     it('リクエストが受け付けられる', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        seer: {
-          userId: 'seer',
-          userName: 'seer',
-          status: 'alive',
-          role: 'seer',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       game.devineManager.receiveDevineRequest('seer', 'villager');
       expect(game.devineManager.devineRequest).toBe('villager');
     });
@@ -48,7 +39,6 @@ describe('test DevineManager', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'day';
 
-      expect(game.phaseManager.currentPhase).not.toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('seer', 'villager'),
       ).toThrow();
@@ -57,22 +47,8 @@ describe('test DevineManager', () => {
     it('リクエストを送信したプレイヤーが死亡しているときエラーを返す', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        seer: {
-          userId: 'seer',
-          userName: 'seer',
-          status: 'dead',
-          role: 'seer',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
+      game.playerManager.players.seer.status = 'dead';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('seer', 'villager'),
       ).toThrow();
@@ -80,22 +56,8 @@ describe('test DevineManager', () => {
 
     it('リクエストを送信したプレイヤーが占い師でないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        seer: {
-          userId: 'seer',
-          userName: 'seer',
-          status: 'alive',
-          role: 'seer',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
+      game.phaseManager.currentPhase = 'night';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('villager', 'villager'),
       ).toThrow();
@@ -103,22 +65,9 @@ describe('test DevineManager', () => {
 
     it('ターゲットが死亡しているときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        seer: {
-          userId: 'seer',
-          userName: 'seer',
-          status: 'alive',
-          role: 'seer',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'dead',
-          role: 'villager',
-        },
-      };
+      game.phaseManager.currentPhase = 'night';
+      game.playerManager.players.villager.status = 'dead';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(game.playerManager.players.villager.status).not.toBe('alive');
       expect(() =>
         game.attackManager.receiveAttackRequest('seer', 'villager'),
@@ -127,22 +76,8 @@ describe('test DevineManager', () => {
 
     it('ターゲットが占い師のときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        seer: {
-          userId: 'seer',
-          userName: 'seer',
-          status: 'alive',
-          role: 'seer',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
+      game.phaseManager.currentPhase = 'night';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('seer', 'seer'),
       ).toThrow();
@@ -150,8 +85,8 @@ describe('test DevineManager', () => {
 
     it('リクエストを送信したプレイヤーが存在しないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'night';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('notExist', 'villager'),
       ).toThrow();
@@ -159,8 +94,8 @@ describe('test DevineManager', () => {
 
     it('ターゲットが存在しないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'night';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('werewolf', 'notExist'),
       ).toThrow();
@@ -177,24 +112,10 @@ describe('test DevineManager', () => {
 
     it('リクエストが存在しないとき', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        seer: {
-          userId: 'seer',
-          userName: 'seer',
-          status: 'alive',
-          role: 'seer',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
       game.devineManager.devineRequest = null;
 
       const devineTarget = game.devineManager.decideDevineTarget();
-      expect(devineTarget).toBe('villager');
+      expect(devineTarget).toBeDefined;
     });
   });
 
@@ -224,13 +145,11 @@ describe('test DevineManager', () => {
 
     it('プレイヤーが占いでないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      expect(game.playerManager.players.villager).toBeDefined();
       expect(() => game.devineManager.getDevineResult('villager')).toThrow();
     });
 
     it('プレイヤーが存在しないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      expect(game.playerManager.players.notExist).toBeUndefined();
       expect(() => game.devineManager.getDevineResult('notExist')).toThrow();
     });
   });

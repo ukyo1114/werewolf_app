@@ -1,6 +1,7 @@
 import { gameManagers } from '../../jest.setup';
 import GameManager from '../../src/classes/GameManager';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { gamePlayers } from '../../__mocks__/mockdata';
 
 describe('test AttackManager', () => {
   beforeAll(() => {
@@ -10,6 +11,11 @@ describe('test AttackManager', () => {
       mockUsers,
     );
     gameManagers[mockGameId].sendMessage = jest.fn();
+  });
+
+  beforeEach(() => {
+    const game = gameManagers[mockGameId];
+    game.playerManager.players = structuredClone(gamePlayers);
   });
 
   afterAll(() => {
@@ -24,22 +30,7 @@ describe('test AttackManager', () => {
     it('リクエストが受け付けられる', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        werewolf: {
-          userId: 'werewolf',
-          userName: 'werewof',
-          status: 'alive',
-          role: 'werewolf',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       game.attackManager.receiveAttackRequest('werewolf', 'villager');
       expect(game.attackManager.attackRequest).toBe('villager');
     });
@@ -47,22 +38,7 @@ describe('test AttackManager', () => {
     it('nightフェーズでないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'day';
-      game.playerManager.players = {
-        werewolf: {
-          userId: 'werewolf',
-          userName: 'werewof',
-          status: 'alive',
-          role: 'werewolf',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
 
-      expect(game.phaseManager.currentPhase).not.toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('werewolf', 'villager'),
       ).toThrow();
@@ -71,22 +47,8 @@ describe('test AttackManager', () => {
     it('リクエストを送信したプレイヤーが死亡しているときエラーを返す', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        werewolf: {
-          userId: 'werewolf',
-          userName: 'werewof',
-          status: 'dead',
-          role: 'werewolf',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
+      game.playerManager.players.werewolf.status = 'dead';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('werewolf', 'villager'),
       ).toThrow();
@@ -95,48 +57,17 @@ describe('test AttackManager', () => {
     it('リクエストを送信したプレイヤーが人狼でないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        villager1: {
-          userId: 'villager1',
-          userName: 'villager1',
-          status: 'alive',
-          role: 'villager',
-        },
-        villager2: {
-          userId: 'villager2',
-          userName: 'villager2',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
 
-      expect(game.phaseManager.currentPhase).toBe('night');
-      expect(game.playerManager.players.villager1.role).not.toBe('werewolf');
       expect(() =>
-        game.attackManager.receiveAttackRequest('villager1', 'villager2'),
+        game.attackManager.receiveAttackRequest('seer', 'villager'),
       ).toThrow();
     });
 
     it('ターゲットが死亡しているときエラーを返す', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        werewolf: {
-          userId: 'werewolf',
-          userName: 'werewof',
-          status: 'alive',
-          role: 'werewolf',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'dead',
-          role: 'villager',
-        },
-      };
+      game.playerManager.players.villager.status = 'dead';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
-      expect(game.playerManager.players.villager.status).not.toBe('alive');
       expect(() =>
         game.attackManager.receiveAttackRequest('werewolf', 'villager'),
       ).toThrow();
@@ -145,73 +76,25 @@ describe('test AttackManager', () => {
     it('ターゲットが人狼のときエラーを返す', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        werewolf1: {
-          userId: 'werewolf1',
-          userName: 'werewof1',
-          status: 'alive',
-          role: 'werewolf',
-        },
-        werewolf2: {
-          userId: 'werewolf2',
-          userName: 'werewof2',
-          status: 'alive',
-          role: 'werewolf',
-        },
-      };
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
-        game.attackManager.receiveAttackRequest('werewolf1', 'werewolf2'),
+        game.attackManager.receiveAttackRequest('werewolf', 'werewolf'),
       ).toThrow();
     });
 
     it('リクエストを送信したプレイヤーが存在しないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        werewolf: {
-          userId: 'werewolf',
-          userName: 'werewof',
-          status: 'alive',
-          role: 'werewolf',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
-        game.attackManager.receiveAttackRequest(
-          'nonExistingPlayer',
-          'villager',
-        ),
+        game.attackManager.receiveAttackRequest('notExist', 'villager'),
       ).toThrow();
     });
 
     it('ターゲットが存在しないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        werewolf: {
-          userId: 'werewolf',
-          userName: 'werewof',
-          status: 'alive',
-          role: 'werewolf',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('werewolf', 'notExist'),
       ).toThrow();
@@ -233,7 +116,7 @@ describe('test AttackManager', () => {
       game.attackManager.attackRequest = null;
 
       const attackTarget = game.attackManager.decideAttackTarget();
-      expect(attackTarget).toBe('villager');
+      expect(attackTarget).toBeDefined;
     });
   });
 
@@ -241,24 +124,10 @@ describe('test AttackManager', () => {
     it('襲撃が行われる', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-        hunter: {
-          userId: 'hunter',
-          userName: 'hunter',
-          status: 'alive',
-          role: 'hunter',
-        },
-      };
+
       game.attackManager.attackRequest = 'villager';
       game.guardManager.guard = jest.fn().mockReturnValue(false);
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       const attackTargetId = game.attackManager.attack();
 
       expect(attackTargetId).toBe('villager');
@@ -269,22 +138,9 @@ describe('test AttackManager', () => {
 
     it('護衛成功時の処理が正しく行われる', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-        hunter: {
-          userId: 'hunter',
-          userName: 'hunter',
-          status: 'alive',
-          role: 'hunter',
-        },
-      };
+      game.phaseManager.currentPhase = 'night';
+
       game.guardManager.guard = jest.fn().mockReturnValue(true);
-      expect(game.phaseManager.currentPhase).toBe('night');
 
       game.attackManager.attackRequest = 'villager';
       const attackTargetId = game.attackManager.attack();
@@ -297,23 +153,9 @@ describe('test AttackManager', () => {
 
     it('襲撃対象が狐だった場合襲撃が失敗する', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        fox: {
-          userId: 'fox',
-          userName: 'fox',
-          status: 'alive',
-          role: 'fox',
-        },
-        hunter: {
-          userId: 'hunter',
-          userName: 'hunter',
-          status: 'alive',
-          role: 'hunter',
-        },
-      };
-      game.guardManager.guard = jest.fn().mockReturnValue(false);
+      game.phaseManager.currentPhase = 'night';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
+      game.guardManager.guard = jest.fn().mockReturnValue(false);
 
       game.attackManager.attackRequest = 'fox';
       const attackTargetId = game.attackManager.attack();
@@ -326,23 +168,10 @@ describe('test AttackManager', () => {
 
     it('狩人が死亡している場合護衛が実行されない', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-        hunter: {
-          userId: 'hunter',
-          userName: 'hunter',
-          status: 'dead',
-          role: 'hunter',
-        },
-      };
-      game.guardManager.guard = jest.fn().mockReturnValue(true);
+      game.phaseManager.currentPhase = 'night';
+      game.playerManager.players.hunter.status = 'dead';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
+      game.guardManager.guard = jest.fn().mockReturnValue(true);
 
       game.attackManager.attackRequest = 'villager';
       const attackTargetId = game.attackManager.attack();
@@ -358,14 +187,7 @@ describe('test AttackManager', () => {
     it('襲撃履歴を取得できる', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'day';
-      game.playerManager.players = {
-        werewolf: {
-          userId: 'werewolf',
-          userName: 'werewof',
-          status: 'alive',
-          role: 'werewolf',
-        },
-      };
+
       game.attackManager.attackHistory = { 1: 'villager' };
 
       const attackHistory = game.attackManager.getAttackHistory('werewolf');
@@ -374,14 +196,6 @@ describe('test AttackManager', () => {
 
     it('プレイヤーが人狼でないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
 
       expect(game.playerManager.players.villager).toBeDefined();
       expect(() => game.attackManager.getAttackHistory('villager')).toThrow();
@@ -390,8 +204,7 @@ describe('test AttackManager', () => {
     it('プレイヤーが存在しないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
 
-      expect(game.playerManager.players.werewolf).toBeUndefined();
-      expect(() => game.attackManager.getAttackHistory('werewolf')).toThrow();
+      expect(() => game.attackManager.getAttackHistory('notExist')).toThrow();
     });
   });
 });

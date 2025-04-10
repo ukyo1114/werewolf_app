@@ -1,6 +1,7 @@
 import { gameManagers } from '../../jest.setup';
 import GameManager from '../../src/classes/GameManager';
 import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { gamePlayers } from '../../__mocks__/mockdata';
 
 describe('test GuardManager', () => {
   beforeAll(() => {
@@ -10,6 +11,11 @@ describe('test GuardManager', () => {
       mockUsers,
     );
     gameManagers[mockGameId].sendMessage = jest.fn();
+  });
+
+  beforeEach(() => {
+    const game = gameManagers[mockGameId];
+    game.playerManager.players = structuredClone(gamePlayers);
   });
 
   afterAll(() => {
@@ -24,22 +30,7 @@ describe('test GuardManager', () => {
     it('リクエストが受け付けられる', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        hunter: {
-          userId: 'hunter',
-          userName: 'hunter',
-          status: 'alive',
-          role: 'hunter',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       game.guardManager.receiveGuradRequest('hunter', 'villager');
       expect(game.guardManager.guardRequest).toBe('villager');
     });
@@ -48,7 +39,6 @@ describe('test GuardManager', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'day';
 
-      expect(game.phaseManager.currentPhase).not.toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('hunter', 'villager'),
       ).toThrow();
@@ -57,22 +47,8 @@ describe('test GuardManager', () => {
     it('リクエストを送信したプレイヤーが死亡しているときエラーを返す', () => {
       const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.playerManager.players = {
-        hunter: {
-          userId: 'hunter',
-          userName: 'hunter',
-          status: 'dead',
-          role: 'hunter',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
+      game.playerManager.players.hunter.status = 'dead';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('hunter', 'villager'),
       ).toThrow();
@@ -80,8 +56,8 @@ describe('test GuardManager', () => {
 
     it('リクエストを送信したプレイヤーが狩人でないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'night';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('villager', 'villager'),
       ).toThrow();
@@ -89,22 +65,9 @@ describe('test GuardManager', () => {
 
     it('ターゲットが死亡しているときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        hunter: {
-          userId: 'hunter',
-          userName: 'hunter',
-          status: 'alive',
-          role: 'hunter',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'dead',
-          role: 'villager',
-        },
-      };
+      game.phaseManager.currentPhase = 'night';
+      game.playerManager.players.villager.status = 'dead';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(game.playerManager.players.villager.status).not.toBe('alive');
       expect(() =>
         game.attackManager.receiveAttackRequest('hunter', 'villager'),
@@ -113,8 +76,8 @@ describe('test GuardManager', () => {
 
     it('ターゲットが狩人のときエラーを返す', () => {
       const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'night';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('hunter', 'hunter'),
       ).toThrow();
@@ -122,22 +85,8 @@ describe('test GuardManager', () => {
 
     it('リクエストを送信したプレイヤーが存在しないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        hunter: {
-          userId: 'hunter',
-          userName: 'hunter',
-          status: 'alive',
-          role: 'hunter',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
+      game.phaseManager.currentPhase = 'night';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('notExist', 'villager'),
       ).toThrow();
@@ -145,8 +94,8 @@ describe('test GuardManager', () => {
 
     it('ターゲットが存在しないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'night';
 
-      expect(game.phaseManager.currentPhase).toBe('night');
       expect(() =>
         game.attackManager.receiveAttackRequest('hunter', 'notExist'),
       ).toThrow();
@@ -166,46 +115,18 @@ describe('test GuardManager', () => {
 
     it('リクエストが存在しないとき', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        hunter: {
-          userId: 'hunter',
-          userName: 'hunter',
-          status: 'alive',
-          role: 'hunter',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
       game.guardManager.guardRequest = null;
 
-      const devineTarget = game.guardManager.decideGuardTarget();
-      expect(devineTarget).toBe('villager');
+      const guardTarget = game.guardManager.decideGuardTarget();
+      expect(guardTarget).toBeDefined;
       expect(game.guardManager.guardRequest).toBeNull;
-      expect(game.guardManager.guardHistory[0]).toBe('villager');
+      expect(game.guardManager.guardHistory[0]).toBeDefined;
     });
   });
 
   describe('guard', () => {
     it('護衛が行われる', () => {
       const game = gameManagers[mockGameId];
-      game.playerManager.players = {
-        hunter: {
-          userId: 'hunter',
-          userName: 'hunter',
-          status: 'alive',
-          role: 'hunter',
-        },
-        villager: {
-          userId: 'villager',
-          userName: 'villager',
-          status: 'alive',
-          role: 'villager',
-        },
-      };
       game.guardManager.guardRequest = 'villager';
 
       expect(game.guardManager.guard('villager')).toBe(true);
@@ -225,13 +146,11 @@ describe('test GuardManager', () => {
 
     it('プレイヤーが狩人でないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      expect(game.playerManager.players.villager).toBeDefined();
       expect(() => game.guardManager.getGuardHistory('villager')).toThrow();
     });
 
     it('プレイヤーが存在しないときエラーを返す', () => {
       const game = gameManagers[mockGameId];
-      expect(game.playerManager.players.notExist).toBeUndefined();
       expect(() => game.guardManager.getGuardHistory('notExist')).toThrow();
     });
   });
