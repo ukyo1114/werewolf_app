@@ -1,23 +1,21 @@
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 
-// Devine result structure: Day -> Target -> Result
-interface IDevineResult {
-  [key: string]: { [key: string]: 'villagers' | 'werewolves' };
-}
+type Team = 'villagers' | 'werewolves';
+type DevineResult = Record<string, Record<string, Team>>;
 
 export default class DevineManager {
   public devineRequest: string | null = null;
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
-  public devineResult: IDevineResult = {};
+  public devineResult: DevineResult = {};
 
   constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
     this.phaseManager = phaseManager;
     this.playerManager = playerManager;
   }
 
-  receiveDevineRequest(playerId: string, targetId: string) {
+  receiveDevineRequest(playerId: string, targetId: string): void {
     const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[playerId];
     const target = this.playerManager.players[targetId];
@@ -52,7 +50,7 @@ export default class DevineManager {
     return devineTargetId;
   }
 
-  getDevineResult(userId: string): IDevineResult {
+  getDevineResult(userId: string): DevineResult {
     const player = this.playerManager.players[userId];
     if (!player || player.role !== 'seer') throw new Error();
 

@@ -1,23 +1,20 @@
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 
-// Guard history structure: Day -> Target
-interface IGuardHistory {
-  [key: string]: string;
-}
+type GuardHistory = Record<string, string>;
 
 export default class GuardManager {
   public guardRequest: string | null = null;
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
-  public guardHistory: IGuardHistory = {};
+  public guardHistory: GuardHistory = {};
 
   constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
     this.phaseManager = phaseManager;
     this.playerManager = playerManager;
   }
 
-  receiveGuradRequest(playerId: string, targetId: string) {
+  receiveGuradRequest(playerId: string, targetId: string): void {
     const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[playerId];
     const target = this.playerManager.players[targetId];
@@ -49,7 +46,7 @@ export default class GuardManager {
     return attackTargetId === guardTargetId;
   }
 
-  getGuardHistory(userId: string): IGuardHistory {
+  getGuardHistory(userId: string): GuardHistory {
     const player = this.playerManager.players[userId];
     if (!player || player.role !== 'hunter') throw new Error();
 

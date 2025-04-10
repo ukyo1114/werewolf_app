@@ -1,22 +1,20 @@
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 
-// Medium result structure: Day -> Target -> Result
-interface IMediumResult {
-  [key: string]: { [key: string]: 'villagers' | 'werewolves' };
-}
+type Team = 'villagers' | 'werewolves';
+type MediumResult = Record<string, Record<string, Team>>;
 
 export default class MediumManager {
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
-  public mediumResult: IMediumResult = {};
+  public mediumResult: MediumResult = {};
 
   constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
     this.phaseManager = phaseManager;
     this.playerManager = playerManager;
   }
 
-  medium(targetId: string) {
+  medium(targetId: string): void {
     const { currentDay } = this.phaseManager;
     const target = this.playerManager.players[targetId];
 
@@ -25,7 +23,7 @@ export default class MediumManager {
     };
   }
 
-  getMediumResult(userId: string): IMediumResult {
+  getMediumResult(userId: string): MediumResult {
     const player = this.playerManager.players[userId];
     if (!player || player.role !== 'medium') throw new Error();
 
