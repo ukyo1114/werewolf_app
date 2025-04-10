@@ -127,19 +127,11 @@ describe('test VoteManager', () => {
   describe('test genVoteHistory', () => {
     it('投票履歴が正しい形式で生成され、投票がリセットされること', () => {
       const game = gameManagers[mockGameId];
-
-      game.phaseManager.nextPhase();
-
-      const voter = mockUsers[1].userId;
-      const votee = mockUsers[2].userId;
-
-      game.voteManager.receiveVote(voter, votee);
+      game.voteManager.votes = { villager: 'werewolf' };
       game.voteManager.genVoteHistory();
 
       expect(game.voteManager.voteHistory).toEqual({
-        1: {
-          [votee]: [voter],
-        },
+        0: { werewolf: ['villager'] },
       });
       expect(game.voteManager.votes).toEqual({});
     });
@@ -148,28 +140,14 @@ describe('test VoteManager', () => {
   describe('test getVoteHistory', () => {
     it('投票履歴が正しい形式で返されること', () => {
       const game = gameManagers[mockGameId];
+      game.voteManager.voteHistory = {
+        0: { werewolf: ['villager'] },
+      };
 
-      game.phaseManager.nextPhase();
-
-      const voter = mockUsers[1].userId;
-      const votee = mockUsers[2].userId;
-
-      game.voteManager.receiveVote(voter, votee);
-      game.voteManager.genVoteHistory();
       const voteHistory = game.voteManager.getVoteHistory();
-
       expect(voteHistory).toEqual({
-        1: {
-          [votee]: [voter],
-        },
+        0: { werewolf: ['villager'] },
       });
-    });
-
-    it('preフェーズに投票履歴を取得しようとするとエラーが返されること', () => {
-      const game = gameManagers[mockGameId];
-      expect(() => game.voteManager.getVoteHistory()).toThrow(
-        new AppError(403, gameError.VOTE_HISTORY_NOT_FOUND),
-      );
     });
   });
 });

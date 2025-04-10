@@ -1,8 +1,6 @@
 import { max, sample, countBy } from 'lodash';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-import AppError from '../utils/AppError';
-import { gameError } from '../config/messages';
 
 // Vote history structure: Day -> Votee -> Voters
 interface IVotesByVotee {
@@ -82,12 +80,6 @@ export default class VoteManager {
   }
 
   getVoteHistory(): IVoteHistory {
-    const { currentPhase } = this.phaseManager;
-
-    if (currentPhase === 'pre') {
-      throw new AppError(403, gameError.VOTE_HISTORY_NOT_FOUND);
-    }
-
     return this.voteHistory;
   }
 }
