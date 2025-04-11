@@ -2,25 +2,23 @@ import User from '../models/userModel';
 import Game from '../models/gameModel';
 import GameManager from './GameManager';
 import { appState, Events } from '../app';
+import { EntryUsers } from '../config/types';
 
 const { entryEvents } = Events;
 const { gameManagers } = appState;
 
 export default class EntryManager {
   public channelId: string;
-  public users: {
-    [key: string]: string;
-  } = {};
+  public users: Record<string, string> = {};
   public MAX_USERS: number;
-  public isProcessing: boolean;
+  public isProcessing: boolean = false;
 
   constructor(channelId: string, max_users: number) {
     this.channelId = channelId;
     this.MAX_USERS = max_users;
-    this.isProcessing = false;
   }
 
-  async register(userId: string, socketId: string) {
+  async register(userId: string, socketId: string): Promise<void> {
     if (this.isProcessing) throw new Error();
 
     this.users[socketId] = userId;
@@ -33,7 +31,7 @@ export default class EntryManager {
     this.entryUpdate();
   }
 
-  cancel(socketId: string) {
+  cancel(socketId: string): void {
     if (this.isProcessing) throw new Error();
 
     delete this.users[socketId];
@@ -44,7 +42,7 @@ export default class EntryManager {
     return Object.values(this.users);
   }
 
-  entryUpdate() {
+  entryUpdate(): void {
     const userList = this.getUserList();
 
     entryEvents.emit('entryUpdate', {
@@ -53,7 +51,7 @@ export default class EntryManager {
     });
   }
 
-  async getUsersDetail() {
+  async getUsersDetail(): Promise<EntryUsers> {
     const userList = this.getUserList();
     const dbUsers = await User.find({ _id: { $in: userList } })
       .select('_id userName')
@@ -65,7 +63,9 @@ export default class EntryManager {
     }));
   }
 
-  async createGame(users: { userId: string; userName: string }[]) {
+  async createGame(
+    users: { userId: string; userName: string }[],
+  ): Promise<string> {
     const game = await Game.create({
       channelId: this.channelId,
       numberOfPlayers: this.MAX_USERS,
@@ -78,16 +78,16 @@ export default class EntryManager {
     return gameId;
   }
 
-  emitGameStart(gameId: string) {
+  emitGameStart(gameId: string): void {
     entryEvents.emit('gameStart', { users: Object.keys(this.users), gameId });
   }
 
-  reset() {
+  reset(): void {
     this.users = {};
     this.isProcessing = false;
   }
 
-  async startGame() {
+  async startGame(): Promise<void> {
     try {
       const users = await this.getUsersDetail();
       const gameId = await this.createGame(users);
