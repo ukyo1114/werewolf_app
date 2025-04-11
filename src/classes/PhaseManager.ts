@@ -3,7 +3,7 @@ import { Result } from './GameManager';
 
 export type CurrentPhase = 'pre' | 'day' | 'night' | 'finished';
 
-interface IResult {
+export interface IResult {
   value: Result;
 }
 
@@ -30,7 +30,8 @@ export default class PhaseManager {
     this.startTimer();
   }
 
-  registerListner() {
+  registerListner(): void {
+    // TODO: エラーハンドリング追加
     this.eventEmitter.on('processCompleted', () => {
       this.nextPhase();
       this.eventEmitter.emit('phaseSwitched');
@@ -38,7 +39,7 @@ export default class PhaseManager {
     });
   }
 
-  startTimer() {
+  startTimer(): void {
     const timer = this.phaseDurations_sec[this.currentPhase];
     this.timerId = setTimeout(
       () => this.eventEmitter.emit('timerEnd'),
@@ -46,20 +47,18 @@ export default class PhaseManager {
     );
   }
 
-  nextPhase() {
+  nextPhase(): void {
+    const currentPhase = this.currentPhase;
     this.changedAt = new Date();
 
-    if (this.currentPhase === 'finished') {
-      return console.error(
-        'フェーズが既に終了しているため、次のフェーズに進むことはできません。',
-      );
-    }
+    if (currentPhase === 'finished') throw new Error();
 
     if (this.result.value !== 'running') {
-      return (this.currentPhase = 'finished');
+      this.currentPhase = 'finished';
+      return;
     }
 
-    if (this.currentPhase === 'day') {
+    if (currentPhase === 'day') {
       this.currentPhase = 'night';
     } else {
       this.currentDay = this.currentDay + 1;
