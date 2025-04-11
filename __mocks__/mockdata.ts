@@ -47,6 +47,13 @@ export const gamePlayers: Record<string, IPlayer> = {
     role: 'hunter',
     teammates: null,
   },
+  freemason: {
+    userId: 'freemason',
+    userName: 'freemason',
+    status: 'alive',
+    role: 'freemason',
+    teammates: null,
+  },
   werewolf: {
     userId: 'werewolf',
     userName: 'werewof',
@@ -54,11 +61,25 @@ export const gamePlayers: Record<string, IPlayer> = {
     role: 'werewolf',
     teammates: null,
   },
+  fanatic: {
+    userId: 'fanatic',
+    userName: 'fanatic',
+    status: 'alive',
+    role: 'fanatic',
+    teammates: null,
+  },
   fox: {
     userId: 'fox',
     userName: 'fox',
     status: 'alive',
     role: 'fox',
+    teammates: null,
+  },
+  immoralist: {
+    userId: 'immoralist',
+    userName: 'immoralist',
+    status: 'alive',
+    role: 'immoralist',
     teammates: null,
   },
 };

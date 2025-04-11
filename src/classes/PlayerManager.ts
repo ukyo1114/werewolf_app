@@ -29,7 +29,7 @@ export default class PlayerManager {
     this.setTeammates();
   }
 
-  setPlayers(users: IUser[]) {
+  setPlayers(users: IUser[]): void {
     const roles = roleConfig[users.length];
     const shuffledRoles = _.shuffle(roles);
 
@@ -48,7 +48,7 @@ export default class PlayerManager {
     });
   }
 
-  setTeammates() {
+  setTeammates(): void {
     const teammateMapping: Record<string, string> = {
       werewolf: 'werewolf',
       freemason: 'freemason',
@@ -68,7 +68,7 @@ export default class PlayerManager {
     });
   }
 
-  async registerPlayersInDB() {
+  async registerPlayersInDB(): Promise<void> {
     const gameId = this.gameId;
     const users = Object.values(this.players).map((user) => ({
       gameId,
@@ -84,22 +84,23 @@ export default class PlayerManager {
     }
   }
 
-  kill(userId: string) {
+  kill(userId: string): void {
     const player = this.players[userId];
     player.status = 'dead';
 
     // TODO: チャンネルインスタンスにイベントを送信
   }
 
-  getPlayerState(userId: string) {
+  getPlayerState(userId: string): {
+    status: Status;
+    role: Role;
+    teammates: string[] | null;
+  } {
     const player = this.players[userId];
-    if (!player) return { status: 'spectator', role: 'spectator' };
+    if (!player)
+      return { status: 'spectator', role: 'spectator', teammates: null };
 
-    const playerState: {
-      status: Status;
-      role: Role;
-      teammates: string[] | null;
-    } = {
+    const playerState = {
       status: player.status,
       role: player.role,
       teammates: player.teammates,
@@ -112,8 +113,7 @@ export default class PlayerManager {
     const player = Object.values(this.players).find(
       (user) => user.role === role,
     );
-
-    if (!player) throw new AppError(500, gameError.PLAYER_NOT_FOUND);
+    if (!player) throw new Error();
 
     return player;
   }
@@ -130,17 +130,20 @@ export default class PlayerManager {
     );
   }
 
-  getPlayersWithRole() {
+  getPlayersWithRole(): Record<
+    string,
+    { userId: string; status: Status; role: Role }
+  > {
     const players = _.mapValues(this.players, (user) =>
-      _.omit(user, 'userName'),
+      _.omit(user, ['userName', 'teammates']),
     );
 
     return players;
   }
 
-  getPlayersWithoutRole() {
+  getPlayersWithoutRole(): Record<string, { userId: string; status: Status }> {
     const players = _.mapValues(this.players, (user) =>
-      _.omit(user, ['userName', 'role']),
+      _.omit(user, ['userName', 'role', 'teammates']),
     );
 
     return players;
