@@ -1,11 +1,5 @@
 import EventEmitter from 'events';
-import { MessageType } from '../models/messageModel';
-
-export interface IChannelUser {
-  userId: string;
-  socketId: string;
-  status: MessageType;
-}
+import { IChannelUser, MessageType } from '../config/types';
 
 export default class ChannelUserManager {
   public userId: string;

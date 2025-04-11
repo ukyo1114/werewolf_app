@@ -1,25 +1,23 @@
 import { union } from 'lodash';
 import GameManager from './GameManager';
-import ChannelUserManager, { IChannelUser } from './ChannelUserManager';
-import { MessageType } from '../models/messageModel';
+import ChannelUserManager from './ChannelUserManager';
+import { IChannelUser, MessageType } from '../config/types';
 import { appState } from '../app';
 
 const { channelManagers } = appState;
 
 export default class ChannelManager {
   public channelId: string;
-  public users: {
-    [key: string]: ChannelUserManager;
-  };
-  public game: GameManager | undefined;
+  public users: Record<string, ChannelUserManager>;
+  public game: GameManager | null = null;
 
   constructor(channelId: string, game?: GameManager) {
     this.channelId = channelId;
     this.users = {};
-    this.game = game;
+    this.game = game || null;
   }
 
-  async userJoined(userId: string, socketId: string) {
+  async userJoined(userId: string, socketId: string): Promise<void> {
     // const channelId = this.channelId;
     const game = this.game;
 

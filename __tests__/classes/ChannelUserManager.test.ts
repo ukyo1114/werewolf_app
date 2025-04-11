@@ -1,7 +1,6 @@
 import EventEmitter from 'events';
-import ChannelUserManager, {
-  IChannelUser,
-} from '../../src/classes/ChannelUserManager';
+import ChannelUserManager from '../../src/classes/ChannelUserManager';
+import { IChannelUser } from '../../src/config/types';
 import { mockUserId } from '../../jest.setup';
 
 const mockSocketId = 'mockSocketId';

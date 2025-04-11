@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
-import Message, { MessageType } from '../../models/messageModel';
+import Message from '../../models/messageModel';
+import { MessageType } from '../../config/types';
 import { appState, Events } from '../../app';
 
 const { channelManagers } = appState;

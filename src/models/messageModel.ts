@@ -1,6 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
-
-export type MessageType = 'normal' | 'werewolf' | 'spectator' | 'freemason';
+import { MessageType } from '../config/types';
 
 export interface IMessage extends Document {
   _id: Types.ObjectId;

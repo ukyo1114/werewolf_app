@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
-interface IChannelUser extends Document {
+interface IChannelUserModel extends Document {
   _id: Types.ObjectId;
   channelId: Types.ObjectId;
   userId: Types.ObjectId;
@@ -8,7 +8,7 @@ interface IChannelUser extends Document {
   updatedAt: Date;
 }
 
-const channelUserSchema = new Schema<IChannelUser>(
+const channelUserSchema = new Schema<IChannelUserModel>(
   {
     channelId: {
       type: mongoose.Schema.Types.ObjectId,
