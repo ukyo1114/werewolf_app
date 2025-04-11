@@ -12,7 +12,7 @@ import {
 } from '../../jest.setup';
 import PlayerManager from '../../src/classes/PlayerManager';
 import { gamePlayers } from '../../__mocks__/mockdata';
-import { Role } from '../../src/config/roles';
+import { Role } from '../../src/config/types';
 
 let playerManager: PlayerManager;
 

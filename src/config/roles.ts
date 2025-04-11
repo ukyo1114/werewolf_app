@@ -1,21 +1,6 @@
-export type Role =
-  | 'villager'
-  | 'seer'
-  | 'medium'
-  | 'hunter'
-  | 'freemason'
-  | 'werewolf'
-  | 'madman'
-  | 'fox'
-  | 'immoralist'
-  | 'fanatic'
-  | 'spectator';
+import { RoleConfig } from './types';
 
-interface IRoleConfig {
-  [key: string]: Role[];
-}
-
-export const roleConfig: IRoleConfig = {
+export const roleConfig: RoleConfig = {
   10: [
     'villager',
     'villager',

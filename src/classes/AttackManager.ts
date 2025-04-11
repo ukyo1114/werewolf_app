@@ -1,8 +1,7 @@
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 import GuardManager from './GuardManager';
-
-type AttackHistory = Record<number, string>;
+import { AttackHistory } from '../config/types';
 
 export default class AttackManager {
   public attackRequest: string | null = null;

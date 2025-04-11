@@ -9,7 +9,7 @@ import AttackManager from './AttackManager';
 import Message, { IMessage } from '../models/messageModel';
 import Game from '../models/gameModel';
 import { gameMaster } from '../config/messages';
-import { Role } from '../config/roles';
+import { Role } from '../config/types';
 import { appState } from '../app';
 
 const { gameManagers } = appState;

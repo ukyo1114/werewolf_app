@@ -1,8 +1,7 @@
 import _ from 'lodash';
 import GameUser from '../models/gameUserModel';
-import { Role, roleConfig } from '../config/roles';
-import AppError from '../utils/AppError';
-import { gameError } from '../config/messages';
+import { roleConfig } from '../config/roles';
+import { Role } from '../config/types';
 
 export type Status = 'alive' | 'dead' | 'spectator';
 
