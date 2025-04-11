@@ -2,7 +2,7 @@ import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 import GuardManager from './GuardManager';
 
-type AttackHistory = Record<string, string>;
+type AttackHistory = Record<number, string>;
 
 export default class AttackManager {
   public attackRequest: string | null = null;

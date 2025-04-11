@@ -2,7 +2,7 @@ import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 
 type Team = 'villagers' | 'werewolves';
-type DevineResult = Record<string, Record<string, Team>>;
+type DevineResult = Record<number, Record<string, Team>>;
 
 export default class DevineManager {
   public devineRequest: string | null = null;

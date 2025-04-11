@@ -1,7 +1,7 @@
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 
-type GuardHistory = Record<string, string>;
+type GuardHistory = Record<number, string>;
 
 export default class GuardManager {
   public guardRequest: string | null = null;

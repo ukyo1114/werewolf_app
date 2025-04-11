@@ -2,7 +2,7 @@ import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 
 type Team = 'villagers' | 'werewolves';
-type MediumResult = Record<string, Record<string, Team>>;
+type MediumResult = Record<number, Record<string, Team>>;
 
 export default class MediumManager {
   public phaseManager: PhaseManager;

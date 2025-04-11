@@ -4,7 +4,7 @@ import PlayerManager from './PlayerManager';
 
 // Vote history structure: Day -> Votee -> Voters
 type VotesByVotee = Record<string, string[]>;
-type VoteHistory = Record<string, VotesByVotee>;
+type VoteHistory = Record<number, VotesByVotee>;
 
 export default class VoteManager {
   public votes: Record<string, string> = {};
