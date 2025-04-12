@@ -1,4 +1,4 @@
-import { union } from 'lodash';
+import _ from 'lodash';
 import GameManager from './GameManager';
 import ChannelUserManager from './ChannelUserManager';
 import { IChannelUser, MessageType } from '../config/types';
@@ -18,20 +18,14 @@ export default class ChannelManager {
   }
 
   async userJoined(userId: string, socketId: string): Promise<void> {
-    // const channelId = this.channelId;
     const game = this.game;
-
-    /*     const userExists = game
-      ? await GameUser.exists({ gameId: channelId, userId })
-      : await ChannelUser.exists({ channelId, userId });
-    if (!userExists) throw new Error(); */
-
     const user: IChannelUser = { userId, socketId, status: 'normal' };
 
     if (game) {
       const player = game.playerManager.players[userId];
+      const isSpectator = !player || player.status !== 'alive';
 
-      if (!player || player.status !== 'alive') {
+      if (isSpectator) {
         user.status = 'spectator';
       } else if (player.role === 'werewolf') {
         user.status = 'werewolf';
@@ -75,7 +69,7 @@ export default class ChannelManager {
     if (messageType === 'spectator') return spectators;
 
     const werewolves = this.getWerewolves();
-    return union(spectators, werewolves);
+    return _.union(spectators, werewolves);
   }
 
   getSpectators(): string[] {

@@ -1,5 +1,6 @@
 import { ObjectId } from 'mongodb';
 import { IUser, IPlayer } from '../src/config/types';
+import ChannelUserManager from '../src/classes/ChannelUserManager';
 
 export const mockUserId = new ObjectId().toString();
 export const mockChannelId = new ObjectId().toString();
@@ -83,3 +84,21 @@ export const gamePlayers: Record<string, IPlayer> = {
     teammates: null,
   },
 };
+
+export const channelUsers = () => ({
+  normal: new ChannelUserManager({
+    userId: 'normal',
+    socketId: 'normal',
+    status: 'normal',
+  }),
+  spectator: new ChannelUserManager({
+    userId: 'spectator',
+    socketId: 'spectator',
+    status: 'spectator',
+  }),
+  werewolf: new ChannelUserManager({
+    userId: 'werewolf',
+    socketId: 'werewolf',
+    status: 'werewolf',
+  }),
+});

@@ -12,7 +12,7 @@ const { channelEvents } = Events;
 
 export const getMessages = asyncHandler(
   async (
-    req: CustomRequest<{}, { channelId: string }, { messageId: string | null }>,
+    req: CustomRequest<{}, { channelId: string }, { messageId?: string }>,
     res: Response,
   ): Promise<void> => {
     const { userId } = req as { userId: string };
