@@ -41,19 +41,26 @@ export interface IGameState {
     currentPhase: CurrentPhase;
     changedAt: Date;
   };
-  users: Record<
-    string,
-    {
-      userId: string;
-      status: Status;
-      role?: Role;
-    }
-  >;
+  users: Record<string, IPlayerState>;
 }
 
 export interface IUser {
   userId: string;
   userName: string;
+}
+
+export interface IPlayer {
+  userId: string;
+  userName: string;
+  status: Status;
+  role: Role;
+  teammates: string[] | null;
+}
+
+export interface IPlayerState {
+  status: Status;
+  role?: Role;
+  teammates?: string[] | null;
 }
 
 export type Status = 'alive' | 'dead' | 'spectator';

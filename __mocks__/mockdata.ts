@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { IUser, IPlayer } from '../src/classes/PlayerManager';
+import { IUser, IPlayer } from '../src/config/types';
 
 export const mockUserId = new ObjectId().toString();
 export const mockChannelId = new ObjectId().toString();

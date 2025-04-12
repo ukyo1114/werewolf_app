@@ -1,22 +1,7 @@
 import _ from 'lodash';
 import GameUser from '../models/gameUserModel';
 import { roleConfig } from '../config/roles';
-import { Role } from '../config/types';
-
-export type Status = 'alive' | 'dead' | 'spectator';
-
-export interface IUser {
-  userId: string;
-  userName: string;
-}
-
-export interface IPlayer {
-  userId: string;
-  userName: string;
-  status: Status;
-  role: Role;
-  teammates: string[] | null;
-}
+import { Role, Status, IUser, IPlayer, IPlayerState } from '../config/types';
 
 export default class PlayerManager {
   public gameId: string;
@@ -129,10 +114,7 @@ export default class PlayerManager {
     );
   }
 
-  getPlayersWithRole(): Record<
-    string,
-    { userId: string; status: Status; role: Role }
-  > {
+  getPlayersWithRole(): Record<string, IPlayerState> {
     const players = _.mapValues(this.players, (user) =>
       _.omit(user, ['userName', 'teammates']),
     );
@@ -140,7 +122,7 @@ export default class PlayerManager {
     return players;
   }
 
-  getPlayersWithoutRole(): Record<string, { userId: string; status: Status }> {
+  getPlayersWithoutRole(): Record<string, IPlayerState> {
     const players = _.mapValues(this.players, (user) =>
       _.omit(user, ['userName', 'role', 'teammates']),
     );
