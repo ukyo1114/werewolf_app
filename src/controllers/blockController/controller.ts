@@ -11,12 +11,7 @@ interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
   extends Request<TParams, any, TBody, TQuery> {
   userId?: string;
 }
-
-interface IRegisterBlockUser {
-  selectedUser: string;
-}
-
-interface ICancelBlock {
+interface ISelectedUser {
   selectedUser: string;
 }
 
@@ -29,7 +24,6 @@ export const getBlockUserList = asyncHandler(
     const { userId } = req as { userId: string };
 
     const isChannelAdmin = await checkChannelAdmin(channelId, userId);
-
     if (!isChannelAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
 
     const blockUsers = await ChannelBlockUser.find({ channelId })
@@ -44,7 +38,7 @@ export const getBlockUserList = asyncHandler(
 
 export const registerBlockUser = asyncHandler(
   async (
-    req: CustomRequest<IRegisterBlockUser, { channelId: string }>,
+    req: CustomRequest<ISelectedUser, { channelId: string }>,
     res: Response,
   ): Promise<void> => {
     const { channelId } = req.params;
@@ -55,7 +49,6 @@ export const registerBlockUser = asyncHandler(
       throw new AppError(403, errors.DENIED_SELF_BLOCK);
 
     const isChannelAdmin = await checkChannelAdmin(channelId, userId);
-
     if (!isChannelAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
 
     try {
@@ -77,7 +70,7 @@ export const registerBlockUser = asyncHandler(
 
 export const cancelBlock = asyncHandler(
   async (
-    req: CustomRequest<ICancelBlock, { channelId: string }>,
+    req: CustomRequest<ISelectedUser, { channelId: string }>,
     res: Response,
   ): Promise<void> => {
     const { channelId } = req.params;
@@ -85,14 +78,12 @@ export const cancelBlock = asyncHandler(
     const { userId } = req as { userId: string };
 
     const isChannelAdmin = await checkChannelAdmin(channelId, userId);
-
     if (!isChannelAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
 
     const blockedUser = await ChannelBlockUser.findOneAndDelete({
       channelId,
       userId: selectedUser,
     });
-
     if (!blockedUser) throw new AppError(404, errors.USER_NOT_BLOCKED);
 
     // channelEvents.emit("cancelBlockUser", { channelId, selectedUser });
