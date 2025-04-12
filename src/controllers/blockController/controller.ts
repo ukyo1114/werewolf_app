@@ -1,19 +1,10 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
-import { decodeToken } from '../../utils/decodeToken';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
-import User from '../../models/userModel';
 import ChannelBlockUser from '../../models/channelBlockUserModel';
 import { checkChannelAdmin } from '../../utils/checkChannelAdmin';
-
-interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
-  extends Request<TParams, any, TBody, TQuery> {
-  userId?: string;
-}
-interface ISelectedUser {
-  selectedUser: string;
-}
+import { CustomRequest, ISelectedUser } from '../../config/types';
 
 export const getBlockUserList = asyncHandler(
   async (

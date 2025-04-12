@@ -6,41 +6,15 @@ import { errors } from '../../config/messages';
 import User from '../../models/userModel';
 import { genUserToken } from '../../utils/generateToken';
 import uploadPicture from './utils';
-
-interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
-  extends Request<TParams, any, TBody, TQuery> {
-  userId?: string;
-}
-
-interface IRegisterUser {
-  userName: string;
-  password: string;
-  token: string;
-}
-
-interface ILogin {
-  email: string;
-  password: string;
-}
-
-interface IUpdateProfile {
-  userName?: string;
-  pic?: string;
-}
-
-interface IUpdateEmail {
-  token: string;
-}
-
-interface IChangePassword {
-  currentPassword: string;
-  newPassword: string;
-}
-
-interface IResetPassword {
-  password: string;
-  token: string;
-}
+import {
+  CustomRequest,
+  IRegisterUser,
+  ILogin,
+  IUpdateProfile,
+  IUpdateEmail,
+  IChangePassword,
+  IResetPassword,
+} from '../../config/types';
 
 export const registerUser = asyncHandler(
   async (req: CustomRequest<IRegisterUser>, res: Response): Promise<void> => {

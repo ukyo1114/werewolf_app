@@ -1,5 +1,5 @@
 import { Document, Types } from 'mongoose';
-import { gameError } from './messages';
+import { Request, Response } from 'express';
 
 export type Role =
   | 'villager'
@@ -83,4 +83,62 @@ export interface IMessage extends Document {
   message: string;
   messageType: MessageType;
   createdAt: Date;
+}
+
+// settings for controllers
+export interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
+  extends Request<TParams, any, TBody, TQuery> {
+  userId?: string;
+}
+
+export interface ISelectedUser {
+  selectedUser: string;
+}
+
+export interface ICreateChannel {
+  channelName: string;
+  channelDescription: string;
+  passwordEnabled: boolean;
+  password?: string;
+  denyGuests: boolean;
+  numberOfPlayers: number;
+}
+
+export interface IChannelSettings {
+  channelName: string | null;
+  channelDescription: string | null;
+  passwordEnabled: boolean;
+  password: string | null;
+  denyGuests: boolean;
+  numberOfPlayers: number;
+}
+
+export interface IRegisterUser {
+  userName: string;
+  password: string;
+  token: string;
+}
+
+export interface ILogin {
+  email: string;
+  password: string;
+}
+
+export interface IUpdateProfile {
+  userName: string | null;
+  pic: string | null;
+}
+
+export interface IUpdateEmail {
+  token: string;
+}
+
+export interface IChangePassword {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface IResetPassword {
+  password: string;
+  token: string;
 }

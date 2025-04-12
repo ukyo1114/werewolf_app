@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import AppError from '../../utils/AppError';
 import { errors, validation } from '../../config/messages';
@@ -7,29 +7,11 @@ import ChannelUser from '../../models/channelUserModel';
 import ChannelBlockUser from '../../models/channelBlockUserModel';
 import { checkChannelAdmin } from '../../utils/checkChannelAdmin';
 import { checkUserGuest } from '../../utils/checkUserGuest';
-
-interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
-  extends Request<TParams, any, TBody, TQuery> {
-  userId?: string;
-}
-
-interface ICreateChannel {
-  channelName: string;
-  channelDescription: string;
-  passwordEnabled: boolean;
-  password?: string;
-  denyGuests: boolean;
-  numberOfPlayers: number;
-}
-
-interface IChannelSettings {
-  channelName?: string;
-  channelDescription?: string;
-  passwordEnabled: boolean;
-  password?: string;
-  denyGuests: boolean;
-  numberOfPlayers: number;
-}
+import {
+  CustomRequest,
+  ICreateChannel,
+  IChannelSettings,
+} from '../../config/types';
 
 export const getChannelList = asyncHandler(
   async (req: CustomRequest, res: Response): Promise<void> => {

@@ -1,4 +1,4 @@
-import { Request, Response, RequestHandler } from 'express';
+import { Response, RequestHandler } from 'express';
 import asyncHandler from 'express-async-handler';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
@@ -8,13 +8,9 @@ import Game from '../../models/gameModel';
 import GameUser from '../../models/gameUserModel';
 import GameManager from '../../classes/GameManager';
 import { appState } from '../../app';
+import { CustomRequest } from '../../config/types';
 
 const { gameManagers } = appState;
-
-interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
-  extends Request<TParams, any, TBody, TQuery> {
-  userId?: string;
-}
 
 export const joinGame = asyncHandler(
   async (

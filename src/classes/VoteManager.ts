@@ -3,8 +3,6 @@ import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 import { VotesByVotee, VoteHistory } from '../config/types';
 
-// Vote history structure: Day -> Votee -> Voters
-
 export default class VoteManager {
   public votes: Record<string, string> = {};
   public phaseManager: PhaseManager;

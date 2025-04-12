@@ -1,16 +1,12 @@
-import { Request, Response, RequestHandler } from 'express';
+import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 import { createGameList } from './utils';
 import { appState } from '../../app';
+import { CustomRequest } from '../../config/types';
 
 const { channelManagers } = appState;
-
-interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
-  extends Request<TParams, any, TBody, TQuery> {
-  userId?: string;
-}
 
 export const getGameList = asyncHandler(
   async (

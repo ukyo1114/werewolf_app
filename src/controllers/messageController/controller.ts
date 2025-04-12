@@ -1,22 +1,18 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 import Message from '../../models/messageModel';
 import { MessageType } from '../../config/types';
 import { appState, Events } from '../../app';
+import { CustomRequest } from '../../config/types';
 
 const { channelManagers } = appState;
 const { channelEvents } = Events;
 
-interface CustomRequest<TBody = {}, TParams = {}, TQuery = {}>
-  extends Request<TParams, any, TBody, TQuery> {
-  userId?: string;
-}
-
 export const getMessages = asyncHandler(
   async (
-    req: CustomRequest<{}, { channelId: string }, { messageId?: string }>,
+    req: CustomRequest<{}, { channelId: string }, { messageId: string | null }>,
     res: Response,
   ): Promise<void> => {
     const { userId } = req as { userId: string };
