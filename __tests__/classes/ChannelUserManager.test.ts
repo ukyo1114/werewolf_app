@@ -3,10 +3,9 @@ import ChannelUserManager from '../../src/classes/ChannelUserManager';
 import { IChannelUser } from '../../src/config/types';
 import { mockUserId } from '../../jest.setup';
 
-const mockSocketId = 'mockSocketId';
 const mockUser: IChannelUser = {
   userId: mockUserId,
-  socketId: mockSocketId,
+  socketId: 'mockSocketId',
   status: 'normal',
 };
 
@@ -19,7 +18,7 @@ describe('ChannelUserManager', () => {
     const user = new ChannelUserManager(mockUser);
 
     expect(user.userId).toBe(mockUserId);
-    expect(user.socketId).toBe(mockSocketId);
+    expect(user.socketId).toBe('mockSocketId');
     expect(user.status).toBe('normal');
     expect(user.eventEmitter).toBeInstanceOf(EventEmitter);
     expect(spyRegisterListners).toHaveBeenCalled();
@@ -27,11 +26,9 @@ describe('ChannelUserManager', () => {
 
   it('The status changes due to the kill event', () => {
     const user = new ChannelUserManager(mockUser);
-
     expect(user.status).toBe('normal');
 
     user.eventEmitter.emit('kill');
-
     expect(user.status).toBe('spectator');
   });
 });
