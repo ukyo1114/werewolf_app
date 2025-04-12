@@ -72,6 +72,9 @@ export type MediumResult = Record<number, Record<string, Team>>;
 export type GuardHistory = Record<number, string>;
 export type AttackHistory = Record<number, string>;
 
+export type VotesByVotee = Record<string, string[]>;
+export type VoteHistory = Record<number, VotesByVotee>;
+
 export type MessageType = 'normal' | 'werewolf' | 'spectator' | 'freemason';
 export interface IMessage extends Document {
   _id: Types.ObjectId;

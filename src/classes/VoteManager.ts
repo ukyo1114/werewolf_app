@@ -1,10 +1,9 @@
 import _ from 'lodash';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
+import { VotesByVotee, VoteHistory } from '../config/types';
 
 // Vote history structure: Day -> Votee -> Voters
-type VotesByVotee = Record<string, string[]>;
-type VoteHistory = Record<number, VotesByVotee>;
 
 export default class VoteManager {
   public votes: Record<string, string> = {};
