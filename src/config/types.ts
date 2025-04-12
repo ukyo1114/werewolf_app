@@ -1,3 +1,5 @@
+import { Document, Types } from 'mongoose';
+
 export type Role =
   | 'villager'
   | 'seer'
@@ -19,8 +21,50 @@ export interface IChannelUser {
   status: MessageType;
 }
 
+export type EntryUsers = { userId: string; userName: string }[];
+
+export type GameResult =
+  | 'running'
+  | 'villagersWin'
+  | 'werewolvesWin'
+  | 'foxesWin'
+  | 'villageAbandoned';
+
+export interface IGameState {
+  gameId: string;
+  phase: {
+    currentDay: number;
+    currentPhase: CurrentPhase;
+    changedAt: Date;
+  };
+  users: Record<
+    string,
+    {
+      userId: string;
+      status: Status;
+      role?: Role;
+    }
+  >;
+}
+
+export interface IUser {
+  userId: string;
+  userName: string;
+}
+
+export type Status = 'alive' | 'dead' | 'spectator';
+export type CurrentPhase = 'pre' | 'day' | 'night' | 'finished';
+
 type Team = 'villagers' | 'werewolves';
 export type DevineResult = Record<number, Record<string, Team>>;
 export type AttackHistory = Record<number, string>;
 
 export type MessageType = 'normal' | 'werewolf' | 'spectator' | 'freemason';
+export interface IMessage extends Document {
+  _id: Types.ObjectId;
+  channelId: Types.ObjectId;
+  userId: Types.ObjectId;
+  message: string;
+  messageType: MessageType;
+  createdAt: Date;
+}

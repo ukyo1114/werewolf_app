@@ -1,10 +1,10 @@
 import EventEmitter from 'events';
-import { Result } from './GameManager';
+import { GameResult } from '../config/types';
 
 export type CurrentPhase = 'pre' | 'day' | 'night' | 'finished';
 
 export interface IResult {
-  value: Result;
+  value: GameResult;
 }
 
 export default class PhaseManager {

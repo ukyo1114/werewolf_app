@@ -1,47 +1,24 @@
 import EventEmitter from 'events';
-import PhaseManager, { CurrentPhase } from './PhaseManager';
-import PlayerManager, { Status, IUser } from './PlayerManager';
+import PhaseManager from './PhaseManager';
+import PlayerManager from './PlayerManager';
 import VoteManager from './VoteManager';
 import DevineManager from './DevineManager';
 import MediumManager from './MediumManager';
 import GuardManager from './GuardManager';
 import AttackManager from './AttackManager';
-import Message, { IMessage } from '../models/messageModel';
+import Message from '../models/messageModel';
 import Game from '../models/gameModel';
 import { gameMaster } from '../config/messages';
-import { Role } from '../config/types';
+import { GameResult, IGameState, IUser, IMessage } from '../config/types';
 import { appState } from '../app';
 
 const { gameManagers } = appState;
-
-export type Result =
-  | 'running'
-  | 'villagersWin'
-  | 'werewolvesWin'
-  | 'foxesWin'
-  | 'villageAbandoned';
-
-interface IGameState {
-  gameId: string;
-  phase: {
-    currentDay: number;
-    currentPhase: CurrentPhase;
-    changedAt: Date;
-  };
-  users: {
-    [key: string]: {
-      userId: string;
-      status: Status;
-      role?: Role;
-    };
-  };
-}
 
 export default class GameManager {
   public eventEmitter: EventEmitter = new EventEmitter();
   public channelId: string;
   public gameId: string;
-  public result: { value: Result } = { value: 'running' };
+  public result: { value: GameResult } = { value: 'running' };
   public phaseManager: PhaseManager = new PhaseManager(
     this.eventEmitter,
     this.result,
@@ -77,12 +54,12 @@ export default class GameManager {
     // this.sendMessage();
   }
 
-  registerListners() {
+  registerListners(): void {
     this.eventEmitter.on('timerEnd', async () => await this.handleTimerEnd());
     this.eventEmitter.on('phaseSwitched', () => this.handlePhaseSwitched());
   }
 
-  async handleTimerEnd() {
+  async handleTimerEnd(): Promise<void> {
     const { currentPhase } = this.phaseManager;
     this.isProcessing = true;
 
@@ -94,7 +71,7 @@ export default class GameManager {
     this.eventEmitter.emit('processCompleted');
   }
 
-  async handleDayPhaseEnd() {
+  async handleDayPhaseEnd(): Promise<void> {
     await this.execution();
 
     if (this.result.value === 'villageAbandoned') return;
@@ -106,7 +83,7 @@ export default class GameManager {
     }
   }
 
-  async handleNightPhaseEnd() {
+  async handleNightPhaseEnd(): Promise<void> {
     const deadPlayers: string[] = [];
     const seer = this.playerManager.findPlayerByRole('seer');
     let devinedFoxId: string | null = null;
@@ -145,7 +122,7 @@ export default class GameManager {
     }
   }
 
-  async handleGameEnd() {
+  async handleGameEnd(): Promise<void> {
     try {
       await Game.findByIdAndUpdate(this.gameId, { result: this.result.value });
       this.eventEmitter.removeAllListeners();
@@ -156,7 +133,7 @@ export default class GameManager {
     }
   }
 
-  async execution() {
+  async execution(): Promise<void> {
     const executionTargetId = this.voteManager.getExecutionTarget();
 
     // 処刑対象がいない場合廃村に
@@ -176,14 +153,13 @@ export default class GameManager {
     }
   }
 
-  async villageAbandoned() {
+  async villageAbandoned(): Promise<void> {
     this.result.value = 'villageAbandoned';
     await this.sendMessage(gameMaster.VILLAGE_ABANDONED);
   }
 
-  killImmoralists(): string[] | undefined {
+  killImmoralists(): void {
     const immoralists = this.playerManager.getImmoralists();
-
     if (immoralists.length === 0) return;
 
     immoralists.forEach((immmoralist) => {
@@ -196,7 +172,7 @@ export default class GameManager {
     );
   }
 
-  async judgement() {
+  async judgement(): Promise<void> {
     const livingPlayers = this.playerManager.getLivingPlayers();
 
     // 役職ごとに集計
@@ -221,7 +197,7 @@ export default class GameManager {
     }
   }
 
-  async sendMessage(message: string) {
+  async sendMessage(message: string): Promise<void> {
     const newMessage = await this.createMessage(message);
 
     // channelEvents.emit("newMessage", newMessage);
@@ -238,28 +214,27 @@ export default class GameManager {
     return newMessage;
   }
 
-  handlePhaseSwitched() {
+  handlePhaseSwitched(): void {
     this.updateGameState();
     this.isProcessing = false;
   }
 
-  updateGameState() {
+  updateGameState(): void {
     const gameState = this.getGameState();
     // gameEvents.emit("updateGameState", gameState);
   }
 
-  getGameState() {
+  getGameState(): IGameState {
     const { currentDay, currentPhase, changedAt } = this.phaseManager;
     const phase = { currentDay, currentPhase, changedAt };
     const gameState: IGameState = { gameId: this.gameId, phase, users: {} };
 
-    let users;
     if (currentPhase === 'finished') {
       gameState.users = this.playerManager.getPlayersWithRole();
     } else {
       gameState.users = this.playerManager.getPlayersWithoutRole();
     }
 
-    return { gameId: this.gameId, users, phase };
+    return gameState;
   }
 }
