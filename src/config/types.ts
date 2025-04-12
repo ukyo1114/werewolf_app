@@ -1,4 +1,5 @@
 import { Document, Types } from 'mongoose';
+import { gameError } from './messages';
 
 export type Role =
   | 'villager'
@@ -29,6 +30,9 @@ export type GameResult =
   | 'werewolvesWin'
   | 'foxesWin'
   | 'villageAbandoned';
+export interface IGameResult {
+  value: GameResult;
+}
 
 export interface IGameState {
   gameId: string;

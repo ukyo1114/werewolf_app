@@ -1,11 +1,5 @@
 import EventEmitter from 'events';
-import { GameResult } from '../config/types';
-
-export type CurrentPhase = 'pre' | 'day' | 'night' | 'finished';
-
-export interface IResult {
-  value: GameResult;
-}
+import { IGameResult, CurrentPhase } from '../config/types';
 
 export default class PhaseManager {
   phaseDurations_sec = {
@@ -18,11 +12,11 @@ export default class PhaseManager {
   public currentDay: number = 0;
   public currentPhase: CurrentPhase = 'pre';
   public changedAt: Date;
-  public result;
-  public eventEmitter;
+  public result: IGameResult;
+  public eventEmitter: EventEmitter;
   public timerId: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(eventEmitter: EventEmitter, result: IResult) {
+  constructor(eventEmitter: EventEmitter, result: IGameResult) {
     this.changedAt = new Date();
     this.result = result;
     this.eventEmitter = eventEmitter;
