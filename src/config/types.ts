@@ -57,6 +57,8 @@ export type CurrentPhase = 'pre' | 'day' | 'night' | 'finished';
 
 type Team = 'villagers' | 'werewolves';
 export type DevineResult = Record<number, Record<string, Team>>;
+export type MediumResult = Record<number, Record<string, Team>>;
+export type GuardHistory = Record<number, string>;
 export type AttackHistory = Record<number, string>;
 
 export type MessageType = 'normal' | 'werewolf' | 'spectator' | 'freemason';

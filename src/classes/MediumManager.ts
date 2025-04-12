@@ -1,8 +1,6 @@
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-
-type Team = 'villagers' | 'werewolves';
-type MediumResult = Record<number, Record<string, Team>>;
+import { MediumResult } from '../config/types';
 
 export default class MediumManager {
   public phaseManager: PhaseManager;
