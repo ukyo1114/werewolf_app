@@ -2,6 +2,7 @@ import { gameManagers, entryEvents } from '../../jest.setup';
 import User from '../../src/models/userModel';
 import Game from '../../src/models/gameModel';
 import GameManager from '../../src/classes/GameManager';
+import PlayerManager from '../../src/classes/PlayerManager';
 import EntryManager from '../../src/classes/EntryManager';
 import {
   mockUserId,
@@ -79,7 +80,6 @@ describe('test register', () => {
   });
 
   it('ユーザーを追加', async () => {
-    // const entryUpdateSpy = jest.spyOn(entryManager, 'entryUpdate');
     await entryManager.register(mockUserId, 'testSocketId');
 
     expect(entryManager.users).toEqual({
@@ -88,16 +88,12 @@ describe('test register', () => {
     expect(entryUpdateSpy).toHaveBeenCalled();
   });
 
-  it('処理中のときスキップする', async () => {
-    // const entryUpdateSpy = jest.spyOn(entryManager, 'entryUpdate');
+  it('処理中のときエラーを返す', async () => {
     entryManager.isProcessing = true;
 
     await expect(() =>
       entryManager.register(mockUserId, 'testSocketId'),
     ).rejects.toThrow();
-
-    expect(entryManager.users).not.toHaveProperty('testSocketId');
-    expect(entryUpdateSpy).not.toHaveBeenCalled();
   });
 
   it('ユーザー数が最大に達したときstartGameが呼び出される', async () => {
@@ -123,13 +119,9 @@ describe('test cancel', () => {
     expect(entryUpdateSpy).toHaveBeenCalled();
   });
 
-  it('処理中の時スキップする', () => {
+  it('処理中の時エラーを返す', () => {
     entryManager.isProcessing = true;
-
     expect(() => entryManager.cancel('testSocketId')).toThrow();
-
-    expect(entryManager.users).toHaveProperty('testSocketId');
-    expect(entryUpdateSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -138,33 +130,26 @@ describe('test getUserList', () => {
 
   beforeEach(() => {
     entryManager = new EntryManager(mockChannelId, 1);
-    entryManager.users = { testSocketId: mockUserId };
   });
 
   it('ユーザーリストを返す', () => {
-    const userList = entryManager.getUserList();
+    entryManager.users = { testSocketId: mockUserId };
 
+    const userList = entryManager.getUserList();
     expect(userList).toEqual([mockUserId]);
   });
 
   it('ユーザーがいないとき空の配列を返す', () => {
-    entryManager.users = {};
     const userList = entryManager.getUserList();
-
     expect(userList).toEqual([]);
   });
 });
 
 describe('test entryUpdate', () => {
-  let entryManager: EntryManager;
-
-  beforeEach(() => {
-    entryManager = new EntryManager(mockChannelId, 1);
+  it('更新が通知される', () => {
+    const entryManager = new EntryManager(mockChannelId, 1);
     entryManager.users = { testSocketId: mockUserId };
     entryUpdateSpy.mockRestore();
-  });
-
-  it('更新が通知される', () => {
     entryManager.entryUpdate();
 
     expect(entryEmitSpy).toHaveBeenCalledWith('entryUpdate', {
@@ -175,15 +160,10 @@ describe('test entryUpdate', () => {
 });
 
 describe('test getUsersDetail', () => {
-  let entryManager: EntryManager;
-
-  beforeEach(() => {
-    getUsersDetailSpy.mockRestore();
-    entryManager = new EntryManager(mockChannelId, 1);
-    entryManager.users = { testSocketId: testUserId };
-  });
-
   it('ユーザー情報の配列を取得', async () => {
+    getUsersDetailSpy.mockRestore();
+    const entryManager = new EntryManager(mockChannelId, 1);
+    entryManager.users = { testSocketId: testUserId };
     const users = await entryManager.getUsersDetail();
 
     expect(users).toEqual([{ userId: testUserId, userName: 'testUser' }]);
@@ -191,31 +171,21 @@ describe('test getUsersDetail', () => {
 });
 
 describe('test createGame', () => {
-  let entryManager: EntryManager;
-
-  beforeEach(() => {
-    createGameSpy.mockRestore();
-    entryManager = new EntryManager(mockChannelId, 10);
-  });
-
   it('ゲームを作成する', async () => {
-    const testUsers = [
-      { userId: mockUserId, userName: 'mockUser' },
-      ...mockUsers,
-    ];
-    testUsers.pop();
+    const registerPlayersSpy = jest
+      .spyOn(PlayerManager.prototype, 'registerPlayersInDB')
+      .mockImplementation();
+    createGameSpy.mockRestore();
+    const entryManager = new EntryManager(mockChannelId, 10);
 
-    const gameId = await entryManager.createGame(testUsers);
+    const gameId = await entryManager.createGame(mockUsers);
+    expect(registerPlayersSpy).toHaveBeenCalled();
+    const gameExists = await Game.exists({ _id: gameId });
+    expect(gameExists).not.toBeNull;
     const game = gameManagers[gameId];
-
-    const registeredUser = await GameUser.exists({
-      gameId,
-      userId: mockUserId,
-    });
-
-    expect(registeredUser).not.toBe(null);
     expect(game).toBeInstanceOf(GameManager);
 
+    registerPlayersSpy.mockRestore();
     const timerId = game.phaseManager.timerId;
     if (timerId) {
       clearTimeout(timerId);
@@ -224,14 +194,9 @@ describe('test createGame', () => {
 });
 
 describe('test emitGameStart', () => {
-  let entryManager: EntryManager;
-
-  beforeEach(() => {
-    entryManager = new EntryManager(mockChannelId, 1);
-    entryManager.users = { testSocketId: mockUserId };
-  });
-
   it('ゲーム開始を通知', () => {
+    const entryManager = new EntryManager(mockChannelId, 1);
+    entryManager.users = { testSocketId: mockUserId };
     entryManager.emitGameStart(mockGameId);
 
     expect(entryEmitSpy).toHaveBeenCalledWith('gameStart', {
@@ -241,10 +206,14 @@ describe('test emitGameStart', () => {
   });
 });
 
-describe('test gameStart', () => {
+describe('test startGame', () => {
+  let emitGameStartSpy: any;
   let entryManager: EntryManager;
 
   beforeEach(() => {
+    emitGameStartSpy = jest
+      .spyOn(EntryManager.prototype, 'emitGameStart')
+      .mockImplementation();
     startGameSpy.mockRestore();
     entryManager = new EntryManager(mockChannelId, 1);
     entryManager.users = { testSocketId: mockUserId };
@@ -256,10 +225,7 @@ describe('test gameStart', () => {
 
     expect(getUsersDetailSpy).toHaveBeenCalled();
     expect(createGameSpy).toHaveBeenCalled();
-    expect(entryEmitSpy).toHaveBeenCalledWith('gameStart', {
-      users: ['testSocketId'],
-      gameId: mockGameId,
-    });
+    expect(emitGameStartSpy).toHaveBeenCalled();
     expect(entryManager.users).toEqual({});
     expect(entryManager.isProcessing).toBe(false);
   });

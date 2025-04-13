@@ -2,8 +2,6 @@ import { gameManagers } from '../../jest.setup';
 import GameUser from '../../src/models/gameUserModel';
 import GameManager from '../../src/classes/GameManager';
 import { roleConfig } from '../../src/config/roles';
-import AppError from '../../src/utils/AppError';
-import { gameError } from '../../src/config/messages';
 import {
   mockChannelId,
   mockGameId,
