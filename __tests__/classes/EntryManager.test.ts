@@ -9,7 +9,7 @@ import {
   mockChannelId,
   mockGameId,
   mockUsers,
-} from '../../jest.setup';
+} from '../../__mocks__/mockdata';
 import GameUser from '../../src/models/gameUserModel';
 
 let startGameSpy: any;

@@ -1,6 +1,6 @@
 import { gameManagers } from '../../jest.setup';
 import GameManager from '../../src/classes/GameManager';
-import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { mockChannelId, mockGameId, mockUsers } from '../../__mocks__/mockdata';
 import { gamePlayers } from '../../__mocks__/mockdata';
 
 describe('test MediumManager', () => {

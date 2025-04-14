@@ -8,7 +8,7 @@ import DevineManager from '../../src/classes/DevineManager';
 import MediumManager from '../../src/classes/MediumManager';
 import GuardManager from '../../src/classes/GuardManager';
 import AttackManager from '../../src/classes/AttackManager';
-import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import { mockChannelId, mockGameId, mockUsers } from '../../__mocks__/mockdata';
 
 describe('test GameManager', () => {
   beforeEach(() => {

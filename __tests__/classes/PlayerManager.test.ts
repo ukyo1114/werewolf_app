@@ -1,14 +1,8 @@
-import { channelManagers, gameManagers } from '../../jest.setup';
+import { channelManagers } from '../../jest.setup';
 import GameUser from '../../src/models/gameUserModel';
-import GameManager from '../../src/classes/GameManager';
 import ChannelManager from '../../src/classes/ChannelManager';
 import { roleConfig, teammateMapping } from '../../src/config/roles';
-import {
-  mockChannelId,
-  mockGameId,
-  mockUserId,
-  mockUsers,
-} from '../../__mocks__/mockdata';
+import { mockGameId, mockUserId, mockUsers } from '../../__mocks__/mockdata';
 import PlayerManager from '../../src/classes/PlayerManager';
 import { gamePlayers, mockChannelUser } from '../../__mocks__/mockdata';
 import { Role } from '../../src/config/types';
@@ -22,26 +16,6 @@ beforeAll(() => {
 
   setTeammatesSpy = jest.spyOn(PlayerManager.prototype, 'setTeammates');
   playerManager = new PlayerManager(mockGameId, mockUsers);
-
-  gameManagers[mockGameId] = new GameManager(
-    mockChannelId,
-    mockGameId,
-    mockUsers,
-  );
-  gameManagers[mockGameId].sendMessage = jest.fn();
-});
-
-afterEach(() => {
-  const timerId = gameManagers[mockGameId].phaseManager.timerId;
-
-  if (timerId) {
-    clearTimeout(timerId);
-  }
-});
-
-afterAll(() => {
-  delete gameManagers[mockGameId];
-  jest.restoreAllMocks();
 });
 
 describe('test PlayserManager', () => {
