@@ -1,13 +1,12 @@
 import { channelManagers } from '../../jest.setup';
 import GameManager from '../../src/classes/GameManager';
 import ChannelManager from '../../src/classes/ChannelManager';
-import ChannelUserManager from '../../src/classes/ChannelUserManager';
 import {
   mockUserId,
   mockChannelId,
   mockGameId,
   mockUsers,
-} from '../../jest.setup';
+} from '../../__mocks__/mockdata';
 import { gamePlayers, channelUsers } from '../../__mocks__/mockdata';
 
 const mockSocketId = 'mockSocketId';
