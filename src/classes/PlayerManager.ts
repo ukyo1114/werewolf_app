@@ -1,7 +1,10 @@
 import _ from 'lodash';
 import GameUser from '../models/gameUserModel';
-import { roleConfig } from '../config/roles';
+import { roleConfig, teammateMapping } from '../config/roles';
 import { Role, Status, IUser, IPlayer, IPlayerState } from '../config/types';
+import { appState } from '../app';
+
+const { channelManagers } = appState;
 
 export default class PlayerManager {
   public gameId: string;
@@ -33,15 +36,8 @@ export default class PlayerManager {
   }
 
   setTeammates(): void {
-    const teammateMapping: Record<string, string> = {
-      werewolf: 'werewolf',
-      freemason: 'freemason',
-      immoralist: 'fox',
-      fanatic: 'werewolf',
-    };
-
-    Object.keys(this.players).forEach((plId) => {
-      const player = this.players[plId];
+    Object.keys(this.players).forEach((playerId) => {
+      const player = this.players[playerId];
       const targetRole = teammateMapping[player.role];
 
       if (targetRole) {
@@ -72,7 +68,7 @@ export default class PlayerManager {
     const player = this.players[userId];
     player.status = 'dead';
 
-    // TODO: チャンネルインスタンスにイベントを送信
+    channelManagers[this.gameId]?.users[userId]?.kill();
   }
 
   getPlayerState(userId: string): {

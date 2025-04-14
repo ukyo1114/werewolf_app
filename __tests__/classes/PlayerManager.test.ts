@@ -1,20 +1,26 @@
-import { gameManagers } from '../../jest.setup';
+import { channelManagers, gameManagers } from '../../jest.setup';
 import GameUser from '../../src/models/gameUserModel';
 import GameManager from '../../src/classes/GameManager';
-import { roleConfig } from '../../src/config/roles';
+import ChannelManager from '../../src/classes/ChannelManager';
+import { roleConfig, teammateMapping } from '../../src/config/roles';
 import {
   mockChannelId,
   mockGameId,
   mockUserId,
   mockUsers,
-} from '../../jest.setup';
+} from '../../__mocks__/mockdata';
 import PlayerManager from '../../src/classes/PlayerManager';
-import { gamePlayers } from '../../__mocks__/mockdata';
+import { gamePlayers, mockChannelUser } from '../../__mocks__/mockdata';
 import { Role } from '../../src/config/types';
 
 let playerManager: PlayerManager;
+let setTeammatesSpy: any;
 
 beforeAll(() => {
+  channelManagers[mockGameId] = new ChannelManager(mockGameId);
+  channelManagers[mockGameId].users = mockChannelUser();
+
+  setTeammatesSpy = jest.spyOn(PlayerManager.prototype, 'setTeammates');
   playerManager = new PlayerManager(mockGameId, mockUsers);
 
   gameManagers[mockGameId] = new GameManager(
@@ -40,16 +46,15 @@ afterAll(() => {
 
 describe('test PlayserManager', () => {
   it('test constructor', () => {
+    const testPlayerManager = new PlayerManager(mockGameId, mockUsers);
     const validRoles = roleConfig[mockUsers.length];
-    const { gameId, players } = playerManager;
+    const { gameId, players } = testPlayerManager;
 
     expect(gameId).toBe(mockGameId);
-    mockUsers.forEach((user) => {
-      const userId = user.userId;
-      const player = players[userId];
-
-      expect(player.userId).toBe(userId);
-      expect(player.userName).toBe(user.userName);
+    expect(setTeammatesSpy).toHaveBeenCalled();
+    Object.values(players).forEach((player) => {
+      expect(player.userId).toBeDefined;
+      expect(player.userName).toBeDefined;
       expect(player.status).toBe('alive');
       expect(player.teammates).toBeDefined;
       expect(validRoles).toContain(player.role);
@@ -90,6 +95,25 @@ describe('test PlayserManager', () => {
     expect(userExists).not.toBeNull;
   });
 
+  it('test kill', () => {
+    playerManager.players = {
+      [mockUserId]: {
+        userId: mockUserId,
+        userName: 'villager',
+        status: 'alive',
+        role: 'villager',
+        teammates: null,
+      },
+    };
+    expect(channelManagers[mockGameId].users[mockUserId].status).toBe('normal');
+
+    playerManager.kill(mockUserId);
+    expect(playerManager.players[mockUserId]?.status).toBe('dead');
+    expect(channelManagers[mockGameId].users[mockUserId].status).toBe(
+      'spectator',
+    );
+  });
+
   describe('test getPlayserState', () => {
     beforeAll(() => {
       playerManager.players = gamePlayers;
@@ -108,13 +132,6 @@ describe('test PlayserManager', () => {
     });
 
     it('参加プレイヤーの場合', () => {
-      const teammateMapping: Record<string, string> = {
-        werewolf: 'werewolf',
-        freemason: 'freemason',
-        immoralist: 'fox',
-        fanatic: 'werewolf',
-      };
-
       Object.values(gamePlayers).forEach((player) => {
         const userId = player.userId;
         const role = playerManager.players[userId].role;

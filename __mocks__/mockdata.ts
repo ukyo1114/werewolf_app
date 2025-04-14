@@ -102,3 +102,11 @@ export const channelUsers = () => ({
     status: 'werewolf',
   }),
 });
+
+export const mockChannelUser = () => ({
+  [mockUserId]: new ChannelUserManager({
+    userId: mockUserId,
+    socketId: 'testSocketId',
+    status: 'normal',
+  }),
+});

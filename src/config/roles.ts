@@ -27,3 +27,10 @@ export const roleConfig: RoleConfig = {
     'madman',
   ],
 };
+
+export const teammateMapping: Record<string, string> = {
+  werewolf: 'werewolf',
+  freemason: 'freemason',
+  immoralist: 'fox',
+  fanatic: 'werewolf',
+};
