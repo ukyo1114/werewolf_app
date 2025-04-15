@@ -1,4 +1,4 @@
-import { gameManagers } from '../../jest.setup';
+import { gameManagers, gameEvents, channelEvents } from '../../jest.setup';
 import { EventEmitter } from 'events';
 import GameManager from '../../src/classes/GameManager';
 import PlayerManager from '../../src/classes/PlayerManager';
@@ -8,7 +8,18 @@ import DevineManager from '../../src/classes/DevineManager';
 import MediumManager from '../../src/classes/MediumManager';
 import GuardManager from '../../src/classes/GuardManager';
 import AttackManager from '../../src/classes/AttackManager';
-import { mockChannelId, mockGameId, mockUsers } from '../../__mocks__/mockdata';
+import { ObjectId } from 'mongodb';
+import {
+  gamePlayers,
+  mockChannelId,
+  mockGameId,
+  mockUsers,
+} from '../../__mocks__/mockdata';
+import { IGameState } from '../../src/config/types';
+import { gameMaster } from '../../src/config/messages';
+
+const gameEventsSpy = jest.spyOn(gameEvents, 'emit');
+const channelEventsSpy = jest.spyOn(channelEvents, 'emit');
 
 describe('test GameManager', () => {
   beforeAll(() => {
@@ -142,6 +153,181 @@ describe('test GameManager', () => {
       expect(eventEmitterMock).not.toHaveBeenCalledWith('processCompleted');
 
       handleGameEndMock.mockRestore();
+    });
+  });
+
+  /*   describe("test execution", () => {
+    beforeAll(() => {
+      const game = gameManagers[mockGameId];
+      game.playerManager.players = structuredClone(gamePlayers);
+    });
+
+    it("")
+  }) */
+
+  describe('test judgement', () => {
+    let sendMessageMock: any;
+
+    beforeAll(() => {
+      const game = gameManagers[mockGameId];
+      sendMessageMock = jest.spyOn(game, 'sendMessage');
+    });
+
+    afterAll(() => {
+      sendMessageMock.mockRestore();
+    });
+
+    it('村人勝利', async () => {
+      const game = gameManagers[mockGameId];
+      game.playerManager.players = structuredClone(gamePlayers);
+
+      const killRoles = ['fox', 'werewolf'];
+      killRoles.forEach((role) => {
+        game.playerManager.players[role].status = 'dead';
+      });
+
+      await game.judgement();
+      expect(game.result.value).toBe('villagersWin');
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.VILLAGERS_WIN);
+    });
+
+    it('人狼勝利', async () => {
+      const game = gameManagers[mockGameId];
+      game.playerManager.players = structuredClone(gamePlayers);
+
+      const killRoles = [
+        'seer',
+        'medium',
+        'hunter',
+        'freemason',
+        'fanatic',
+        'fox',
+        'immoralist',
+      ];
+      killRoles.forEach((role) => {
+        game.playerManager.players[role].status = 'dead';
+      });
+
+      await game.judgement();
+      expect(game.result.value).toBe('werewolvesWin');
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.WEREWOLVES_WIN);
+    });
+
+    it('妖狐勝利', async () => {
+      const game = gameManagers[mockGameId];
+      game.playerManager.players = structuredClone(gamePlayers);
+      game.playerManager.players.werewolf.status = 'dead';
+
+      await game.judgement();
+      expect(game.result.value).toBe('foxesWin');
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.FOXES_WIN);
+    });
+  });
+
+  it('test sendMessage', async () => {
+    const game = gameManagers[mockGameId];
+    const createMessageSpy = jest.spyOn(game, 'createMessage');
+    const testMessage = 'testMessage';
+
+    await game.sendMessage(testMessage);
+    expect(createMessageSpy).toHaveBeenCalledWith(testMessage);
+    expect(channelEventsSpy).toHaveBeenCalledWith(
+      'newMessage',
+      expect.anything(),
+    );
+
+    createMessageSpy.mockRestore();
+  });
+
+  it('test createMessage', async () => {
+    const game = gameManagers[mockGameId];
+
+    const createdMessage = await game.createMessage('test');
+    const RequiredProperties = [
+      '_id',
+      'channelId',
+      'userId',
+      'message',
+      'messageType',
+      'createdAt',
+    ];
+    RequiredProperties.forEach((property) => {
+      expect(createdMessage).toHaveProperty(property);
+    });
+  });
+
+  it('test handleSwitched', () => {
+    const game = gameManagers[mockGameId];
+    game.isProcessing = true;
+    const updateGameStateMock = jest
+      .spyOn(game, 'updateGameState')
+      .mockImplementation();
+
+    game.handlePhaseSwitched();
+    expect(game.isProcessing).toBe(false);
+    expect(updateGameStateMock).toHaveBeenCalled();
+
+    updateGameStateMock.mockRestore();
+  });
+
+  it('test updateGameState', () => {
+    const mockGameState: IGameState = {
+      gameId: 'testGameId',
+      phase: {
+        currentDay: 1,
+        currentPhase: 'day',
+        changedAt: new Date(),
+      },
+      users: {},
+    };
+    const game = gameManagers[mockGameId];
+    const getGameStateMock = jest
+      .spyOn(game, 'getGameState')
+      .mockReturnValue(mockGameState);
+
+    game.updateGameState();
+    expect(getGameStateMock).toHaveBeenCalled();
+    expect(gameEventsSpy).toHaveBeenCalledWith(
+      'updateGameState',
+      mockGameState,
+    );
+
+    getGameStateMock.mockRestore();
+  });
+
+  describe('test getGameState', () => {
+    it('currentPhaseがfinishedのとき', () => {
+      const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'finished';
+      const getPlayersWithRoleSpy = jest.spyOn(
+        game.playerManager,
+        'getPlayersWithRole',
+      );
+
+      const gameState = game.getGameState();
+      expect(getPlayersWithRoleSpy).toHaveBeenCalled();
+      expect(gameState).toHaveProperty('gameId');
+      expect(gameState).toHaveProperty('phase');
+      expect(gameState).toHaveProperty('users');
+
+      getPlayersWithRoleSpy.mockRestore();
+    });
+
+    it('currentPhaseがfinished以外のとき', () => {
+      const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'day';
+      const getPlayersWithoutRoleSpy = jest.spyOn(
+        game.playerManager,
+        'getPlayersWithoutRole',
+      );
+
+      const gameState = game.getGameState();
+      expect(getPlayersWithoutRoleSpy).toHaveBeenCalled();
+      expect(gameState).toHaveProperty('gameId');
+      expect(gameState).toHaveProperty('phase');
+      expect(gameState).toHaveProperty('users');
+
+      getPlayersWithoutRoleSpy.mockRestore();
     });
   });
 });

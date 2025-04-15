@@ -10,9 +10,10 @@ import Message from '../models/messageModel';
 import Game from '../models/gameModel';
 import { gameMaster } from '../config/messages';
 import { GameResult, IGameState, IUser, IMessage } from '../config/types';
-import { appState } from '../app';
+import { appState, Events } from '../app';
 
 const { gameManagers } = appState;
+const { channelEvents, gameEvents } = Events;
 
 export default class GameManager {
   public eventEmitter: EventEmitter = new EventEmitter();
@@ -174,24 +175,21 @@ export default class GameManager {
 
   async judgement(): Promise<void> {
     const livingPlayers = this.playerManager.getLivingPlayers();
-
-    // 役職ごとに集計
-    const villagers = livingPlayers.filter(
-      (user) => user.role !== 'werewolf',
-    ).length;
     const werewolves = livingPlayers.filter(
       (user) => user.role === 'werewolf',
     ).length;
+
+    const isWerewolvesMajority = werewolves * 2 >= livingPlayers.length;
     const isFoxAlive = livingPlayers.some((user) => user.role === 'fox');
 
     // 勝利条件の判定
-    if (isFoxAlive && (werewolves === 0 || werewolves >= villagers)) {
+    if (isFoxAlive && (werewolves === 0 || isWerewolvesMajority)) {
       this.result.value = 'foxesWin';
       await this.sendMessage(gameMaster.FOXES_WIN);
     } else if (werewolves === 0) {
       this.result.value = 'villagersWin';
       await this.sendMessage(gameMaster.VILLAGERS_WIN);
-    } else if (werewolves >= villagers) {
+    } else if (isWerewolvesMajority) {
       this.result.value = 'werewolvesWin';
       await this.sendMessage(gameMaster.WEREWOLVES_WIN);
     }
@@ -199,8 +197,7 @@ export default class GameManager {
 
   async sendMessage(message: string): Promise<void> {
     const newMessage = await this.createMessage(message);
-
-    // channelEvents.emit("newMessage", newMessage);
+    channelEvents.emit('newMessage', newMessage);
   }
 
   async createMessage(message: string): Promise<IMessage> {
@@ -221,7 +218,7 @@ export default class GameManager {
 
   updateGameState(): void {
     const gameState = this.getGameState();
-    // gameEvents.emit("updateGameState", gameState);
+    gameEvents.emit('updateGameState', gameState);
   }
 
   getGameState(): IGameState {
