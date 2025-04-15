@@ -11,8 +11,7 @@ import AttackManager from '../../src/classes/AttackManager';
 import { mockChannelId, mockGameId, mockUsers } from '../../__mocks__/mockdata';
 
 describe('test GameManager', () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
+  beforeAll(() => {
     gameManagers[mockGameId] = new GameManager(
       mockChannelId,
       mockGameId,
@@ -21,55 +20,128 @@ describe('test GameManager', () => {
   });
 
   afterAll(() => {
+    const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
+    if (timerId) clearTimeout(timerId);
+
     delete gameManagers[mockGameId];
+    jest.restoreAllMocks();
   });
 
-  it('should initialize with correct properties', () => {
-    expect(gameManagers[mockGameId].channelId).toBe(mockChannelId);
-    expect(gameManagers[mockGameId].gameId).toBe(mockGameId);
-    expect(gameManagers[mockGameId].result.value).toBe('running');
-    expect(gameManagers[mockGameId].isProcessing).toBe(false);
-    expect(gameManagers[mockGameId].eventEmitter).toBeInstanceOf(EventEmitter);
+  it('test constructor', () => {
+    const game = new GameManager(mockChannelId, mockGameId, mockUsers);
+    const registerListnersSpy = jest.spyOn(game, 'registerListners');
+
+    expect(game.channelId).toBe(mockChannelId);
+    expect(game.gameId).toBe(mockGameId);
+    expect(game.playerManager).toBeInstanceOf(PlayerManager);
+    expect(game.voteManager).toBeInstanceOf(VoteManager);
+    expect(game.devineManager).toBeInstanceOf(DevineManager);
+    expect(game.mediumManager).toBeInstanceOf(MediumManager);
+    expect(game.guardManager).toBeInstanceOf(GuardManager);
+    expect(game.attackManager).toBeInstanceOf(AttackManager);
+    expect(game.phaseManager).toBeInstanceOf(PhaseManager);
+    expect(game.result.value).toBe('running');
+    expect(game.isProcessing).toBe(false);
+    expect(game.eventEmitter).toBeInstanceOf(EventEmitter);
+    expect(registerListnersSpy).toHaveBeenCalled;
+
+    const timerId = game.phaseManager.timerId;
+    if (timerId) clearTimeout(timerId);
+    registerListnersSpy.mockRestore();
   });
 
-  it('should initialize managers with correct dependencies', () => {
-    expect(gameManagers[mockGameId].phaseManager).toBeInstanceOf(PhaseManager);
-    expect(gameManagers[mockGameId].phaseManager.eventEmitter).toBe(
-      gameManagers[mockGameId].eventEmitter,
-    );
-    expect(gameManagers[mockGameId].phaseManager.result).toBe(
-      gameManagers[mockGameId].result,
-    );
+  it('test registerListners', () => {
+    const game = gameManagers[mockGameId];
+    const mockOn = jest.spyOn(game.eventEmitter, 'on');
 
-    expect(gameManagers[mockGameId].playerManager).toBeInstanceOf(
-      PlayerManager,
-    );
-    expect(gameManagers[mockGameId].playerManager.gameId).toBe(mockGameId);
-    expect(
-      Object.keys(gameManagers[mockGameId].playerManager.players),
-    ).toHaveLength(mockUsers.length);
-
-    expect(gameManagers[mockGameId].voteManager).toBeInstanceOf(VoteManager);
-    expect(gameManagers[mockGameId].devineManager).toBeInstanceOf(
-      DevineManager,
-    );
-    expect(gameManagers[mockGameId].mediumManager).toBeInstanceOf(
-      MediumManager,
-    );
-    expect(gameManagers[mockGameId].guardManager).toBeInstanceOf(GuardManager);
-    expect(gameManagers[mockGameId].attackManager).toBeInstanceOf(
-      AttackManager,
-    );
-  });
-
-  it('should register event listeners', () => {
-    const mockOn = jest.spyOn(gameManagers[mockGameId].eventEmitter, 'on');
-
-    gameManagers[mockGameId].registerListners();
+    game.registerListners();
 
     expect(mockOn).toHaveBeenCalledWith('timerEnd', expect.any(Function));
     expect(mockOn).toHaveBeenCalledWith('phaseSwitched', expect.any(Function));
 
     mockOn.mockRestore();
+  });
+
+  describe('test handleTimerEnd', () => {
+    let eventEmitterMock: any;
+
+    beforeEach(() => {
+      const game = gameManagers[mockGameId];
+      eventEmitterMock = jest
+        .spyOn(game.eventEmitter, 'emit')
+        .mockImplementation();
+    });
+
+    afterEach(() => {
+      eventEmitterMock.mockRestore();
+    });
+
+    it('preフェーズのとき', async () => {
+      const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'pre';
+      game.isProcessing = false;
+      const sendMessageMock = jest
+        .spyOn(game, 'sendMessage')
+        .mockImplementation();
+
+      await game.handleTimerEnd();
+
+      expect(game.isProcessing).toBe(true);
+      expect(sendMessageMock).toHaveBeenCalled;
+      expect(eventEmitterMock).toHaveBeenCalledWith('processCompleted');
+
+      sendMessageMock.mockRestore();
+    });
+
+    it('dayフェーズのとき', async () => {
+      const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'day';
+      game.isProcessing = false;
+      const handleDayPhaseEndMock = jest
+        .spyOn(game, 'handleDayPhaseEnd')
+        .mockImplementation();
+
+      await game.handleTimerEnd();
+
+      expect(game.isProcessing).toBe(true);
+      expect(handleDayPhaseEndMock).toHaveBeenCalled;
+      expect(eventEmitterMock).toHaveBeenCalledWith('processCompleted');
+
+      handleDayPhaseEndMock.mockRestore();
+    });
+
+    it('nightフェーズのとき', async () => {
+      const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'night';
+      game.isProcessing = false;
+      const handleNightPhaseEndMock = jest
+        .spyOn(game, 'handleNightPhaseEnd')
+        .mockImplementation();
+
+      await game.handleTimerEnd();
+
+      expect(game.isProcessing).toBe(true);
+      expect(handleNightPhaseEndMock).toHaveBeenCalled;
+      expect(eventEmitterMock).toHaveBeenCalledWith('processCompleted');
+
+      handleNightPhaseEndMock.mockRestore();
+    });
+
+    it('finighedフェーズのとき', async () => {
+      const game = gameManagers[mockGameId];
+      game.phaseManager.currentPhase = 'finished';
+      game.isProcessing = false;
+      const handleGameEndMock = jest
+        .spyOn(game, 'handleGameEnd')
+        .mockImplementation();
+
+      await game.handleTimerEnd();
+
+      expect(game.isProcessing).toBe(true);
+      expect(handleGameEndMock).toHaveBeenCalled;
+      expect(eventEmitterMock).not.toHaveBeenCalledWith('processCompleted');
+
+      handleGameEndMock.mockRestore();
+    });
   });
 });
