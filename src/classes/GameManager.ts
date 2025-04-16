@@ -84,20 +84,16 @@ export default class GameManager {
 
   async handleNightPhaseEnd(): Promise<void> {
     const deadPlayers: string[] = [];
-    const seer = this.playerManager.findPlayerByRole('seer');
-    let devinedFoxId: string | null = null;
+    // let devinedFoxId: string | null = null;
 
     // 占い
-    if (seer?.status === 'alive') {
-      const devineTargetId = this.devineManager.devine();
-      const devineTarget = this.playerManager.players[devineTargetId];
+    const curse = this.devineManager.devine();
 
-      // 狐を占ったとき
-      if (devineTarget.role === 'fox') {
+    // 狐を占ったとき
+    /* if (devineTarget.role === 'fox') {
         devinedFoxId = devineTargetId;
         deadPlayers.push(devineTarget.userName);
-      }
-    }
+      } */
 
     // 襲撃（ランダムの場合、狐も対象に含む）
     const attackTargetId = this.attackManager.attack();
@@ -107,8 +103,8 @@ export default class GameManager {
     }
 
     // 呪殺と後追い
-    if (devinedFoxId) {
-      this.playerManager.kill(devinedFoxId);
+    if (curse) {
+      // this.playerManager.kill(devinedFoxId);
       this.killImmoralists();
     }
 
@@ -134,8 +130,6 @@ export default class GameManager {
 
   async execution(): Promise<void> {
     const executionTargetId = this.voteManager.getExecutionTarget();
-
-    // 処刑対象がいない場合廃村に
     if (!executionTargetId) return await this.villageAbandoned();
 
     // 処刑を行いメッセージを送信
@@ -145,11 +139,7 @@ export default class GameManager {
 
     if (executionTarget.role === 'fox') this.killImmoralists();
 
-    // 霊能処理
-    const medium = this.playerManager.findPlayerByRole('medium');
-    if (medium?.status === 'alive') {
-      this.mediumManager.medium(executionTargetId);
-    }
+    this.mediumManager.medium(executionTargetId);
   }
 
   async villageAbandoned(): Promise<void> {

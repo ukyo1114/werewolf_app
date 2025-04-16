@@ -115,7 +115,7 @@ describe('test DevineManager', () => {
       game.devineManager.devineRequest = null;
 
       const devineTarget = game.devineManager.decideDevineTarget();
-      expect(devineTarget).toBeDefined;
+      expect(devineTarget).toBeDefined();
     });
   });
 
@@ -124,11 +124,33 @@ describe('test DevineManager', () => {
       const game = gameManagers[mockGameId];
       game.devineManager.devineRequest = 'villager';
 
-      expect(game.devineManager.devine()).toBe('villager');
-      expect(game.devineManager.devineRequest).toBeNull;
+      expect(game.devineManager.devine()).toBe(false);
+      expect(game.devineManager.devineRequest).toBe(null);
       expect(game.devineManager.devineResult[0]).toEqual({
         villager: 'villagers',
       });
+    });
+
+    it('妖狐を占ったとき', () => {
+      const game = gameManagers[mockGameId];
+      game.devineManager.devineRequest = 'fox';
+
+      expect(game.devineManager.devine()).toBe(true);
+      expect(game.devineManager.devineRequest).toBe(null);
+      expect(game.devineManager.devineResult[0]).toEqual({
+        fox: 'villagers',
+      });
+    });
+
+    it('占い師が死亡しているとき', () => {
+      const game = gameManagers[mockGameId];
+      game.devineManager.devineResult = {};
+      game.playerManager.players.seer.status = 'dead';
+      game.devineManager.devineRequest = 'villager';
+
+      expect(game.devineManager.devine()).toBe(false);
+      expect(game.devineManager.devineRequest).toBe(null);
+      expect(game.devineManager.devineResult).not.toHaveProperty('0');
     });
   });
 

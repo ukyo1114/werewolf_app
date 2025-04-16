@@ -36,7 +36,13 @@ export default class DevineManager {
     return devineTarget;
   }
 
-  devine(): string {
+  devine(): boolean {
+    const seer = this.playerManager.findPlayerByRole('seer');
+    if (!seer || seer.status !== 'alive') {
+      this.devineRequest = null;
+      return false;
+    }
+
     const devineTargetId = this.decideDevineTarget();
     const devineTarget = this.playerManager.players[devineTargetId];
 
@@ -45,7 +51,7 @@ export default class DevineManager {
         devineTarget.role === 'werewolf' ? 'werewolves' : 'villagers',
     };
 
-    return devineTargetId;
+    return devineTarget.role === 'fox';
   }
 
   getDevineResult(userId: string): DevineResult {
