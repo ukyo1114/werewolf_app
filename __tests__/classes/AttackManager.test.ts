@@ -107,7 +107,7 @@ describe('test AttackManager', () => {
       game.attackManager.attackRequest = 'testRequest';
       const attackRequest = game.attackManager.decideAttackTarget();
 
-      expect(game.attackManager.attackRequest).toBeNull;
+      expect(game.attackManager.attackRequest).toBeNull();
       expect(attackRequest).toBe('testRequest');
     });
 
@@ -116,7 +116,7 @@ describe('test AttackManager', () => {
       game.attackManager.attackRequest = null;
 
       const attackTarget = game.attackManager.decideAttackTarget();
-      expect(attackTarget).toBeDefined;
+      expect(attackTarget).toBeDefined();
     });
   });
 
@@ -128,11 +128,11 @@ describe('test AttackManager', () => {
       game.attackManager.attackRequest = 'villager';
       game.guardManager.guard = jest.fn().mockReturnValue(false);
 
-      const attackTargetId = game.attackManager.attack();
+      const attackTarget = game.attackManager.attack();
 
-      expect(attackTargetId).toBe('villager');
+      expect(attackTarget).toBe('villager');
       expect(game.playerManager.players.villager.status).toBe('dead');
-      expect(game.attackManager.attackRequest).toBeNull;
+      expect(game.attackManager.attackRequest).toBeNull();
       expect(game.attackManager.attackHistory).toEqual({ 0: 'villager' });
     });
 
@@ -143,11 +143,11 @@ describe('test AttackManager', () => {
       game.guardManager.guard = jest.fn().mockReturnValue(true);
 
       game.attackManager.attackRequest = 'villager';
-      const attackTargetId = game.attackManager.attack();
+      const attackTarget = game.attackManager.attack();
 
-      expect(attackTargetId).toBeNull;
+      expect(attackTarget).toBe(null);
       expect(game.playerManager.players.villager.status).toBe('alive');
-      expect(game.attackManager.attackRequest).toBeNull;
+      expect(game.attackManager.attackRequest).toBeNull();
       expect(game.attackManager.attackHistory).toEqual({ 0: 'villager' });
     });
 
@@ -158,9 +158,9 @@ describe('test AttackManager', () => {
       game.guardManager.guard = jest.fn().mockReturnValue(false);
 
       game.attackManager.attackRequest = 'fox';
-      const attackTargetId = game.attackManager.attack();
+      const attackTarget = game.attackManager.attack();
 
-      expect(attackTargetId).toBeNull;
+      expect(attackTarget).toBe(null);
       expect(game.playerManager.players.fox.status).toBe('alive');
       expect(game.attackManager.attackRequest).toBe(null);
       expect(game.attackManager.attackHistory).toEqual({ 0: 'fox' });
@@ -174,11 +174,11 @@ describe('test AttackManager', () => {
       game.guardManager.guard = jest.fn().mockReturnValue(true);
 
       game.attackManager.attackRequest = 'villager';
-      const attackTargetId = game.attackManager.attack();
+      const attackTarget = game.attackManager.attack();
 
-      expect(attackTargetId).toBe('villager');
+      expect(attackTarget).toBe('villager');
       expect(game.playerManager.players.villager.status).toBe('dead');
-      expect(game.attackManager.attackRequest).toBeNull;
+      expect(game.attackManager.attackRequest).toBeNull();
       expect(game.attackManager.attackHistory).toEqual({ 0: 'villager' });
     });
   });

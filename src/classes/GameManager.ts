@@ -84,37 +84,31 @@ export default class GameManager {
 
   async handleNightPhaseEnd(): Promise<void> {
     const deadPlayers: string[] = [];
-    // let devinedFoxId: string | null = null;
 
-    // 占い
-    const curse = this.devineManager.devine();
+    const curseOccurred = this.devineManager.devine();
 
-    // 狐を占ったとき
-    /* if (devineTarget.role === 'fox') {
-        devinedFoxId = devineTargetId;
-        deadPlayers.push(devineTarget.userName);
-      } */
-
-    // 襲撃（ランダムの場合、狐も対象に含む）
     const attackTargetId = this.attackManager.attack();
     if (attackTargetId) {
       const attackTarget = this.playerManager.players[attackTargetId];
       deadPlayers.push(attackTarget.userName);
     }
 
-    // 呪殺と後追い
-    if (curse) {
-      // this.playerManager.kill(devinedFoxId);
-      this.killImmoralists();
-    }
+    if (curseOccurred) deadPlayers.push(this.curse());
 
     await this.sendMessage(gameMaster.ATTACK(deadPlayers));
 
     await this.judgement();
-
     if (this.result.value === 'running') {
       await this.sendMessage(gameMaster.MORNING);
     }
+  }
+
+  curse(): string {
+    const { userId, userName } = this.playerManager.findPlayerByRole('fox');
+    this.playerManager.kill(userId);
+    this.killImmoralists();
+
+    return userName;
   }
 
   async handleGameEnd(): Promise<void> {

@@ -51,8 +51,8 @@ export default class AttackManager {
     const attackTargetId = this.decideAttackTarget();
 
     // 狐を襲撃した場合失敗する
-    const attackTarget = this.playerManager.players[attackTargetId];
-    if (attackTarget.role === 'fox') return null;
+    const { userName, role } = this.playerManager.players[attackTargetId];
+    if (role === 'fox') return null;
 
     // 護衛判定
     const hunter = this.playerManager.findPlayerByRole('hunter');
@@ -63,7 +63,7 @@ export default class AttackManager {
 
     this.playerManager.kill(attackTargetId);
 
-    return attackTargetId;
+    return userName;
   }
 
   getAttackHistory(userId: string): AttackHistory {
