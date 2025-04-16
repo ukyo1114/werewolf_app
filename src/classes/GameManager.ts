@@ -74,11 +74,9 @@ export default class GameManager {
 
   async handleDayPhaseEnd(): Promise<void> {
     await this.execution();
-
     if (this.result.value === 'villageAbandoned') return;
 
     await this.judgement();
-
     if (this.result.value === 'running') {
       await this.sendMessage(gameMaster.NIGHT);
     }

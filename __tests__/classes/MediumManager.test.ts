@@ -36,6 +36,15 @@ describe('test MediumManager', () => {
       game.mediumManager.medium('werewolf');
       expect(game.mediumManager.mediumResult[0].werewolf).toBe('werewolves');
     });
+
+    it('霊能力者が死亡しているとき', () => {
+      const game = gameManagers[mockGameId];
+      game.mediumManager.mediumResult = {};
+      game.playerManager.players.medium.status === 'dead';
+
+      game.mediumManager.medium('villager');
+      expect(game.mediumManager.mediumResult).not.toHaveProperty('villager');
+    });
   });
 
   describe('getMediumResult', () => {

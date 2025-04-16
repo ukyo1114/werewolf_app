@@ -165,6 +165,17 @@ describe('test GameManager', () => {
     it("")
   }) */
 
+  it('test villageAbandoned', async () => {
+    const game = gameManagers[mockGameId];
+    const sendMessageSpy = jest.spyOn(game, 'sendMessage');
+
+    await game.villageAbandoned();
+    expect(game.result.value).toBe('villageAbandoned');
+    expect(sendMessageSpy).toHaveBeenCalled();
+
+    sendMessageSpy.mockRestore();
+  });
+
   describe('test judgement', () => {
     let sendMessageMock: any;
 
