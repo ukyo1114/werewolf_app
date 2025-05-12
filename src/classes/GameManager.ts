@@ -87,11 +87,8 @@ export default class GameManager {
 
     const curseOccurred = this.devineManager.devine();
 
-    const attackTargetId = this.attackManager.attack();
-    if (attackTargetId) {
-      const attackTarget = this.playerManager.players[attackTargetId];
-      deadPlayers.push(attackTarget.userName);
-    }
+    const attackTarget = this.attackManager.attack();
+    if (attackTarget) deadPlayers.push(attackTarget);
 
     if (curseOccurred) deadPlayers.push(this.curse());
 
