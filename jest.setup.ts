@@ -20,6 +20,9 @@ import { Server as SocketIOServer } from 'socket.io';
 let io: SocketIOServer;
 export let sendMailMock: jest.Mock;
 
+// テスト用データベースの設定
+const TEST_DB_NAME = 'werewolf_test_db';
+
 beforeAll(async () => {
   (nodemailer.createTransport as jest.Mock).mockReturnValue({
     sendMail: jest.fn(() => Promise.resolve({})),
@@ -30,7 +33,11 @@ beforeAll(async () => {
   if (!mongoURI) {
     throw new Error('MONGO_URI is not defined');
   }
-  await mongoose.connect(mongoURI);
+
+  // テスト用データベースに接続
+  await mongoose.connect(mongoURI, {
+    dbName: TEST_DB_NAME,
+  });
 
   /* const port: number = parseInt(process.env.PORT || '5000', 10);
   app.listen(port, () => {
@@ -41,6 +48,10 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  // テスト用データベースを削除
+  if (mongoose.connection.db) {
+    await mongoose.connection.db.dropDatabase();
+  }
   await mongoose.disconnect();
   // io.close();
   // app.close();

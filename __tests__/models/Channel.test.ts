@@ -4,8 +4,18 @@ import mongoose from 'mongoose';
 
 describe('Channel Model Test', () => {
   let adminId: string;
+  let nonAdminId: string;
 
   beforeAll(async () => {
+    // データベースのクリーンアップ
+    if (mongoose.connection.db) {
+      const collections = await mongoose.connection.db.collections();
+      for (const collection of collections) {
+        await collection.deleteMany({});
+      }
+    }
+
+    // テストに必要なユーザーを作成
     const admin = await User.create({
       userName: 'adminUser',
       email: 'admin@example.com',
@@ -14,6 +24,15 @@ describe('Channel Model Test', () => {
       isGuest: false,
     });
     adminId = admin._id.toString();
+
+    const nonAdmin = await User.create({
+      userName: 'nonAdminUser',
+      email: 'nonadmin@example.com',
+      password: 'password123',
+      pic: null,
+      isGuest: false,
+    });
+    nonAdminId = nonAdmin._id.toString();
   });
 
   beforeEach(async () => {
@@ -165,6 +184,60 @@ describe('Channel Model Test', () => {
           passwordEnabled: true,
         }),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('Admin Check', () => {
+    it('should return true when user is channel admin', async () => {
+      const channel = await Channel.create({
+        channelName: 'Admin Channel',
+        channelDescription: 'A channel with admin',
+        channelAdmin: adminId,
+      });
+
+      const isAdmin = await Channel.isChannelAdmin(
+        channel._id.toString(),
+        adminId,
+      );
+      expect(isAdmin).toBe(true);
+    });
+
+    it('should return false when user is not channel admin', async () => {
+      const channel = await Channel.create({
+        channelName: 'Admin Channel',
+        channelDescription: 'A channel with admin',
+        channelAdmin: adminId,
+      });
+
+      const isAdmin = await Channel.isChannelAdmin(
+        channel._id.toString(),
+        nonAdminId,
+      );
+      expect(isAdmin).toBe(false);
+    });
+
+    it('should return false when channel does not exist', async () => {
+      const nonExistentChannelId = new mongoose.Types.ObjectId().toString();
+      const isAdmin = await Channel.isChannelAdmin(
+        nonExistentChannelId,
+        adminId,
+      );
+      expect(isAdmin).toBe(false);
+    });
+
+    it('should return false when user id is invalid', async () => {
+      const channel = await Channel.create({
+        channelName: 'Admin Channel',
+        channelDescription: 'A channel with admin',
+        channelAdmin: adminId,
+      });
+
+      const invalidUserId = 'invalid-user-id';
+      const isAdmin = await Channel.isChannelAdmin(
+        channel._id.toString(),
+        invalidUserId,
+      );
+      expect(isAdmin).toBe(false);
     });
   });
 });

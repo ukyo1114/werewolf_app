@@ -16,6 +16,10 @@ interface IChannel extends Document {
   updatedAt: Date;
 }
 
+interface IChannelModel extends mongoose.Model<IChannel> {
+  isChannelAdmin(channelId: string, userId: string): Promise<boolean>;
+}
+
 const ChannelSchema = new Schema<IChannel>(
   {
     channelName: {
@@ -65,6 +69,15 @@ ChannelSchema.methods.matchPassword = async function (
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+ChannelSchema.statics.isChannelAdmin = async function (
+  channelId: string,
+  userId: string,
+): Promise<boolean> {
+  const channel = await this.findById(channelId);
+  if (!channel) return false;
+  return channel.channelAdmin.toString() === userId;
+};
+
 ChannelSchema.pre<IChannel>('save', async function (next) {
   // パスワード設定を無効にする場合、パスワードを削除
   if (!this.passwordEnabled) {
@@ -85,6 +98,9 @@ ChannelSchema.pre<IChannel>('save', async function (next) {
 // インデックスの作成
 ChannelSchema.index({ admin: 1 });
 
-const Channel = mongoose.model('Channel', ChannelSchema);
+const Channel = mongoose.model<IChannel, IChannelModel>(
+  'Channel',
+  ChannelSchema,
+);
 
 export default Channel;
