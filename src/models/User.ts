@@ -40,8 +40,20 @@ const gameStatsSchema = new Schema<IGameStats>({
     min: 0,
   },
   roleStats: {
-    type: Object,
-    default: () => ({}),
+    type: Map,
+    of: {
+      totalGames: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+      victories: {
+        type: Number,
+        default: 0,
+        min: 0,
+      },
+    },
+    default: {},
   },
 });
 
@@ -87,17 +99,17 @@ userSchema.methods.updateGameStats = async function (
     this.gameStats.victories += 1;
   }
 
-  if (!this.gameStats.roleStats[role]) {
-    this.gameStats.roleStats[role] = {
-      totalGames: 0,
-      victories: 0,
-    };
+  const roleStats = this.gameStats.roleStats[role] || {
+    totalGames: 0,
+    victories: 0,
+  };
+
+  roleStats.totalGames += 1;
+  if (isVictory) {
+    roleStats.victories += 1;
   }
 
-  this.gameStats.roleStats[role].totalGames += 1;
-  if (isVictory) {
-    this.gameStats.roleStats[role].victories += 1;
-  }
+  this.gameStats.roleStats[role] = roleStats;
 
   await this.save();
 };

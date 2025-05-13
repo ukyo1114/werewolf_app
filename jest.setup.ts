@@ -4,21 +4,19 @@ jest.mock('./src/utils/decodeToken', () => ({
 jest.mock('nodemailer');
 
 import dotenv from 'dotenv';
-dotenv.config({ path: '.env.test' });
+dotenv.config({ path: '.env.dev' });
 
-import app, { appState, Events } from './src/app';
+// import app, { appState, Events } from './src/app';
 import nodemailer from 'nodemailer';
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
 import { IUser } from './src/config/types';
 import { socketHandler } from './src/socketHandlers/socketHandler';
 import { Server as SocketIOServer } from 'socket.io';
 
-export const { gameManagers, channelManagers, entryManagers } = appState;
-export const { entryEvents, channelEvents, gameEvents } = Events;
+// export const { gameManagers, channelManagers, entryManagers } = appState;
+// export const { entryEvents, channelEvents, gameEvents } = Events;
 
-let mongoServer: MongoMemoryServer;
 let io: SocketIOServer;
 export let sendMailMock: jest.Mock;
 
@@ -28,10 +26,11 @@ beforeAll(async () => {
   });
   sendMailMock = (nodemailer.createTransport() as any).sendMail;
 
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
-
-  await mongoose.connect(uri);
+  const mongoURI = process.env.MONGO_URI;
+  if (!mongoURI) {
+    throw new Error('MONGO_URI is not defined');
+  }
+  await mongoose.connect(mongoURI);
 
   /* const port: number = parseInt(process.env.PORT || '5000', 10);
   app.listen(port, () => {
@@ -43,12 +42,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await mongoose.disconnect();
-  await mongoServer.stop();
   // io.close();
   // app.close();
 });
 
-export const mockUserId = new ObjectId().toString();
+/* export const mockUserId = new ObjectId().toString();
 export const mockChannelId: string = new ObjectId().toString();
 export const mockGameId: string = new ObjectId().toString();
 export const mockUsers: IUser[] = [
@@ -62,4 +60,4 @@ export const mockUsers: IUser[] = [
   { userId: new ObjectId().toString(), userName: 'Hank' },
   { userId: new ObjectId().toString(), userName: 'Ivy' },
   { userId: new ObjectId().toString(), userName: 'Jack' },
-];
+]; */
