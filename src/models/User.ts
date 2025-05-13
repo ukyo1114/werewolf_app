@@ -28,6 +28,10 @@ interface IUser extends Document {
   updatedAt: Date;
 }
 
+interface IUserModel extends mongoose.Model<IUser> {
+  isGuestUser(userId: string): Promise<boolean>;
+}
+
 const GameStatsSchema = new Schema<IGameStats>({
   totalGames: {
     type: Number,
@@ -126,6 +130,16 @@ UserSchema.pre<IUser>('save', async function (next) {
   next();
 });
 
-const User = mongoose.model('User', UserSchema);
+UserSchema.statics.isGuestUser = async function (
+  userId: string,
+): Promise<boolean> {
+  const user = await this.findById(userId);
+  if (!user) {
+    throw new Error(`User not found with id: ${userId}`);
+  }
+  return user.isGuest;
+};
+
+const User = mongoose.model<IUser, IUserModel>('User', UserSchema);
 
 export default User;
