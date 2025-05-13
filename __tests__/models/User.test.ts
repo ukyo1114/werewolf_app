@@ -1,5 +1,6 @@
 import User from '../../src/models/User';
 import { Role } from '../../src/config/types';
+import mongoose from 'mongoose';
 
 describe('User Model Test', () => {
   beforeEach(async () => {
@@ -136,6 +137,43 @@ describe('User Model Test', () => {
           isGuest: false,
         }),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('Guest User Check', () => {
+    it('should return true for guest users', async () => {
+      const guestUser = await User.create({
+        userName: 'guestUser',
+        isGuest: true,
+      });
+
+      const isGuest = await User.isGuestUser(guestUser._id.toString());
+      expect(isGuest).toBe(true);
+    });
+
+    it('should return false for registered users', async () => {
+      const registeredUser = await User.create({
+        userName: 'registeredUser',
+        email: 'test@example.com',
+        password: 'password123',
+        pic: null,
+        isGuest: false,
+      });
+
+      const isGuest = await User.isGuestUser(registeredUser._id.toString());
+      expect(isGuest).toBe(false);
+    });
+
+    it('should throw error when user does not exist', async () => {
+      const nonExistentUserId = new mongoose.Types.ObjectId().toString();
+      await expect(User.isGuestUser(nonExistentUserId)).rejects.toThrow(
+        `User not found with id: ${nonExistentUserId}`,
+      );
+    });
+
+    it('should throw error when user id is invalid', async () => {
+      const invalidUserId = 'invalid-user-id';
+      await expect(User.isGuestUser(invalidUserId)).rejects.toThrow();
     });
   });
 });
