@@ -19,9 +19,9 @@ describe('User Model Test', () => {
       expect(user.userName).toBe('testUser');
       expect(user.email).toBe('test@example.com');
       expect(user.isGuest).toBe(false);
-      expect(user.gameStats.totalGames).toBe(0);
-      expect(user.gameStats.victories).toBe(0);
-      expect(user.gameStats.roleStats).toBeDefined();
+      expect(user.GameStats.totalGames).toBe(0);
+      expect(user.GameStats.victories).toBe(0);
+      expect(user.GameStats.roleStats).toBeDefined();
     });
 
     it('should create a guest user', async () => {
@@ -67,19 +67,19 @@ describe('User Model Test', () => {
     it('should update game stats for a victory', async () => {
       await user.updateGameStats('werewolf', true);
 
-      expect(user.gameStats.totalGames).toBe(1);
-      expect(user.gameStats.victories).toBe(1);
-      expect(user.gameStats.roleStats.werewolf.totalGames).toBe(1);
-      expect(user.gameStats.roleStats.werewolf.victories).toBe(1);
+      expect(user.GameStats.totalGames).toBe(1);
+      expect(user.GameStats.victories).toBe(1);
+      expect(user.GameStats.roleStats.werewolf.totalGames).toBe(1);
+      expect(user.GameStats.roleStats.werewolf.victories).toBe(1);
     });
 
     it('should update game stats for a defeat', async () => {
       await user.updateGameStats('villager', false);
 
-      expect(user.gameStats.totalGames).toBe(1);
-      expect(user.gameStats.victories).toBe(0);
-      expect(user.gameStats.roleStats.villager.totalGames).toBe(1);
-      expect(user.gameStats.roleStats.villager.victories).toBe(0);
+      expect(user.GameStats.totalGames).toBe(1);
+      expect(user.GameStats.victories).toBe(0);
+      expect(user.GameStats.roleStats.villager.totalGames).toBe(1);
+      expect(user.GameStats.roleStats.villager.victories).toBe(0);
     });
 
     it('should accumulate game stats correctly', async () => {
@@ -90,14 +90,14 @@ describe('User Model Test', () => {
       // Win as seer
       await user.updateGameStats('seer', true);
 
-      expect(user.gameStats.totalGames).toBe(3);
-      expect(user.gameStats.victories).toBe(2);
-      expect(user.gameStats.roleStats.werewolf.totalGames).toBe(1);
-      expect(user.gameStats.roleStats.werewolf.victories).toBe(1);
-      expect(user.gameStats.roleStats.villager.totalGames).toBe(1);
-      expect(user.gameStats.roleStats.villager.victories).toBe(0);
-      expect(user.gameStats.roleStats.seer.totalGames).toBe(1);
-      expect(user.gameStats.roleStats.seer.victories).toBe(1);
+      expect(user.GameStats.totalGames).toBe(3);
+      expect(user.GameStats.victories).toBe(2);
+      expect(user.GameStats.roleStats.werewolf.totalGames).toBe(1);
+      expect(user.GameStats.roleStats.werewolf.victories).toBe(1);
+      expect(user.GameStats.roleStats.villager.totalGames).toBe(1);
+      expect(user.GameStats.roleStats.villager.victories).toBe(0);
+      expect(user.GameStats.roleStats.seer.totalGames).toBe(1);
+      expect(user.GameStats.roleStats.seer.victories).toBe(1);
     });
   });
 

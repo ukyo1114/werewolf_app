@@ -20,7 +20,7 @@ interface IUser extends Document {
   password?: string;
   pic: string;
   isGuest: boolean;
-  gameStats: IGameStats;
+  GameStats: IGameStats;
   matchPassword(enteredPassword: string): Promise<boolean>;
   updateGameStats(role: Role, isVictory: boolean): Promise<void>;
   isModified: (path: string) => boolean;
@@ -28,7 +28,7 @@ interface IUser extends Document {
   updatedAt: Date;
 }
 
-const gameStatsSchema = new Schema<IGameStats>({
+const GameStatsSchema = new Schema<IGameStats>({
   totalGames: {
     type: Number,
     default: 0,
@@ -57,7 +57,7 @@ const gameStatsSchema = new Schema<IGameStats>({
   },
 });
 
-const userSchema = new Schema<IUser>(
+const UserSchema = new Schema<IUser>(
   {
     userName: {
       type: String,
@@ -74,8 +74,8 @@ const userSchema = new Schema<IUser>(
     password: { type: String, minlength: 8 },
     pic: { type: String },
     isGuest: { type: Boolean, default: true, required: true },
-    gameStats: {
-      type: gameStatsSchema,
+    GameStats: {
+      type: GameStatsSchema,
       default: () => ({}),
     },
   },
@@ -84,22 +84,22 @@ const userSchema = new Schema<IUser>(
   },
 );
 
-userSchema.methods.matchPassword = async function (
+UserSchema.methods.matchPassword = async function (
   enteredPassword: string,
 ): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-userSchema.methods.updateGameStats = async function (
+UserSchema.methods.updateGameStats = async function (
   role: Role,
   isVictory: boolean,
 ): Promise<void> {
-  this.gameStats.totalGames += 1;
+  this.GameStats.totalGames += 1;
   if (isVictory) {
-    this.gameStats.victories += 1;
+    this.GameStats.victories += 1;
   }
 
-  const roleStats = this.gameStats.roleStats[role] || {
+  const roleStats = this.GameStats.roleStats[role] || {
     totalGames: 0,
     victories: 0,
   };
@@ -109,12 +109,12 @@ userSchema.methods.updateGameStats = async function (
     roleStats.victories += 1;
   }
 
-  this.gameStats.roleStats[role] = roleStats;
+  this.GameStats.roleStats[role] = roleStats;
 
   await this.save();
 };
 
-userSchema.pre<IUser>('save', async function (next) {
+UserSchema.pre<IUser>('save', async function (next) {
   if (!this.isModified('password') || this.isGuest) return next;
 
   const salt = await bcrypt.genSalt(10);
@@ -126,6 +126,6 @@ userSchema.pre<IUser>('save', async function (next) {
   next();
 });
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model('User', UserSchema);
 
 export default User;
