@@ -48,22 +48,6 @@ export default class PlayerManager {
     });
   }
 
-  async registerPlayersInDB(): Promise<void> {
-    const gameId = this.gameId;
-    const users = Object.values(this.players).map((user) => ({
-      gameId,
-      userId: user.userId,
-      role: user.role,
-    }));
-
-    try {
-      await GameUser.insertMany(users);
-    } catch (error) {
-      console.error('Error registering players:', error);
-      throw error;
-    }
-  }
-
   kill(userId: string): void {
     const player = this.players[userId];
     player.status = 'dead';

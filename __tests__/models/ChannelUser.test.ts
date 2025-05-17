@@ -105,7 +105,7 @@ describe('ChannelUser Model Test', () => {
 
       const isInChannel = await ChannelUser.isUserInChannel(
         testChannel._id,
-        newUser._id,
+        newUser._id.toString(),
       );
       expect(isInChannel).toBe(false);
 
@@ -138,7 +138,7 @@ describe('ChannelUser Model Test', () => {
 
       const removed = await ChannelUser.leaveChannel(
         testChannel._id,
-        newUser._id,
+        newUser._id.toString(),
       );
       expect(removed).toBe(false);
 

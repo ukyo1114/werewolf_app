@@ -9,15 +9,9 @@ interface IChannelUserModel extends Document {
 }
 
 interface IChannelUser extends mongoose.Model<IChannelUserModel> {
-  getChannelUsers(channelId: Types.ObjectId): Promise<IChannelUserModel[]>;
-  isUserInChannel(
-    channelId: Types.ObjectId,
-    userId: Types.ObjectId,
-  ): Promise<boolean>;
-  leaveChannel(
-    channelId: Types.ObjectId,
-    userId: Types.ObjectId,
-  ): Promise<boolean>;
+  getChannelUsers(channelId: string): Promise<IChannelUserModel[]>;
+  isUserInChannel(channelId: string, userId: string): Promise<boolean>;
+  leaveChannel(channelId: string, userId: string): Promise<boolean>;
 }
 
 const ChannelUserSchema = new Schema<IChannelUserModel>(
@@ -44,15 +38,15 @@ ChannelUserSchema.index({ channelId: 1, userId: 1 }, { unique: true });
 
 // チャンネルのユーザー一覧を取得
 ChannelUserSchema.statics.getChannelUsers = async function (
-  channelId: Types.ObjectId,
+  channelId: string,
 ): Promise<IChannelUserModel[]> {
   return this.find({ channelId }).populate('userId');
 };
 
 // ユーザーがチャンネルにいるかどうかを確認
 ChannelUserSchema.statics.isUserInChannel = async function (
-  channelId: Types.ObjectId,
-  userId: Types.ObjectId,
+  channelId: string,
+  userId: string,
 ): Promise<boolean> {
   const channelUser = await this.findOne({ channelId, userId });
   return !!channelUser;
@@ -60,8 +54,8 @@ ChannelUserSchema.statics.isUserInChannel = async function (
 
 // ユーザーをチャンネルから削除
 ChannelUserSchema.statics.leaveChannel = async function (
-  channelId: Types.ObjectId,
-  userId: Types.ObjectId,
+  channelId: string,
+  userId: string,
 ): Promise<boolean> {
   const result = await this.deleteOne({ channelId, userId });
   return result.deletedCount > 0;

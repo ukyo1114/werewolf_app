@@ -6,8 +6,10 @@ import DevineManager from './DevineManager';
 import MediumManager from './MediumManager';
 import GuardManager from './GuardManager';
 import AttackManager from './AttackManager';
-import Message from '../models/messageModel';
-import Game from '../models/gameModel';
+import Message from '../models/Message';
+import User from '../models/User';
+import Game from '../models/Game';
+import GameUser from '../models/GameUser';
 import { gameMaster } from '../config/messages';
 import { GameResult, IGameState, IUser, IMessage } from '../config/types';
 import { appState, Events } from '../app';
@@ -53,6 +55,42 @@ export default class GameManager {
     );
     this.registerListners();
     // this.sendMessage();
+  }
+
+  static async createGameManager(
+    channelId: string,
+    users: string[],
+  ): Promise<string> {
+    // ゲームを作成
+    const game = await Game.create({
+      channelId,
+      numberOfPlayers: users.length,
+    });
+    const gameId = game._id.toString();
+
+    // ユーザーの詳細を取得
+    const dbUsers = await User.find({ _id: { $in: users } })
+      .select('_id userName')
+      .lean();
+
+    const usersDetail = dbUsers.map((user) => ({
+      userId: user._id.toString(),
+      userName: user.userName,
+    }));
+
+    // ゲームマネージャーを作成
+    gameManagers[gameId] = new GameManager(channelId, gameId, usersDetail);
+
+    // プレイヤーのデータをDBに保存
+    const players = gameManagers[gameId].playerManager.players;
+    const userList = Object.values(players).map((player) => ({
+      gameId,
+      userId: player.userId,
+      role: player.role,
+    }));
+    await GameUser.insertMany(userList);
+
+    return gameId;
   }
 
   registerListners(): void {

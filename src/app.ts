@@ -19,18 +19,16 @@ const app = express();
 connectDB();
 
 export const appState: {
-  entryManagers: { [key: string]: EntryManager };
-  channelManagers: { [key: string]: ChannelManager };
-  gameManagers: { [key: string]: GameManager };
+  entryManagers: Record<string, EntryManager>;
+  channelManagers: Record<string, ChannelManager>;
+  gameManagers: Record<string, GameManager>;
 } = {
   entryManagers: {},
   channelManagers: {},
   gameManagers: {},
 };
 
-export const Events: {
-  [key: string]: EventEmitter;
-} = {
+export const Events: Record<string, EventEmitter> = {
   entryEvents: new EventEmitter(),
   channelEvents: new EventEmitter(),
   gameEvents: new EventEmitter(),

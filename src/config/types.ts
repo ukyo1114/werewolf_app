@@ -22,8 +22,6 @@ export interface IChannelUser {
   status: MessageType;
 }
 
-export type EntryUsers = { userId: string; userName: string }[];
-
 export type GameResult =
   | 'running'
   | 'villagersWin'
@@ -75,7 +73,13 @@ export type AttackHistory = Record<number, string>;
 export type VotesByVotee = Record<string, string[]>;
 export type VoteHistory = Record<number, VotesByVotee>;
 
-export type MessageType = 'normal' | 'werewolf' | 'spectator' | 'freemason';
+export type MessageType =
+  | 'normal'
+  | 'werewolf'
+  | 'spectator'
+  | 'freemason'
+  | 'system';
+
 export interface IMessage extends Document {
   _id: Types.ObjectId;
   channelId: Types.ObjectId;
