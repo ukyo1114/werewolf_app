@@ -11,10 +11,10 @@ export default class ChannelManager {
   public users: Record<string, ChannelUserManager>;
   public game: GameManager | null = null;
 
-  constructor(channelId: string, game?: GameManager) {
+  constructor(channelId: string, game: GameManager | null = null) {
     this.channelId = channelId;
     this.users = {};
-    this.game = game || null;
+    this.game = game;
   }
 
   async userJoined(userId: string, socketId: string): Promise<void> {
@@ -29,6 +29,8 @@ export default class ChannelManager {
         user.status = 'spectator';
       } else if (player.role === 'werewolf') {
         user.status = 'werewolf';
+      } else if (player.role === 'freemason') {
+        user.status = 'freemason';
       }
     }
 
@@ -47,7 +49,6 @@ export default class ChannelManager {
 
     const game = this.game;
     if (!game) return 'normal';
-
     const { currentPhase } = game.phaseManager;
 
     if (currentPhase === 'finished') return 'normal';
@@ -56,31 +57,31 @@ export default class ChannelManager {
       return 'normal';
     } else if (user.status === 'werewolf') {
       return 'werewolf';
+    } else if (user.status === 'freemason') {
+      return 'freemason';
     }
 
-    throw new Error();
+    throw new Error('メッセージの送信が許可されていません');
   }
 
   getMessageReceivers(messageType: MessageType): string[] | null {
-    if (messageType === 'normal') return null;
+    if (messageType === 'normal' || messageType === 'system') return null;
 
-    const spectators = this.getSpectators();
-
+    const spectators = this.getUsersByStatus('spectator');
     if (messageType === 'spectator') return spectators;
 
-    const werewolves = this.getWerewolves();
-    return _.union(spectators, werewolves);
+    if (messageType === 'freemason') {
+      const freemasons = this.getUsersByStatus('freemason');
+      return _.union(spectators, freemasons);
+    } else {
+      const werewolves = this.getUsersByStatus('werewolf');
+      return _.union(spectators, werewolves);
+    }
   }
 
-  getSpectators(): string[] {
+  getUsersByStatus(status: MessageType): string[] {
     return Object.values(this.users)
-      .filter((user) => user.status === 'spectator')
-      .map((user) => user.socketId);
-  }
-
-  getWerewolves(): string[] {
-    return Object.values(this.users)
-      .filter((user) => user.status === 'werewolf')
+      .filter((user) => user.status === status)
       .map((user) => user.socketId);
   }
 
@@ -90,15 +91,15 @@ export default class ChannelManager {
 
     const game = this.game;
     if (!game) return null;
-
     const { currentPhase } = game.phaseManager;
 
     if (currentPhase === 'finished' || user.status === 'spectator') return null;
     if (user.status === 'normal') return { $in: ['normal'] };
+    if (user.status === 'freemason') return { $in: ['normal', 'freemason'] };
     return { $in: ['normal', 'werewolf'] };
   }
 
   checkCanUserAccessChannel(userId: string) {
-    if (!this.users[userId]) throw new Error();
+    if (!this.users[userId]) throw new Error('チャンネルにアクセスできません');
   }
 }
