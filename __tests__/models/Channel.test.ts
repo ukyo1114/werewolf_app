@@ -1,41 +1,17 @@
 import Channel from '../../src/models/Channel';
-import User from '../../src/models/User';
 import mongoose from 'mongoose';
 
 describe('Channel Model Test', () => {
-  let adminId: string;
-  let nonAdminId: string;
+  const adminId = new mongoose.Types.ObjectId().toString();
+  const nonAdminId = new mongoose.Types.ObjectId().toString();
 
   beforeAll(async () => {
-    // データベースのクリーンアップ
     if (mongoose.connection.db) {
-      const collections = await mongoose.connection.db.collections();
-      for (const collection of collections) {
-        await collection.deleteMany({});
-      }
+      await mongoose.connection.db.dropDatabase();
     }
-
-    // テストに必要なユーザーを作成
-    const admin = await User.create({
-      userName: 'adminUser',
-      email: 'admin@example.com',
-      password: 'password123',
-      pic: null,
-      isGuest: false,
-    });
-    adminId = admin._id.toString();
-
-    const nonAdmin = await User.create({
-      userName: 'nonAdminUser',
-      email: 'nonadmin@example.com',
-      password: 'password123',
-      pic: null,
-      isGuest: false,
-    });
-    nonAdminId = nonAdmin._id.toString();
   });
 
-  beforeEach(async () => {
+  afterEach(async () => {
     await Channel.deleteMany({});
   });
 
@@ -50,7 +26,7 @@ describe('Channel Model Test', () => {
       expect(channel.channelName).toBe('Test Channel');
       expect(channel.channelDescription).toBe('A test channel');
       expect(channel.passwordEnabled).toBe(false);
-      expect(channel.password).toBeUndefined();
+      expect(channel.password).toBeNull();
       expect(channel.channelAdmin.toString()).toBe(adminId);
       expect(channel.denyGuests).toBe(false);
       expect(channel.numberOfPlayers).toBe(10);
@@ -98,7 +74,7 @@ describe('Channel Model Test', () => {
       await channel.save();
 
       expect(channel.passwordEnabled).toBe(false);
-      expect(channel.password).toBeUndefined();
+      expect(channel.password).toBeNull();
     });
 
     it('should hash password when password is modified', async () => {
@@ -188,31 +164,24 @@ describe('Channel Model Test', () => {
   });
 
   describe('Admin Check', () => {
-    it('should return true when user is channel admin', async () => {
+    let channelId: string;
+
+    beforeAll(async () => {
       const channel = await Channel.create({
         channelName: 'Admin Channel',
         channelDescription: 'A channel with admin',
         channelAdmin: adminId,
       });
+      channelId = channel._id.toString();
+    });
 
-      const isAdmin = await Channel.isChannelAdmin(
-        channel._id.toString(),
-        adminId,
-      );
+    it('should return true when user is channel admin', async () => {
+      const isAdmin = await Channel.isChannelAdmin(channelId, adminId);
       expect(isAdmin).toBe(true);
     });
 
     it('should return false when user is not channel admin', async () => {
-      const channel = await Channel.create({
-        channelName: 'Admin Channel',
-        channelDescription: 'A channel with admin',
-        channelAdmin: adminId,
-      });
-
-      const isAdmin = await Channel.isChannelAdmin(
-        channel._id.toString(),
-        nonAdminId,
-      );
+      const isAdmin = await Channel.isChannelAdmin(channelId, nonAdminId);
       expect(isAdmin).toBe(false);
     });
 
@@ -226,17 +195,8 @@ describe('Channel Model Test', () => {
     });
 
     it('should return false when user id is invalid', async () => {
-      const channel = await Channel.create({
-        channelName: 'Admin Channel',
-        channelDescription: 'A channel with admin',
-        channelAdmin: adminId,
-      });
-
       const invalidUserId = 'invalid-user-id';
-      const isAdmin = await Channel.isChannelAdmin(
-        channel._id.toString(),
-        invalidUserId,
-      );
+      const isAdmin = await Channel.isChannelAdmin(channelId, invalidUserId);
       expect(isAdmin).toBe(false);
     });
   });

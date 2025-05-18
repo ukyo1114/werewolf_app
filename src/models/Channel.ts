@@ -6,7 +6,7 @@ interface IChannel extends Document {
   channelName: string;
   channelDescription: string;
   passwordEnabled: boolean;
-  password: string | undefined;
+  password: string | null;
   channelAdmin: Types.ObjectId;
   denyGuests: boolean;
   numberOfPlayers: number;
@@ -39,6 +39,7 @@ const ChannelSchema = new Schema<IChannel>(
         return this.passwordEnabled;
       },
       minlength: 8,
+      default: null,
     },
     channelAdmin: {
       type: mongoose.Schema.Types.ObjectId,
@@ -83,7 +84,7 @@ ChannelSchema.statics.isChannelAdmin = async function (
 ChannelSchema.pre<IChannel>('save', async function (next) {
   // パスワード設定を無効にする場合、パスワードを削除
   if (!this.passwordEnabled) {
-    this.password = undefined;
+    this.password = null;
     return next();
   }
 
