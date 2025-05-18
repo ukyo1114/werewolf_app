@@ -2,6 +2,12 @@ import User from '../../src/models/User';
 import mongoose from 'mongoose';
 
 describe('User Model Test', () => {
+  beforeAll(async () => {
+    if (mongoose.connection.db) {
+      await mongoose.connection.db.dropDatabase();
+    }
+  });
+
   afterEach(async () => {
     await User.deleteMany({});
   });

@@ -16,9 +16,9 @@ interface IGameStats {
 interface IUser extends Document {
   _id: Types.ObjectId;
   userName: string;
-  email?: string;
-  password?: string;
-  pic: string;
+  email: string | null;
+  password: string | null;
+  pic: string | null;
   isGuest: boolean;
   GameStats: IGameStats;
   matchPassword(enteredPassword: string): Promise<boolean>;
@@ -72,12 +72,12 @@ const UserSchema = new Schema<IUser>(
     email: {
       type: String,
       unique: true,
-      sparse: true,
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      default: null,
     },
-    password: { type: String, minlength: 8 },
-    pic: { type: String },
-    isGuest: { type: Boolean, default: true, required: true },
+    password: { type: String, minlength: 8, default: null },
+    pic: { type: String, default: null },
+    isGuest: { type: Boolean, default: false, required: true },
     GameStats: {
       type: GameStatsSchema,
       default: () => ({}),
@@ -130,6 +130,7 @@ UserSchema.pre<IUser>('save', async function (next) {
   next();
 });
 
+// ゲストユーザーかどうかを確認
 UserSchema.statics.isGuestUser = async function (
   userId: string,
 ): Promise<boolean> {

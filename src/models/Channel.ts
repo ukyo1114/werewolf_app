@@ -63,12 +63,14 @@ const ChannelSchema = new Schema<IChannel>(
   },
 );
 
+// パスワードの照合
 ChannelSchema.methods.matchPassword = async function (
   enteredPassword: string,
 ): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+// チャンネルの管理者かどうかを確認
 ChannelSchema.statics.isChannelAdmin = async function (
   channelId: string,
   userId: string,

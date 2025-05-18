@@ -2,8 +2,8 @@ import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
-import ChannelBlockUser from '../../models/channelBlockUserModel';
-import { checkChannelAdmin } from '../../utils/checkChannelAdmin';
+import ChannelBlockUser from '../../models/ChannelBlockUser';
+import Channel from '../../models/Channel';
 import { CustomRequest, ISelectedUser } from '../../config/types';
 
 export const getBlockUserList = asyncHandler(
@@ -14,7 +14,7 @@ export const getBlockUserList = asyncHandler(
     const { channelId } = req.params;
     const { userId } = req as { userId: string };
 
-    const isChannelAdmin = await checkChannelAdmin(channelId, userId);
+    const isChannelAdmin = await Channel.isChannelAdmin(channelId, userId);
     if (!isChannelAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
 
     const blockUsers = await ChannelBlockUser.find({ channelId })
@@ -39,7 +39,7 @@ export const registerBlockUser = asyncHandler(
     if (selectedUser === userId)
       throw new AppError(403, errors.DENIED_SELF_BLOCK);
 
-    const isChannelAdmin = await checkChannelAdmin(channelId, userId);
+    const isChannelAdmin = await Channel.isChannelAdmin(channelId, userId);
     if (!isChannelAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
 
     try {
@@ -68,7 +68,7 @@ export const cancelBlock = asyncHandler(
     const { selectedUser } = req.body;
     const { userId } = req as { userId: string };
 
-    const isChannelAdmin = await checkChannelAdmin(channelId, userId);
+    const isChannelAdmin = await Channel.isChannelAdmin(channelId, userId);
     if (!isChannelAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
 
     const blockedUser = await ChannelBlockUser.findOneAndDelete({

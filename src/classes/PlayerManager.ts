@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import GameUser from '../models/gameUserModel';
 import { roleConfig, teammateMapping } from '../config/roles';
 import { Role, Status, IUser, IPlayer, IPlayerState } from '../config/types';
 import { appState } from '../app';
