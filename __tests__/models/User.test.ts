@@ -1,9 +1,8 @@
 import User from '../../src/models/User';
-import { Role } from '../../src/config/types';
 import mongoose from 'mongoose';
 
 describe('User Model Test', () => {
-  beforeEach(async () => {
+  afterEach(async () => {
     await User.deleteMany({});
   });
 
@@ -13,8 +12,6 @@ describe('User Model Test', () => {
         userName: 'testUser',
         email: 'test@example.com',
         password: 'password123',
-        pic: null,
-        isGuest: false,
       });
 
       expect(user.userName).toBe('testUser');
@@ -33,8 +30,8 @@ describe('User Model Test', () => {
 
       expect(user.userName).toBe('guestUser');
       expect(user.isGuest).toBe(true);
-      expect(user.email).toBeUndefined();
-      expect(user.password).toBeUndefined();
+      expect(user.email).toBeNull();
+      expect(user.password).toBeNull();
     });
 
     it('should hash password for non-guest users', async () => {
@@ -42,8 +39,6 @@ describe('User Model Test', () => {
         userName: 'testUser',
         email: 'test@example.com',
         password: 'password123',
-        pic: null,
-        isGuest: false,
       });
 
       expect(user.password).not.toBe('password123');
@@ -60,8 +55,6 @@ describe('User Model Test', () => {
         userName: 'testUser',
         email: 'test@example.com',
         password: 'password123',
-        pic: null,
-        isGuest: false,
       });
     });
 
@@ -109,8 +102,6 @@ describe('User Model Test', () => {
           userName: 'testUser',
           email: 'invalid-email',
           password: 'password123',
-          pic: null,
-          isGuest: false,
         }),
       ).rejects.toThrow();
     });
@@ -121,8 +112,6 @@ describe('User Model Test', () => {
           userName: 'testUser',
           email: 'test@example.com',
           password: 'a'.repeat(7),
-          pic: null,
-          isGuest: false,
         }),
       ).rejects.toThrow();
     });
@@ -133,10 +122,61 @@ describe('User Model Test', () => {
           userName: 'a'.repeat(21),
           email: 'test@example.com',
           password: 'password123',
-          pic: null,
-          isGuest: false,
         }),
       ).rejects.toThrow();
+    });
+  });
+
+  describe('Password Hashing', () => {
+    it('should hash password when creating new user', async () => {
+      const password = 'password123';
+      const user = await User.create({
+        userName: 'testUser',
+        email: 'test@example.com',
+        password,
+      });
+
+      expect(user.password).not.toBe(password);
+      expect(await user.matchPassword(password)).toBe(true);
+    });
+
+    it('should hash password when updating password', async () => {
+      const user = await User.create({
+        userName: 'testUser',
+        email: 'test@example.com',
+        password: 'oldpassword',
+      });
+
+      const oldHashedPassword = user.password;
+      user.password = 'newpassword';
+      await user.save();
+
+      expect(user.password).not.toBe('newpassword');
+      expect(user.password).not.toBe(oldHashedPassword);
+      expect(await user.matchPassword('newpassword')).toBe(true);
+    });
+
+    it('should not hash password when other fields are updated', async () => {
+      const user = await User.create({
+        userName: 'testUser',
+        email: 'test@example.com',
+        password: 'password123',
+      });
+
+      const oldHashedPassword = user.password;
+      user.userName = 'newUserName';
+      await user.save();
+
+      expect(user.password).toBe(oldHashedPassword);
+    });
+
+    it('should not hash password for guest users', async () => {
+      const user = await User.create({
+        userName: 'guestUser',
+        isGuest: true,
+      });
+
+      expect(user.password).toBeNull();
     });
   });
 
@@ -156,8 +196,6 @@ describe('User Model Test', () => {
         userName: 'registeredUser',
         email: 'test@example.com',
         password: 'password123',
-        pic: null,
-        isGuest: false,
       });
 
       const isGuest = await User.isGuestUser(registeredUser._id.toString());
