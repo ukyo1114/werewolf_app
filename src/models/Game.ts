@@ -16,7 +16,7 @@ interface IGame extends Document {
 }
 
 interface IGameModel extends Model<IGame> {
-  getRunningGame(channelId: Types.ObjectId): Promise<IGame | null>;
+  getRunningGame(channelId: string): Promise<IGame | null>;
 }
 
 const GameSchema = new Schema<IGame>(
@@ -53,8 +53,10 @@ const GameSchema = new Schema<IGame>(
 );
 
 // 進行中のゲームを取得する静的メソッド
-GameSchema.statics.getRunningGame = async function (channelId: string) {
-  return this.findOne({ channelId, result: 'running' });
+GameSchema.statics.getRunningGame = async function (
+  channelId: string,
+): Promise<IGame[]> {
+  return this.find({ channelId, result: 'running' });
 };
 
 // ゲームを終了するインスタンスメソッド
