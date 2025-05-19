@@ -20,8 +20,15 @@ describe('ChannelBlockUser Model Test', () => {
     });
   });
 
+  beforeEach(async () => {
+    await ChannelBlockUser.create({
+      channelId: testChannelId,
+      userId: testUser._id,
+    });
+    await ChannelBlockUser.createIndexes();
+  });
+
   afterEach(async () => {
-    // 各テスト後にブロックユーザーを削除
     await ChannelBlockUser.deleteMany({});
   });
 
@@ -29,20 +36,15 @@ describe('ChannelBlockUser Model Test', () => {
     it('should create a blocked user with valid data', async () => {
       const blockedUser = await ChannelBlockUser.create({
         channelId: testChannelId,
-        userId: testUser._id,
+        userId: nonBlockedUserId,
       });
 
       expect(blockedUser).toBeDefined();
       expect(blockedUser.channelId.toString()).toBe(testChannelId);
-      expect(blockedUser.userId.toString()).toBe(testUser._id.toString());
+      expect(blockedUser.userId.toString()).toBe(nonBlockedUserId);
     });
 
     it('should not create duplicate block entries', async () => {
-      await ChannelBlockUser.create({
-        channelId: testChannelId,
-        userId: testUser._id,
-      });
-
       await expect(
         ChannelBlockUser.create({
           channelId: testChannelId,
@@ -54,11 +56,6 @@ describe('ChannelBlockUser Model Test', () => {
 
   describe('Get Blocked Users', () => {
     it('should get all blocked users in a channel', async () => {
-      await ChannelBlockUser.create({
-        channelId: testChannelId,
-        userId: testUser._id,
-      });
-
       const blockedUsers =
         await ChannelBlockUser.getBlockedUsers(testChannelId);
       expect(blockedUsers).toHaveLength(1);
@@ -70,6 +67,7 @@ describe('ChannelBlockUser Model Test', () => {
     });
 
     it('should return empty array for channel with no blocked users', async () => {
+      await ChannelBlockUser.deleteMany({});
       const blockedUsers =
         await ChannelBlockUser.getBlockedUsers(testChannelId);
       expect(blockedUsers).toHaveLength(0);
@@ -78,12 +76,6 @@ describe('ChannelBlockUser Model Test', () => {
 
   describe('Check User Block Status', () => {
     it('should return true when user is blocked', async () => {
-      // ブロックユーザーを作成
-      await ChannelBlockUser.create({
-        channelId: testChannelId,
-        userId: testUser._id,
-      });
-
       const isBlocked = await ChannelBlockUser.isUserBlocked(
         testChannelId,
         testUser._id,
@@ -102,11 +94,6 @@ describe('ChannelBlockUser Model Test', () => {
 
   describe('Unblock User', () => {
     it('should successfully unblock user', async () => {
-      await ChannelBlockUser.create({
-        channelId: testChannelId,
-        userId: testUser._id,
-      });
-
       const unblocked = await ChannelBlockUser.unblockUser(
         testChannelId,
         testUser._id,

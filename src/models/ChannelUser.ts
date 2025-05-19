@@ -40,7 +40,7 @@ ChannelUserSchema.index({ channelId: 1, userId: 1 }, { unique: true });
 ChannelUserSchema.statics.getChannelUsers = async function (
   channelId: string,
 ): Promise<IChannelUserModel[]> {
-  return this.find({ channelId }).populate('userId');
+  return this.find({ channelId }).populate('userId', 'userName pic');
 };
 
 // ユーザーがチャンネルにいるかどうかを確認
