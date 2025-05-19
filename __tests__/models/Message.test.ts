@@ -1,80 +1,42 @@
 import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
 import Message from '../../src/models/Message';
-import User from '../../src/models/User';
-import Channel from '../../src/models/Channel';
 
 describe('Message Model Test', () => {
-  const testAdmin = new ObjectId().toString();
-  let testUser: any;
-  let testChannel: any;
+  const testUserId = new ObjectId().toString();
+  const testChannelId = new ObjectId().toString();
   let testMessage: any;
 
   beforeAll(async () => {
-    // テスト用のユーザーを作成
-    testUser = await User.create({
-      userName: 'testuser',
-      email: 'test@example.com',
-      password: 'password123',
-      isGuest: false,
-    });
-
-    // テスト用のチャンネルを作成
-    testChannel = await Channel.create({
-      channelName: 'test-channel',
-      channelDescription: 'Test channel description',
-      channelAdmin: testAdmin,
-      passwordEnabled: false,
-    });
-  });
-
-  afterAll(async () => {
-    // テストデータのクリーンアップ
-    await User.deleteMany({});
-    await Channel.deleteMany({});
-    await Message.deleteMany({});
-  });
-
-  beforeEach(async () => {
-    // 各テスト前にメッセージを削除
-    await Message.deleteMany({});
+    if (mongoose.connection.db) {
+      await mongoose.connection.db.dropDatabase();
+    }
   });
 
   afterEach(async () => {
-    // 各テスト後にメッセージを削除
     await Message.deleteMany({});
   });
 
   describe('Message Creation', () => {
     it('should create a message with valid data', async () => {
       const message = await Message.create({
-        channelId: testChannel._id,
-        userId: testUser._id,
+        channelId: testChannelId,
+        userId: testUserId,
         message: 'Test message',
-        messageType: 'normal',
       });
 
       expect(message).toBeDefined();
-      expect(message.channelId.toString()).toBe(testChannel._id.toString());
-      expect(message.userId.toString()).toBe(testUser._id.toString());
+      expect(message.channelId.toString()).toBe(testChannelId);
+      expect(message.userId.toString()).toBe(testUserId);
       expect(message.message).toBe('Test message');
       expect(message.messageType).toBe('normal');
-    });
-
-    it('should set default messageType to normal when not specified', async () => {
-      const message = await Message.create({
-        channelId: testChannel._id,
-        userId: testUser._id,
-        message: 'Test message',
-      });
-
-      expect(message.messageType).toBe('normal');
+      expect(message.createdAt).toBeDefined();
     });
 
     it('should create a message with werewolf type', async () => {
       const message = await Message.create({
-        channelId: testChannel._id,
-        userId: testUser._id,
+        channelId: testChannelId,
+        userId: testUserId,
         message: 'Werewolf message',
         messageType: 'werewolf',
       });
@@ -84,8 +46,8 @@ describe('Message Model Test', () => {
 
     it('should create a message with spectator type', async () => {
       const message = await Message.create({
-        channelId: testChannel._id,
-        userId: testUser._id,
+        channelId: testChannelId,
+        userId: testUserId,
         message: 'Spectator message',
         messageType: 'spectator',
       });
@@ -96,8 +58,8 @@ describe('Message Model Test', () => {
     it('should not create a message with invalid message type', async () => {
       await expect(
         Message.create({
-          channelId: testChannel._id,
-          userId: testUser._id,
+          channelId: testChannelId,
+          userId: testUserId,
           message: 'Invalid message',
           messageType: 'invalid',
         }),
@@ -107,10 +69,9 @@ describe('Message Model Test', () => {
     it('should not create a message with empty message', async () => {
       await expect(
         Message.create({
-          channelId: testChannel._id,
-          userId: testUser._id,
+          channelId: testChannelId,
+          userId: testUserId,
           message: '',
-          messageType: 'normal',
         }),
       ).rejects.toThrow();
     });
@@ -119,10 +80,9 @@ describe('Message Model Test', () => {
       const longMessage = 'a'.repeat(401);
       await expect(
         Message.create({
-          channelId: testChannel._id,
-          userId: testUser._id,
+          channelId: testChannelId,
+          userId: testUserId,
           message: longMessage,
-          messageType: 'normal',
         }),
       ).rejects.toThrow();
     });
@@ -132,9 +92,8 @@ describe('Message Model Test', () => {
     it('should require channelId', async () => {
       await expect(
         Message.create({
-          userId: testUser._id,
+          userId: testUserId,
           message: 'Test message',
-          messageType: 'normal',
         }),
       ).rejects.toThrow();
     });
@@ -142,9 +101,8 @@ describe('Message Model Test', () => {
     it('should require userId', async () => {
       await expect(
         Message.create({
-          channelId: testChannel._id,
+          channelId: testChannelId,
           message: 'Test message',
-          messageType: 'normal',
         }),
       ).rejects.toThrow();
     });
@@ -152,24 +110,10 @@ describe('Message Model Test', () => {
     it('should require message', async () => {
       await expect(
         Message.create({
-          channelId: testChannel._id,
-          userId: testUser._id,
-          messageType: 'normal',
+          channelId: testChannelId,
+          userId: testUserId,
         }),
       ).rejects.toThrow();
-    });
-  });
-
-  describe('Message Timestamps', () => {
-    it('should have createdAt timestamp', async () => {
-      const message = await Message.create({
-        channelId: testChannel._id,
-        userId: testUser._id,
-        message: 'Test message',
-        messageType: 'normal',
-      });
-
-      expect(message.createdAt).toBeDefined();
     });
   });
 });
