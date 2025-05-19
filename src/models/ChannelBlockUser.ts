@@ -38,7 +38,7 @@ ChannelBlockUserSchema.index({ channelId: 1, userId: 1 }, { unique: true });
 ChannelBlockUserSchema.statics.getBlockedUsers = async function (
   channelId: string,
 ): Promise<IChannelBlockUser[]> {
-  return this.find({ channelId }).populate('userId');
+  return this.find({ channelId }).populate('userId', 'userName pic');
 };
 
 // ユーザーがブロックされているかどうかを確認
