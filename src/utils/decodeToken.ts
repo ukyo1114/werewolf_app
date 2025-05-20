@@ -1,5 +1,4 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import AppError from './AppError';
 import { errors } from '../config/messages';
 
 export const decodeToken = (token: string): JwtPayload => {
@@ -12,6 +11,6 @@ export const decodeToken = (token: string): JwtPayload => {
     const decoded = jwt.verify(token, secret) as JwtPayload;
     return decoded;
   } catch (error) {
-    throw new AppError(401, errors.INVALID_TOKEN);
+    throw new Error(errors.INVALID_TOKEN);
   }
 };

@@ -1,5 +1,5 @@
-import Channel from '../models/channelModel';
-import Game from '../models/gameModel';
+import Channel from '../models/Channel';
+import Game from '../models/Game';
 import ChannelManager from '../classes/ChannelManager';
 import { appState } from '../app';
 

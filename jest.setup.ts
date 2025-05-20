@@ -1,6 +1,3 @@
-jest.mock('./src/utils/decodeToken', () => ({
-  decodeToken: jest.fn(),
-}));
 jest.mock('nodemailer');
 
 import dotenv from 'dotenv';
