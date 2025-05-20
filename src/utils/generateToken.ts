@@ -1,23 +1,22 @@
 import jwt from 'jsonwebtoken';
-import { errors } from '../config/messages';
+import { getSecret } from './getSecret';
 
 type actionType = 'registerUser' | 'changeEmail' | 'forgotPassword';
 
 export interface IVerificationTokenPayload {
-  userId?: string;
+  userId: string | null;
   email: string;
   action: actionType;
 }
 
-const secret = process.env.JWT_SECRET;
-if (!secret) throw new Error(errors.JWT_SECRET_NOT_DEFINED);
-
 export const genUserToken = (userId: string): string => {
+  const secret = getSecret();
   return jwt.sign({ userId }, secret, { expiresIn: '30d' });
 };
 
 export const genVerificationToken = (
   payload: IVerificationTokenPayload,
 ): string => {
+  const secret = getSecret();
   return jwt.sign(payload, secret, { expiresIn: '1d' });
 };

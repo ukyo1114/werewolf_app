@@ -33,7 +33,7 @@ describe('decodeToken', () => {
 
     const token = jwt.sign(mockPayload, mockSecret);
 
-    expect(() => decodeToken(token)).toThrow('JWT_SECRET is not defined');
+    expect(() => decodeToken(token)).toThrow(errors.JWT_SECRET_NOT_DEFINED);
   });
 
   it('should throw error for expired token', async () => {

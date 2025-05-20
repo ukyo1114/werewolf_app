@@ -1,11 +1,9 @@
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { errors } from '../config/messages';
+import { getSecret } from './getSecret';
 
 export const decodeToken = (token: string): JwtPayload => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET is not defined');
-  }
+  const secret = getSecret();
 
   try {
     const decoded = jwt.verify(token, secret) as JwtPayload;
