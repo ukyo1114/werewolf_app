@@ -3,8 +3,10 @@ import GameManager from './GameManager';
 import ChannelUserManager from './ChannelUserManager';
 import { IChannelUser, MessageType } from '../config/types';
 import { appState } from '../app';
-
-const { channelManagers } = appState;
+import Channel from '../models/Channel';
+import Game from '../models/Game';
+import { errors } from '../config/messages';
+const { channelManagers, gameManagers } = appState;
 
 export default class ChannelManager {
   public channelId: string;
@@ -15,6 +17,25 @@ export default class ChannelManager {
     this.channelId = channelId;
     this.users = {};
     this.game = game;
+  }
+
+  static async createChannelInstance(
+    channelId: string,
+  ): Promise<ChannelManager> {
+    const [isChannel, isGame] = await Promise.all([
+      Channel.exists({ _id: channelId }),
+      Game.exists({ _id: channelId }),
+    ]);
+    if (!(isChannel || isGame)) throw new Error(errors.CHANNEL_NOT_FOUND);
+
+    if (isChannel) {
+      return (channelManagers[channelId] = new ChannelManager(channelId));
+    }
+
+    const game = gameManagers[channelId];
+    if (!game) throw new Error(errors.GAME_NOT_FOUND);
+
+    return (channelManagers[channelId] = new ChannelManager(channelId, game));
   }
 
   async userJoined(userId: string, socketId: string): Promise<void> {

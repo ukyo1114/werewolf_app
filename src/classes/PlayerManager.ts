@@ -72,38 +72,19 @@ export default class PlayerManager {
     return playerState;
   }
 
-  findPlayerByRole(role: Role): IPlayer {
-    const player = Object.values(this.players).find(
-      (user) => user.role === role,
-    );
-    if (!player) throw new Error();
-
-    return player;
-  }
-
-  getImmoralists(): IPlayer[] {
-    return Object.values(this.players).filter(
-      (user) => user.role === 'immoralist' && user.status === 'alive',
+  getLivingPlayers(filterRole: Role | null = null): IPlayer[] {
+    return Object.values(this.players).filter((user) =>
+      filterRole
+        ? user.role === filterRole && user.status === 'alive'
+        : user.status === 'alive',
     );
   }
 
-  getLivingPlayers(): IPlayer[] {
-    return Object.values(this.players).filter(
-      (user) => user.status === 'alive',
-    );
-  }
-
-  getPlayersWithRole(): Record<string, IPlayerState> {
+  getPlayersInfo(withRole: boolean = false): Record<string, IPlayerState> {
     const players = _.mapValues(this.players, (user) =>
-      _.omit(user, ['userName', 'teammates']),
-    );
-
-    return players;
-  }
-
-  getPlayersWithoutRole(): Record<string, IPlayerState> {
-    const players = _.mapValues(this.players, (user) =>
-      _.omit(user, ['userName', 'role', 'teammates']),
+      withRole
+        ? _.omit(user, ['userName', 'teammates'])
+        : _.omit(user, ['userName', 'role', 'teammates']),
     );
 
     return players;

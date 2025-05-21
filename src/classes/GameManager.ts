@@ -93,6 +93,33 @@ export default class GameManager {
     return gameId;
   }
 
+  static checkIsUserInGame(userId: string): boolean {
+    return Object.values(gameManagers).some(
+      (game) =>
+        Object.keys(game.playerManager.players).includes(userId) &&
+        game.result.value === 'running',
+    );
+  }
+
+  static isUserPlayingGame(userId: string): string | null {
+    const game = Object.values(gameManagers).find(
+      (game) =>
+        Object.keys(game.playerManager.players).includes(userId) &&
+        game.result.value === 'running' &&
+        game.playerManager.players[userId].status === 'alive',
+    );
+
+    return game ? game.gameId : null;
+  }
+
+  static getGamesByChannelId(channelId: string): GameManager[] {
+    const filteredGames = Object.values(gameManagers).filter(
+      (game) => game.channelId === channelId,
+    );
+
+    return filteredGames;
+  }
+
   registerListners(): void {
     this.eventEmitter.on('timerEnd', async () => await this.handleTimerEnd());
     this.eventEmitter.on('phaseSwitched', () => this.handlePhaseSwitched());

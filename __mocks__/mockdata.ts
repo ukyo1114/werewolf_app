@@ -19,7 +19,7 @@ export const mockUsers: IUser[] = [
   { userId: new ObjectId().toString(), userName: 'Jack' },
 ];
 
-export const gamePlayers: Record<string, IPlayer> = {
+export const gamePlayers = (): Record<string, IPlayer> => ({
   villager: {
     userId: 'villager',
     userName: 'villager',
@@ -83,7 +83,7 @@ export const gamePlayers: Record<string, IPlayer> = {
     role: 'immoralist',
     teammates: null,
   },
-};
+});
 
 export const channelUsers = () => ({
   normal: new ChannelUserManager({

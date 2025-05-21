@@ -1,8 +1,8 @@
 import { Socket } from 'socket.io';
-import User from '../models/userModel';
-import ChannelUser from '../models/channelUserModel';
-import GameUser from '../models/gameUserModel';
-import { isUserPlayingGame } from '../utils/gameUtils';
+import User from '../models/User';
+import ChannelUser from '../models/ChannelUser';
+import GameUser from '../models/GameUser';
+import GameManager from '../classes/GameManager';
 import { decodeToken } from '../utils/decodeToken';
 
 export const authSocketUser = async (
@@ -18,7 +18,7 @@ export const authSocketUser = async (
     if (!userId) return errorHandler(socket);
 
     // プレイ中のゲームがあるかどうかチェック
-    const currentGameId = isUserPlayingGame(userId);
+    const currentGameId = GameManager.isUserPlayingGame(userId);
     if (currentGameId && currentGameId !== channelId) {
       return errorHandler(socket, currentGameId);
     }
@@ -47,7 +47,7 @@ const validateUserInChannelOrGame = async (
   return Boolean(userExists && (inChannel || inGame));
 };
 
-const errorHandler = (socket: Socket, gameId?: string): void => {
+const errorHandler = (socket: Socket, gameId: string | null = null): void => {
   socket.emit('authError', gameId);
   socket.disconnect();
 };
