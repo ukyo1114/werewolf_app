@@ -1,71 +1,91 @@
-import { gameManagers } from '../../jest.setup';
-import GameManager from '../../src/classes/GameManager';
-import { mockChannelId, mockGameId, mockUsers } from '../../__mocks__/mockdata';
+jest.mock('../../src/app', () => ({
+  appState: {
+    channelManagers: {},
+  },
+}));
+
+import PlayerManager from '../../src/classes/PlayerManager';
+import PhaseManager from '../../src/classes/PhaseManager';
+import MediumManager from '../../src/classes/MediumManager';
+import { mockGameId, mockUsers } from '../../__mocks__/mockdata';
 import { gamePlayers } from '../../__mocks__/mockdata';
+import { EventEmitter } from 'events';
 
 describe('test MediumManager', () => {
-  beforeAll(() => {
-    gameManagers[mockGameId] = new GameManager(
-      mockChannelId,
-      mockGameId,
-      mockUsers,
-    );
-    gameManagers[mockGameId].sendMessage = jest.fn();
+  const phaseManager = new PhaseManager(new EventEmitter(), {
+    value: 'running',
   });
+  const playerManager = new PlayerManager(mockGameId, mockUsers);
+  const mediumManager = new MediumManager(phaseManager, playerManager);
 
   beforeEach(() => {
-    const game = gameManagers[mockGameId];
-    game.playerManager.players = structuredClone(gamePlayers);
+    playerManager.players = gamePlayers();
   });
 
   afterAll(() => {
-    const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
+    const timerId = phaseManager.timerId;
     if (timerId) clearTimeout(timerId);
-
-    delete gameManagers[mockGameId];
     jest.restoreAllMocks();
   });
 
   describe('medium', () => {
+    const getLivingPlayersSpy = jest.spyOn(playerManager, 'getLivingPlayers');
+
+    beforeEach(() => {
+      getLivingPlayersSpy.mockClear();
+    });
+
     it('正しい霊能結果が保存される', () => {
-      const game = gameManagers[mockGameId];
+      mediumManager.medium('villager');
+      expect(mediumManager.mediumResult[0].villager).toBe('villagers');
 
-      game.mediumManager.medium('villager');
-      expect(game.mediumManager.mediumResult[0].villager).toBe('villagers');
-
-      game.mediumManager.medium('werewolf');
-      expect(game.mediumManager.mediumResult[0].werewolf).toBe('werewolves');
+      mediumManager.medium('werewolf');
+      expect(mediumManager.mediumResult[0].werewolf).toBe('werewolves');
+      expect(getLivingPlayersSpy).toHaveBeenCalledWith('medium');
     });
 
     it('霊能力者が死亡しているとき', () => {
-      const game = gameManagers[mockGameId];
-      game.mediumManager.mediumResult = {};
-      game.playerManager.players.medium.status === 'dead';
+      mediumManager.mediumResult = {};
+      playerManager.players.medium.status = 'dead';
 
-      game.mediumManager.medium('villager');
-      expect(game.mediumManager.mediumResult).not.toHaveProperty('villager');
+      mediumManager.medium('villager');
+      expect(mediumManager.mediumResult).not.toHaveProperty('villager');
+      expect(getLivingPlayersSpy).toHaveBeenCalledWith('medium');
     });
   });
 
   describe('getMediumResult', () => {
-    it('霊能履歴を取得できる', () => {
-      const game = gameManagers[mockGameId];
-      game.mediumManager.mediumResult = { 0: { villager: 'villagers' } };
+    const validatePlayerByRoleSpy = jest.spyOn(
+      playerManager,
+      'validatePlayerByRole',
+    );
 
-      const mediumResult = game.mediumManager.getMediumResult('medium');
+    beforeEach(() => {
+      validatePlayerByRoleSpy.mockClear();
+    });
+
+    it('霊能履歴を取得できる', () => {
+      mediumManager.mediumResult = { 0: { villager: 'villagers' } };
+
+      const mediumResult = mediumManager.getMediumResult('medium');
       expect(mediumResult).toEqual({ 0: { villager: 'villagers' } });
+      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith('medium', 'medium');
     });
 
     it('プレイヤーが霊能でないときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-
-      expect(() => game.mediumManager.getMediumResult('villager')).toThrow();
+      expect(() => mediumManager.getMediumResult('villager')).toThrow();
+      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
+        'villager',
+        'medium',
+      );
     });
 
     it('プレイヤーが存在しないときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-
-      expect(() => game.mediumManager.getMediumResult('notExist')).toThrow();
+      expect(() => mediumManager.getMediumResult('notExist')).toThrow();
+      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
+        'notExist',
+        'medium',
+      );
     });
   });
 });

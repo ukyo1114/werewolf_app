@@ -24,9 +24,7 @@ export default class MediumManager {
   }
 
   getMediumResult(userId: string): MediumResult {
-    const player = this.playerManager.players[userId];
-    if (!player || player.role !== 'medium') throw new Error();
-
+    this.playerManager.validatePlayerByRole(userId, 'medium');
     return this.mediumResult;
   }
 }
