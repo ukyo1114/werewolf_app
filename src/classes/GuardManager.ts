@@ -46,9 +46,7 @@ export default class GuardManager {
   }
 
   getGuardHistory(userId: string): GuardHistory {
-    const player = this.playerManager.players[userId];
-    if (!player || player.role !== 'hunter') throw new Error();
-
+    this.playerManager.validatePlayerByRole(userId, 'hunter');
     return this.guardHistory;
   }
 }

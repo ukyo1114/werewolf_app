@@ -58,9 +58,7 @@ export default class DevineManager {
   }
 
   getDevineResult(userId: string): DevineResult {
-    const player = this.playerManager.players[userId];
-    if (!player || player.role !== 'seer') throw new Error();
-
+    this.playerManager.validatePlayerByRole(userId, 'seer');
     return this.devineResult;
   }
 }

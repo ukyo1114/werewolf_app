@@ -25,7 +25,6 @@ describe('test DevineManager', () => {
   afterAll(() => {
     const timerId = phaseManager.timerId;
     if (timerId) clearTimeout(timerId);
-
     jest.restoreAllMocks();
   });
 
@@ -98,10 +97,17 @@ describe('test DevineManager', () => {
   });
 
   describe('decideDevineTarget', () => {
+    const getRandomTargetSpy = jest.spyOn(playerManager, 'getRandomTarget');
+
+    beforeEach(() => {
+      getRandomTargetSpy.mockClear();
+    });
+
     it('リクエストが存在するとき', () => {
       devineManager.devineRequest = 'testRequest';
       const devineTarget = devineManager.decideDevineTarget();
       expect(devineTarget).toBe('testRequest');
+      expect(getRandomTargetSpy).not.toHaveBeenCalled();
     });
 
     it('リクエストが存在しないとき', () => {
@@ -109,10 +115,22 @@ describe('test DevineManager', () => {
 
       const devineTarget = devineManager.decideDevineTarget();
       expect(devineTarget).toBeDefined();
+      expect(getRandomTargetSpy).toHaveBeenCalled();
     });
   });
 
   describe('devine', () => {
+    const getLivingPlayersSpy = jest.spyOn(playerManager, 'getLivingPlayers');
+    const decideDevineTargetSpy = jest.spyOn(
+      devineManager,
+      'decideDevineTarget',
+    );
+
+    beforeEach(() => {
+      getLivingPlayersSpy.mockClear();
+      decideDevineTargetSpy.mockClear();
+    });
+
     it('占いが行われる', () => {
       devineManager.devineRequest = 'villager';
 
@@ -121,6 +139,8 @@ describe('test DevineManager', () => {
       expect(devineManager.devineResult[0]).toEqual({
         villager: 'villagers',
       });
+      expect(getLivingPlayersSpy).toHaveBeenCalledWith('seer');
+      expect(decideDevineTargetSpy).toHaveBeenCalled();
     });
 
     it('妖狐を占ったとき', () => {
@@ -131,6 +151,8 @@ describe('test DevineManager', () => {
       expect(devineManager.devineResult[0]).toEqual({
         fox: 'villagers',
       });
+      expect(getLivingPlayersSpy).toHaveBeenCalledWith('seer');
+      expect(decideDevineTargetSpy).toHaveBeenCalled();
     });
 
     it('占い師が死亡しているとき', () => {
@@ -141,10 +163,21 @@ describe('test DevineManager', () => {
       expect(devineManager.devine()).toBe(false);
       expect(devineManager.devineRequest).toBe(null);
       expect(devineManager.devineResult).not.toHaveProperty('0');
+      expect(getLivingPlayersSpy).toHaveBeenCalledWith('seer');
+      expect(decideDevineTargetSpy).not.toHaveBeenCalled();
     });
   });
 
   describe('getDevineResult', () => {
+    const validatePlayerByRoleSpy = jest.spyOn(
+      playerManager,
+      'validatePlayerByRole',
+    );
+
+    beforeEach(() => {
+      validatePlayerByRoleSpy.mockClear();
+    });
+
     it('占い結果が正しい形式で返されること', () => {
       devineManager.devineResult = { 0: { villager: 'villagers' } };
 
@@ -152,14 +185,17 @@ describe('test DevineManager', () => {
       expect(devineResult).toEqual({
         0: { villager: 'villagers' },
       });
+      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith('seer', 'seer');
     });
 
     it('プレイヤーが占いでないときエラーを返す', () => {
       expect(() => devineManager.getDevineResult('villager')).toThrow();
+      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith('villager', 'seer');
     });
 
     it('プレイヤーが存在しないときエラーを返す', () => {
       expect(() => devineManager.getDevineResult('notExist')).toThrow();
+      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith('notExist', 'seer');
     });
   });
 });
