@@ -12,7 +12,6 @@ import { mockGameId, mockUserId, mockUsers } from '../../__mocks__/mockdata';
 import PlayerManager from '../../src/classes/PlayerManager';
 import { gamePlayers, mockChannelUser } from '../../__mocks__/mockdata';
 import { Role } from '../../src/config/types';
-import { before } from 'lodash';
 
 describe('test PlayserManager', () => {
   const { channelManagers } = appState;
@@ -49,13 +48,22 @@ describe('test PlayserManager', () => {
 
   it('test setTeammates', () => {
     playerManager.players = gamePlayers();
-
     playerManager.setTeammates();
+
     Object.values(playerManager.players).forEach((player) => {
       const role = player.role;
-      const teammates = teammateMapping[role];
 
-      expect(player.teammates).toEqual(teammates ? [teammates] : null);
+      if (role === 'werewolf') {
+        expect(player.teammates).toEqual(['werewolf', 'werewolf2']);
+      } else if (role === 'freemason') {
+        expect(player.teammates).toEqual(['freemason']);
+      } else if (role === 'immoralist') {
+        expect(player.teammates).toEqual(['fox']);
+      } else if (role === 'fanatic') {
+        expect(player.teammates).toEqual(['werewolf', 'werewolf2']);
+      } else {
+        expect(player.teammates).toBeNull();
+      }
     });
   });
 
@@ -136,7 +144,7 @@ describe('test PlayserManager', () => {
     it('フィルターを指定した場合', () => {
       const livingPlayers = playerManager.getLivingPlayers('werewolf');
 
-      expect(livingPlayers.length).toBe(1);
+      expect(livingPlayers.length).toBe(2);
     });
 
     it('特定の役職の生存プレイヤーを取得できる', () => {
@@ -376,6 +384,55 @@ describe('test PlayserManager', () => {
       // 各プレイヤーの選択回数が期待値から大きく外れていないことを確認
       Object.values(selectionCount).forEach((count) => {
         expect(Math.abs(count - expectedCount)).toBeLessThan(allowedDeviation);
+      });
+    });
+  });
+
+  describe('test validatePlayerByRole', () => {
+    beforeEach(() => {
+      playerManager.players = gamePlayers();
+    });
+
+    it('存在するプレイヤーで正しい役職の場合、エラーを投げない', () => {
+      expect(() => {
+        playerManager.validatePlayerByRole('villager', 'villager');
+      }).not.toThrow();
+    });
+
+    it('存在しないプレイヤーの場合、エラーを投げる', () => {
+      expect(() => {
+        playerManager.validatePlayerByRole('notExist', 'villager');
+      }).toThrow();
+    });
+
+    it('役職が一致しない場合、エラーを投げる', () => {
+      expect(() => {
+        playerManager.validatePlayerByRole('villager', 'werewolf');
+      }).toThrow();
+    });
+
+    it('全ての役職で正しく動作する', () => {
+      const roles: Role[] = [
+        'villager',
+        'seer',
+        'medium',
+        'hunter',
+        'werewolf',
+        'freemason',
+        'fanatic',
+        'fox',
+        'immoralist',
+      ];
+
+      roles.forEach((role) => {
+        const playerId = Object.entries(playerManager.players).find(
+          ([_, player]) => player.role === role,
+        )?.[0];
+        if (playerId) {
+          expect(() => {
+            playerManager.validatePlayerByRole(playerId, role);
+          }).not.toThrow();
+        }
       });
     });
   });
