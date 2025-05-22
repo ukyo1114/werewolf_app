@@ -6,6 +6,7 @@ import { appState } from '../app';
 import Channel from '../models/Channel';
 import Game from '../models/Game';
 import { errors } from '../config/messages';
+
 const { channelManagers, gameManagers } = appState;
 
 export default class ChannelManager {
@@ -82,7 +83,7 @@ export default class ChannelManager {
       return 'freemason';
     }
 
-    throw new Error('メッセージの送信が許可されていません');
+    throw new Error(errors.MESSAGE_SENDING_FORBIDDEN);
   }
 
   getMessageReceivers(messageType: MessageType): string[] | null {
@@ -106,7 +107,7 @@ export default class ChannelManager {
       .map((user) => user.socketId);
   }
 
-  getReceiveMessageType(userId: string): { $in: MessageType[] } | null {
+  getReceiveMessageType(userId: string): MessageType[] | null {
     this.checkCanUserAccessChannel(userId);
     const user = this.users[userId];
 
@@ -115,12 +116,12 @@ export default class ChannelManager {
     const { currentPhase } = game.phaseManager;
 
     if (currentPhase === 'finished' || user.status === 'spectator') return null;
-    if (user.status === 'normal') return { $in: ['normal'] };
-    if (user.status === 'freemason') return { $in: ['normal', 'freemason'] };
-    return { $in: ['normal', 'werewolf'] };
+    if (user.status === 'normal') return ['normal'];
+    if (user.status === 'freemason') return ['normal', 'freemason'];
+    return ['normal', 'werewolf'];
   }
 
   checkCanUserAccessChannel(userId: string) {
-    if (!this.users[userId]) throw new Error('チャンネルにアクセスできません');
+    if (!this.users[userId]) throw new Error(errors.CHANNEL_ACCESS_FORBIDDEN);
   }
 }

@@ -80,7 +80,7 @@ export default class PlayerManager {
     );
   }
 
-  getPlayersInfo(withRole: boolean = false): Record<string, IPlayerState> {
+  getPlayersInfo(withRole: boolean): Record<string, IPlayerState> {
     const players = _.mapValues(this.players, (user) =>
       withRole
         ? _.omit(user, ['userName', 'teammates'])
@@ -104,5 +104,10 @@ export default class PlayerManager {
     if (!target) throw new Error();
 
     return target;
+  }
+
+  validatePlayerByRole(userId: string, role: Role): void {
+    const player = this.players[userId];
+    if (!player || player.role !== role) throw new Error();
   }
 }

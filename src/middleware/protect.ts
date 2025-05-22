@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import asyncHandler from 'express-async-handler';
 
-import User from '../models/userModel';
+import User from '../models/User';
 import AppError from '../utils/AppError';
 import { errors } from '../config/messages';
 import { decodeToken } from '../utils/decodeToken';

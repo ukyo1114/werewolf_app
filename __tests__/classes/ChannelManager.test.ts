@@ -1,4 +1,10 @@
-import { channelManagers } from '../../jest.setup';
+jest.mock('../../src/app', () => ({
+  appState: {
+    channelManagers: {},
+  },
+}));
+
+import { appState } from '../../src/app';
 import GameManager from '../../src/classes/GameManager';
 import ChannelManager from '../../src/classes/ChannelManager';
 import {
@@ -6,26 +12,28 @@ import {
   mockChannelId,
   mockGameId,
   mockUsers,
+  gamePlayers,
+  channelUsers,
 } from '../../__mocks__/mockdata';
-import { gamePlayers, channelUsers } from '../../__mocks__/mockdata';
-
-const mockSocketId = 'mockSocketId';
-let gameManager: GameManager;
-
-beforeAll(async () => {
-  gameManager = new GameManager(mockChannelId, mockGameId, mockUsers);
-  gameManager.sendMessage = jest.fn();
-  gameManager.playerManager.players = gamePlayers;
-});
-
-afterAll(() => {
-  const timerId = gameManager.phaseManager.timerId;
-  if (timerId) clearTimeout(timerId);
-
-  jest.restoreAllMocks();
-});
 
 describe('test ChannelManager', () => {
+  const { channelManagers } = appState;
+  const mockSocketId = 'mockSocketId';
+  let gameManager: GameManager;
+
+  beforeAll(async () => {
+    gameManager = new GameManager(mockChannelId, mockGameId, mockUsers);
+    gameManager.sendMessage = jest.fn();
+    gameManager.playerManager.players = gamePlayers();
+  });
+
+  afterAll(() => {
+    const timerId = gameManager.phaseManager.timerId;
+    if (timerId) clearTimeout(timerId);
+
+    jest.restoreAllMocks();
+  });
+
   describe('constructor', () => {
     it('通常のチャンネルで正しく初期化されること', () => {
       const channel = new ChannelManager(mockChannelId);
@@ -250,12 +258,12 @@ describe('test ChannelManager', () => {
 
     it('ユーザーがnormal', () => {
       const receiveMessageType = channel.getReceiveMessageType('normal');
-      expect(receiveMessageType).toEqual({ $in: ['normal'] });
+      expect(receiveMessageType).toEqual(['normal']);
     });
 
     it('ユーザーが人狼', () => {
       const receiveMessageType = channel.getReceiveMessageType('werewolf');
-      expect(receiveMessageType).toEqual({ $in: ['normal', 'werewolf'] });
+      expect(receiveMessageType).toEqual(['normal', 'werewolf']);
     });
 
     it('ゲームが終了しているとき', () => {

@@ -55,8 +55,8 @@ export default class AttackManager {
     if (role === 'fox') return null;
 
     // 護衛判定
-    const hunter = this.playerManager.findPlayerByRole('hunter');
-    if (hunter && hunter.status === 'alive') {
+    const hunter = this.playerManager.getLivingPlayers('hunter');
+    if (hunter.length > 0) {
       const guardResult = this.guardManager.guard(attackTargetId);
       if (guardResult) return null;
     }
@@ -67,9 +67,7 @@ export default class AttackManager {
   }
 
   getAttackHistory(userId: string): AttackHistory {
-    const player = this.playerManager.players[userId];
-    if (!player || player.role !== 'werewolf') throw new Error();
-
+    this.playerManager.validatePlayerByRole(userId, 'werewolf');
     return this.attackHistory;
   }
 }

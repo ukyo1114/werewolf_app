@@ -1,210 +1,327 @@
-import { gameManagers } from '../../jest.setup';
-import GameManager from '../../src/classes/GameManager';
-import { mockChannelId, mockGameId, mockUsers } from '../../__mocks__/mockdata';
+jest.mock('../../src/app', () => ({
+  appState: {
+    channelManagers: {},
+  },
+}));
+
+import PlayerManager from '../../src/classes/PlayerManager';
+import PhaseManager from '../../src/classes/PhaseManager';
+import GuardManager from '../../src/classes/GuardManager';
+import AttackManager from '../../src/classes/AttackManager';
+import { mockGameId, mockUsers } from '../../__mocks__/mockdata';
 import { gamePlayers } from '../../__mocks__/mockdata';
+import { EventEmitter } from 'events';
 
 describe('test AttackManager', () => {
-  beforeAll(() => {
-    gameManagers[mockGameId] = new GameManager(
-      mockChannelId,
-      mockGameId,
-      mockUsers,
-    );
-    gameManagers[mockGameId].sendMessage = jest.fn();
+  const phaseManager = new PhaseManager(new EventEmitter(), {
+    value: 'running',
   });
+  const playerManager = new PlayerManager(mockGameId, mockUsers);
+  const guardManager = new GuardManager(phaseManager, playerManager);
+  const attackManager = new AttackManager(
+    phaseManager,
+    playerManager,
+    guardManager,
+  );
 
   beforeEach(() => {
-    const game = gameManagers[mockGameId];
-    game.playerManager.players = structuredClone(gamePlayers);
+    playerManager.players = gamePlayers();
   });
 
   afterAll(() => {
-    const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
+    const timerId = phaseManager.timerId;
     if (timerId) clearTimeout(timerId);
-
-    delete gameManagers[mockGameId];
     jest.restoreAllMocks();
   });
 
-  describe('recieveAttackRequest', () => {
-    it('リクエストが受け付けられる', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'night';
-
-      game.attackManager.receiveAttackRequest('werewolf', 'villager');
-      expect(game.attackManager.attackRequest).toBe('villager');
+  describe('receiveAttackRequest', () => {
+    it('nightフェーズで人狼が生存プレイヤーを襲撃対象として指定できる', () => {
+      phaseManager.currentPhase = 'night';
+      attackManager.receiveAttackRequest('werewolf', 'villager');
+      expect(attackManager.attackRequest).toBe('villager');
     });
 
-    it('nightフェーズでないときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'day';
-
+    it('nightフェーズ以外では襲撃リクエストを受け付けない', () => {
+      phaseManager.currentPhase = 'day';
       expect(() =>
-        game.attackManager.receiveAttackRequest('werewolf', 'villager'),
+        attackManager.receiveAttackRequest('werewolf', 'villager'),
       ).toThrow();
     });
 
-    it('リクエストを送信したプレイヤーが死亡しているときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'night';
-      game.playerManager.players.werewolf.status = 'dead';
-
+    it('死亡した人狼からの襲撃リクエストを受け付けない', () => {
+      phaseManager.currentPhase = 'night';
+      playerManager.players.werewolf.status = 'dead';
       expect(() =>
-        game.attackManager.receiveAttackRequest('werewolf', 'villager'),
+        attackManager.receiveAttackRequest('werewolf', 'villager'),
       ).toThrow();
     });
 
-    it('リクエストを送信したプレイヤーが人狼でないときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'night';
-
+    it('人狼以外の役職からの襲撃リクエストを受け付けない', () => {
+      phaseManager.currentPhase = 'night';
       expect(() =>
-        game.attackManager.receiveAttackRequest('seer', 'villager'),
+        attackManager.receiveAttackRequest('seer', 'villager'),
       ).toThrow();
     });
 
-    it('ターゲットが死亡しているときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'night';
-      game.playerManager.players.villager.status = 'dead';
-
+    it('死亡したプレイヤーを襲撃対象として指定できない', () => {
+      phaseManager.currentPhase = 'night';
+      playerManager.players.villager.status = 'dead';
       expect(() =>
-        game.attackManager.receiveAttackRequest('werewolf', 'villager'),
+        attackManager.receiveAttackRequest('werewolf', 'villager'),
       ).toThrow();
     });
 
-    it('ターゲットが人狼のときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'night';
-
+    it('人狼を襲撃対象として指定できない', () => {
+      phaseManager.currentPhase = 'night';
       expect(() =>
-        game.attackManager.receiveAttackRequest('werewolf', 'werewolf'),
+        attackManager.receiveAttackRequest('werewolf', 'werewolf'),
       ).toThrow();
     });
 
-    it('リクエストを送信したプレイヤーが存在しないときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'night';
-
+    it('存在しないプレイヤーからの襲撃リクエストを受け付けない', () => {
+      phaseManager.currentPhase = 'night';
       expect(() =>
-        game.attackManager.receiveAttackRequest('notExist', 'villager'),
+        attackManager.receiveAttackRequest('notExist', 'villager'),
       ).toThrow();
     });
 
-    it('ターゲットが存在しないときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'night';
-
+    it('存在しないプレイヤーを襲撃対象として指定できない', () => {
+      phaseManager.currentPhase = 'night';
       expect(() =>
-        game.attackManager.receiveAttackRequest('werewolf', 'notExist'),
+        attackManager.receiveAttackRequest('werewolf', 'notExist'),
       ).toThrow();
+    });
+
+    it('同じ人狼からの複数回のリクエストは最新のリクエストで上書きされる', () => {
+      phaseManager.currentPhase = 'night';
+      attackManager.receiveAttackRequest('werewolf', 'villager');
+      attackManager.receiveAttackRequest('werewolf', 'seer');
+      expect(attackManager.attackRequest).toBe('seer');
+    });
+
+    it('異なる人狼からのリクエストは最新のリクエストで上書きされる', () => {
+      phaseManager.currentPhase = 'night';
+      attackManager.receiveAttackRequest('werewolf', 'villager');
+      attackManager.receiveAttackRequest('werewolf2', 'seer');
+      expect(attackManager.attackRequest).toBe('seer');
+    });
+
+    it('preフェーズでは襲撃リクエストを受け付けない', () => {
+      phaseManager.currentPhase = 'pre';
+      expect(() =>
+        attackManager.receiveAttackRequest('werewolf', 'villager'),
+      ).toThrow();
+    });
+
+    it('finishedフェーズでは襲撃リクエストを受け付けない', () => {
+      phaseManager.currentPhase = 'finished';
+      expect(() =>
+        attackManager.receiveAttackRequest('werewolf', 'villager'),
+      ).toThrow();
+    });
+
+    it('狐を襲撃対象として指定できる', () => {
+      phaseManager.currentPhase = 'night';
+      attackManager.receiveAttackRequest('werewolf', 'fox');
+      expect(attackManager.attackRequest).toBe('fox');
+    });
+
+    it('狩人を襲撃対象として指定できる', () => {
+      phaseManager.currentPhase = 'night';
+      attackManager.receiveAttackRequest('werewolf', 'hunter');
+      expect(attackManager.attackRequest).toBe('hunter');
+    });
+
+    it('占い師を襲撃対象として指定できる', () => {
+      phaseManager.currentPhase = 'night';
+      attackManager.receiveAttackRequest('werewolf', 'seer');
+      expect(attackManager.attackRequest).toBe('seer');
     });
   });
 
   describe('decideAttackTarget', () => {
-    it('リクエストが存在するとき', () => {
-      const game = gameManagers[mockGameId];
-      game.attackManager.attackRequest = 'testRequest';
-      const attackRequest = game.attackManager.decideAttackTarget();
-
-      expect(game.attackManager.attackRequest).toBeNull();
+    it('襲撃リクエストが存在する場合、そのリクエストを攻撃対象として決定する', () => {
+      attackManager.attackRequest = 'testRequest';
+      const attackRequest = attackManager.decideAttackTarget();
+      expect(attackManager.attackRequest).toBeNull();
       expect(attackRequest).toBe('testRequest');
     });
 
-    it('リクエストが存在しないとき', () => {
-      const game = gameManagers[mockGameId];
-      game.attackManager.attackRequest = null;
-
-      const attackTarget = game.attackManager.decideAttackTarget();
+    it('襲撃リクエストが存在しない場合、ランダムな攻撃対象を決定する', () => {
+      attackManager.attackRequest = null;
+      const attackTarget = attackManager.decideAttackTarget();
       expect(attackTarget).toBeDefined();
+    });
+
+    it('襲撃リクエストが存在する場合、その日の攻撃履歴に記録される', () => {
+      phaseManager.currentDay = 1;
+      attackManager.attackRequest = 'villager';
+      const attackTarget = attackManager.decideAttackTarget();
+      expect(attackManager.attackHistory[1]).toBe('villager');
+    });
+
+    it('襲撃リクエストが存在しない場合、その日の攻撃履歴にランダムなターゲットが記録される', () => {
+      phaseManager.currentDay = 2;
+      attackManager.attackRequest = null;
+      const attackTarget = attackManager.decideAttackTarget();
+      expect(attackManager.attackHistory[2]).toBeDefined();
+      expect(attackManager.attackHistory[2]).not.toBe('werewolf');
+    });
+
+    it('襲撃リクエストが存在する場合、既存の攻撃履歴は保持される', () => {
+      phaseManager.currentDay = 3;
+      attackManager.attackHistory = { 1: 'villager', 2: 'seer' };
+      attackManager.attackRequest = 'hunter';
+      const attackTarget = attackManager.decideAttackTarget();
+      expect(attackManager.attackHistory).toEqual({
+        1: 'villager',
+        2: 'seer',
+        3: 'hunter',
+      });
+    });
+
+    it('襲撃リクエストが存在しない場合、既存の攻撃履歴は保持される', () => {
+      phaseManager.currentDay = 4;
+      attackManager.attackHistory = { 1: 'villager', 2: 'seer', 3: 'hunter' };
+      attackManager.attackRequest = null;
+      const attackTarget = attackManager.decideAttackTarget();
+      expect(attackManager.attackHistory[1]).toBe('villager');
+      expect(attackManager.attackHistory[2]).toBe('seer');
+      expect(attackManager.attackHistory[3]).toBe('hunter');
+      expect(attackManager.attackHistory[4]).toBeDefined();
+    });
+
+    it('襲撃リクエストが存在する場合、決定後にリクエストはnullにリセットされる', () => {
+      attackManager.attackRequest = 'villager';
+      attackManager.decideAttackTarget();
+      expect(attackManager.attackRequest).toBeNull();
+    });
+
+    it('襲撃リクエストが存在しない場合、決定後もリクエストはnullのままである', () => {
+      attackManager.attackRequest = null;
+      attackManager.decideAttackTarget();
+      expect(attackManager.attackRequest).toBeNull();
+    });
+
+    it('襲撃リクエストが存在する場合、決定された攻撃対象はリクエストと一致する', () => {
+      attackManager.attackRequest = 'villager';
+      const attackTarget = attackManager.decideAttackTarget();
+      expect(attackTarget).toBe('villager');
+    });
+
+    it('襲撃リクエストが存在しない場合、決定された攻撃対象は人狼以外の生存プレイヤーである', () => {
+      attackManager.attackRequest = null;
+      const attackTarget = attackManager.decideAttackTarget();
+      const target = playerManager.players[attackTarget];
+      expect(target).toBeDefined();
+      expect(target.status).toBe('alive');
+      expect(target.role).not.toBe('werewolf');
     });
   });
 
   describe('attack', () => {
-    it('襲撃が行われる', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'night';
+    const guardSpy = jest.spyOn(guardManager, 'guard');
 
-      game.attackManager.attackRequest = 'villager';
-      game.guardManager.guard = jest.fn().mockReturnValue(false);
+    beforeAll(() => {
+      phaseManager.currentDay = 0;
+      attackManager.attackHistory = {};
+    });
 
-      const attackTarget = game.attackManager.attack();
+    beforeEach(() => {
+      guardSpy.mockClear();
+    });
 
+    it('襲撃が成功し、対象プレイヤーが死亡する', () => {
+      guardSpy.mockReturnValueOnce(false);
+      phaseManager.currentPhase = 'night';
+      attackManager.attackRequest = 'villager';
+
+      const attackTarget = attackManager.attack();
       expect(attackTarget).toBe('villager');
-      expect(game.playerManager.players.villager.status).toBe('dead');
-      expect(game.attackManager.attackRequest).toBeNull();
-      expect(game.attackManager.attackHistory).toEqual({ 0: 'villager' });
+      expect(playerManager.players.villager.status).toBe('dead');
+      expect(attackManager.attackRequest).toBeNull();
+      expect(attackManager.attackHistory).toEqual({ 0: 'villager' });
+      expect(guardSpy).toHaveBeenCalledWith('villager');
     });
 
-    it('護衛成功時の処理が正しく行われる', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'night';
+    it('護衛が成功した場合、襲撃は失敗し対象プレイヤーは生存する', () => {
+      guardSpy.mockReturnValueOnce(true);
+      phaseManager.currentPhase = 'night';
+      attackManager.attackRequest = 'villager';
 
-      game.guardManager.guard = jest.fn().mockReturnValue(true);
-
-      game.attackManager.attackRequest = 'villager';
-      const attackTarget = game.attackManager.attack();
-
+      const attackTarget = attackManager.attack();
       expect(attackTarget).toBe(null);
-      expect(game.playerManager.players.villager.status).toBe('alive');
-      expect(game.attackManager.attackRequest).toBeNull();
-      expect(game.attackManager.attackHistory).toEqual({ 0: 'villager' });
+      expect(playerManager.players.villager.status).toBe('alive');
+      expect(attackManager.attackRequest).toBeNull();
+      expect(attackManager.attackHistory).toEqual({ 0: 'villager' });
+      expect(guardSpy).toHaveBeenCalledWith('villager');
     });
 
-    it('襲撃対象が狐だった場合襲撃が失敗する', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'night';
+    it('狐への襲撃は失敗し、対象プレイヤーは生存する', () => {
+      guardSpy.mockReturnValueOnce(false);
+      phaseManager.currentPhase = 'night';
+      attackManager.attackRequest = 'fox';
 
-      game.guardManager.guard = jest.fn().mockReturnValue(false);
-
-      game.attackManager.attackRequest = 'fox';
-      const attackTarget = game.attackManager.attack();
-
+      const attackTarget = attackManager.attack();
       expect(attackTarget).toBe(null);
-      expect(game.playerManager.players.fox.status).toBe('alive');
-      expect(game.attackManager.attackRequest).toBe(null);
-      expect(game.attackManager.attackHistory).toEqual({ 0: 'fox' });
+      expect(playerManager.players.fox.status).toBe('alive');
+      expect(attackManager.attackRequest).toBe(null);
+      expect(attackManager.attackHistory).toEqual({ 0: 'fox' });
+      expect(guardSpy).not.toHaveBeenCalled();
     });
 
-    it('狩人が死亡している場合護衛が実行されない', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'night';
-      game.playerManager.players.hunter.status = 'dead';
+    it('狩人が死亡している場合、護衛は実行されず襲撃は成功する', () => {
+      phaseManager.currentPhase = 'night';
+      playerManager.players.hunter.status = 'dead';
+      attackManager.attackRequest = 'villager';
 
-      game.guardManager.guard = jest.fn().mockReturnValue(true);
-
-      game.attackManager.attackRequest = 'villager';
-      const attackTarget = game.attackManager.attack();
-
+      const attackTarget = attackManager.attack();
       expect(attackTarget).toBe('villager');
-      expect(game.playerManager.players.villager.status).toBe('dead');
-      expect(game.attackManager.attackRequest).toBeNull();
-      expect(game.attackManager.attackHistory).toEqual({ 0: 'villager' });
+      expect(playerManager.players.villager.status).toBe('dead');
+      expect(attackManager.attackRequest).toBeNull();
+      expect(attackManager.attackHistory).toEqual({ 0: 'villager' });
+      expect(guardSpy).not.toHaveBeenCalled();
     });
   });
 
   describe('getAttackHistory', () => {
-    it('襲撃履歴を取得できる', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'day';
+    const validatePlayerByRoleSpy = jest.spyOn(
+      playerManager,
+      'validatePlayerByRole',
+    );
 
-      game.attackManager.attackHistory = { 1: 'villager' };
+    beforeAll(() => {
+      attackManager.attackHistory = { 1: 'villager' };
+    });
 
-      const attackHistory = game.attackManager.getAttackHistory('werewolf');
+    afterEach(() => {
+      validatePlayerByRoleSpy.mockClear();
+    });
+
+    it('人狼は襲撃履歴を取得できる', () => {
+      const attackHistory = attackManager.getAttackHistory('werewolf');
       expect(attackHistory).toEqual({ 1: 'villager' });
+      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
+        'werewolf',
+        'werewolf',
+      );
     });
 
-    it('プレイヤーが人狼でないときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-
-      expect(game.playerManager.players.villager).toBeDefined();
-      expect(() => game.attackManager.getAttackHistory('villager')).toThrow();
+    it('人狼以外の役職は襲撃履歴を取得できない', () => {
+      expect(playerManager.players.villager).toBeDefined();
+      expect(() => attackManager.getAttackHistory('villager')).toThrow();
+      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
+        'villager',
+        'werewolf',
+      );
     });
 
-    it('プレイヤーが存在しないときエラーを返す', () => {
-      const game = gameManagers[mockGameId];
-
-      expect(() => game.attackManager.getAttackHistory('notExist')).toThrow();
+    it('存在しないプレイヤーは襲撃履歴を取得できない', () => {
+      expect(() => attackManager.getAttackHistory('notExist')).toThrow();
+      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
+        'notExist',
+        'werewolf',
+      );
     });
   });
 });

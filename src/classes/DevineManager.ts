@@ -37,15 +37,18 @@ export default class DevineManager {
   }
 
   devine(): boolean {
-    const seer = this.playerManager.findPlayerByRole('seer');
-    if (!seer || seer.status !== 'alive') {
+    // 占い師が死亡しているときは占いを行わない
+    const seer = this.playerManager.getLivingPlayers('seer');
+    if (seer.length === 0) {
       this.devineRequest = null;
       return false;
     }
 
+    // 占いの対象を決める
     const devineTargetId = this.decideDevineTarget();
     const devineTarget = this.playerManager.players[devineTargetId];
 
+    // 占いの結果を記録する
     this.devineResult[this.phaseManager.currentDay] = {
       [devineTargetId]:
         devineTarget.role === 'werewolf' ? 'werewolves' : 'villagers',

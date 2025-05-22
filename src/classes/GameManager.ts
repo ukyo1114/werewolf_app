@@ -11,7 +11,7 @@ import User from '../models/User';
 import Game from '../models/Game';
 import GameUser from '../models/GameUser';
 import { gameMaster } from '../config/messages';
-import { GameResult, IGameState, IUser, IMessage } from '../config/types';
+import { GameResult, IGameState, IUser } from '../config/types';
 import { appState, Events } from '../app';
 
 const { gameManagers } = appState;
@@ -126,8 +126,8 @@ export default class GameManager {
   }
 
   async handleTimerEnd(): Promise<void> {
-    const { currentPhase } = this.phaseManager;
     this.isProcessing = true;
+    const { currentPhase } = this.phaseManager;
 
     if (currentPhase === 'pre') await this.sendMessage(gameMaster.MORNING);
     if (currentPhase === 'day') await this.handleDayPhaseEnd();
@@ -142,9 +142,24 @@ export default class GameManager {
     if (this.result.value === 'villageAbandoned') return;
 
     await this.judgement();
+
     if (this.result.value === 'running') {
       await this.sendMessage(gameMaster.NIGHT);
     }
+  }
+
+  async execution(): Promise<void> {
+    const executionTargetId = this.voteManager.getExecutionTarget();
+    if (!executionTargetId) return await this.villageAbandoned();
+
+    // 処刑を行いメッセージを送信
+    const executionTarget = this.playerManager.players[executionTargetId];
+    this.playerManager.kill(executionTargetId);
+    await this.sendMessage(gameMaster.EXECUTION(executionTarget.userName));
+
+    if (executionTarget.role === 'fox') this.suicide();
+
+    this.mediumManager.medium(executionTargetId);
   }
 
   async handleNightPhaseEnd(): Promise<void> {
@@ -166,11 +181,22 @@ export default class GameManager {
   }
 
   curse(): string {
-    const { userId, userName } = this.playerManager.findPlayerByRole('fox');
-    this.playerManager.kill(userId);
-    this.killImmoralists();
+    const fox = this.playerManager.getLivingPlayers('fox')[0];
+    this.playerManager.kill(fox.userId);
 
-    return userName;
+    this.suicide();
+
+    return fox.userName;
+  }
+
+  suicide(): void {
+    const immoralists = this.playerManager.getLivingPlayers('immoralist');
+    if (immoralists.length > 0) {
+      immoralists.forEach((immor) => this.playerManager.kill(immor.userId));
+      this.sendMessage(
+        gameMaster.KILL_IMMORALIST(immoralists.map((user) => user.userName)),
+      );
+    }
   }
 
   async handleGameEnd(): Promise<void> {
@@ -184,37 +210,9 @@ export default class GameManager {
     }
   }
 
-  async execution(): Promise<void> {
-    const executionTargetId = this.voteManager.getExecutionTarget();
-    if (!executionTargetId) return await this.villageAbandoned();
-
-    // 処刑を行いメッセージを送信
-    const executionTarget = this.playerManager.players[executionTargetId];
-    this.playerManager.kill(executionTargetId);
-    await this.sendMessage(gameMaster.EXECUTION(executionTarget.userName));
-
-    if (executionTarget.role === 'fox') this.killImmoralists();
-
-    this.mediumManager.medium(executionTargetId);
-  }
-
   async villageAbandoned(): Promise<void> {
     this.result.value = 'villageAbandoned';
     await this.sendMessage(gameMaster.VILLAGE_ABANDONED);
-  }
-
-  killImmoralists(): void {
-    const immoralists = this.playerManager.getImmoralists();
-    if (immoralists.length === 0) return;
-
-    immoralists.forEach((immmoralist) => {
-      const userId = immmoralist.userId;
-      this.playerManager.kill(userId);
-    });
-
-    this.sendMessage(
-      gameMaster.KILL_IMMORALIST(immoralists.map((user) => user.userName)),
-    );
   }
 
   async judgement(): Promise<void> {
@@ -240,11 +238,6 @@ export default class GameManager {
   }
 
   async sendMessage(message: string): Promise<void> {
-    const newMessage = await this.createMessage(message);
-    channelEvents.emit('newMessage', newMessage);
-  }
-
-  async createMessage(message: string): Promise<IMessage> {
     const newMessage = await Message.create({
       channelId: this.gameId,
       userId: '672626acf66b851cf141bd0f', // GMのid
@@ -252,7 +245,7 @@ export default class GameManager {
       messageType: 'normal',
     });
 
-    return newMessage;
+    channelEvents.emit('newMessage', newMessage);
   }
 
   handlePhaseSwitched(): void {
@@ -271,9 +264,9 @@ export default class GameManager {
     const gameState: IGameState = { gameId: this.gameId, phase, users: {} };
 
     if (currentPhase === 'finished') {
-      gameState.users = this.playerManager.getPlayersWithRole();
+      gameState.users = this.playerManager.getPlayersInfo(true);
     } else {
-      gameState.users = this.playerManager.getPlayersWithoutRole();
+      gameState.users = this.playerManager.getPlayersInfo(false);
     }
 
     return gameState;

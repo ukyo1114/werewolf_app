@@ -62,6 +62,13 @@ export const gamePlayers = (): Record<string, IPlayer> => ({
     role: 'werewolf',
     teammates: null,
   },
+  werewolf2: {
+    userId: 'werewolf2',
+    userName: 'werewof2',
+    status: 'alive',
+    role: 'werewolf',
+    teammates: null,
+  },
   fanatic: {
     userId: 'fanatic',
     userName: 'fanatic',

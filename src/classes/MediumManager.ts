@@ -14,8 +14,8 @@ export default class MediumManager {
 
   medium(targetId: string): void {
     const { currentDay } = this.phaseManager;
-    const medium = this.playerManager.findPlayerByRole('medium');
-    if (!medium || medium.status !== 'alive') return;
+    const medium = this.playerManager.getLivingPlayers('medium');
+    if (medium.length === 0) return;
 
     const target = this.playerManager.players[targetId];
     this.mediumResult[currentDay] = {
