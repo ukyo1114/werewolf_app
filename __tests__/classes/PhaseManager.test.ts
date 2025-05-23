@@ -2,11 +2,10 @@ import { EventEmitter } from 'events';
 import PhaseManager from '../../src/classes/PhaseManager';
 import { IGameResult } from '../../src/config/types';
 
-const startTimerSpy = jest.spyOn(PhaseManager.prototype, 'startTimer');
-const nextPhaseSpy = jest.spyOn(PhaseManager.prototype, 'nextPhase');
-const consoleErrorSpy = jest.spyOn(console, 'error');
-
 describe('test PhaseManager', () => {
+  const startTimerSpy = jest.spyOn(PhaseManager.prototype, 'startTimer');
+  const nextPhaseSpy = jest.spyOn(PhaseManager.prototype, 'nextPhase');
+
   const result: IGameResult = { value: 'running' };
   let phaseManager: PhaseManager;
 
