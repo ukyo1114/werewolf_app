@@ -94,7 +94,7 @@ describe('test PlayserManager', () => {
       playerManager.setTeammates();
     });
 
-    it('観戦者の場合', () => {
+    it('should return spectator state for non-registered users', () => {
       const userId = 'notRegistered';
       const playerState = playerManager.getPlayerState(userId);
 
@@ -105,7 +105,7 @@ describe('test PlayserManager', () => {
       });
     });
 
-    it('参加プレイヤーの場合', () => {
+    it('should return correct state for registered players', () => {
       Object.values(gamePlayers).forEach((player) => {
         const userId = player.userId;
         const role = player.role;
@@ -126,7 +126,7 @@ describe('test PlayserManager', () => {
       playerManager.setTeammates();
     });
 
-    it('フィルターを指定しない場合', () => {
+    it('should return all living players when no filter is specified', () => {
       const livingPlayers = playerManager.getLivingPlayers();
 
       livingPlayers.forEach((player) => {
@@ -141,13 +141,13 @@ describe('test PlayserManager', () => {
       expect(noLivingPlayers.length).toBe(0);
     });
 
-    it('フィルターを指定した場合', () => {
+    it('should filter players by specified role', () => {
       const livingPlayers = playerManager.getLivingPlayers('werewolf');
 
       expect(livingPlayers.length).toBe(2);
     });
 
-    it('特定の役職の生存プレイヤーを取得できる', () => {
+    it('should return living players of specific roles', () => {
       const roles: Role[] = [
         'villager',
         'seer',
@@ -165,12 +165,12 @@ describe('test PlayserManager', () => {
       });
     });
 
-    it('存在しない役職でフィルターした場合は空配列を返す', () => {
+    it('should return empty array for non-existent role', () => {
       const players = playerManager.getLivingPlayers('madman' as Role);
       expect(players).toEqual([]);
     });
 
-    it('一部のプレイヤーが死亡した場合、正しくフィルターされる', () => {
+    it('should correctly filter when some players are dead', () => {
       const targetUserId = Object.keys(playerManager.players)[0];
       playerManager.players[targetUserId].status = 'dead';
 
@@ -183,7 +183,7 @@ describe('test PlayserManager', () => {
       ).toBeUndefined();
     });
 
-    it('特定の役職のプレイヤーが全員死亡した場合、空配列を返す', () => {
+    it('should return empty array when all players of a role are dead', () => {
       const targetRole = 'werewolf';
       Object.values(playerManager.players).forEach((player) => {
         if (player.role === targetRole) {
@@ -195,13 +195,13 @@ describe('test PlayserManager', () => {
       expect(players).toEqual([]);
     });
 
-    it('プレイヤーが存在しない場合、空配列を返す', () => {
+    it('should return empty array when no players exist', () => {
       playerManager.players = {};
       const players = playerManager.getLivingPlayers();
       expect(players).toEqual([]);
     });
 
-    it('返されるプレイヤーオブジェクトの構造が正しい', () => {
+    it('should return player objects with correct structure', () => {
       const livingPlayers = playerManager.getLivingPlayers();
 
       livingPlayers.forEach((player) => {
@@ -220,7 +220,7 @@ describe('test PlayserManager', () => {
       playerManager.setTeammates();
     });
 
-    it('ロールを含む場合', () => {
+    it('should include role information when requested', () => {
       const playersInfo = playerManager.getPlayersInfo(true);
       Object.values(playersInfo).forEach((player) => {
         expect(player).toHaveProperty('userId');
@@ -231,7 +231,7 @@ describe('test PlayserManager', () => {
       });
     });
 
-    it('ロールを含まない場合', () => {
+    it('should exclude role information when not requested', () => {
       const playersInfo = playerManager.getPlayersInfo(false);
       Object.values(playersInfo).forEach((player) => {
         expect(player).toHaveProperty('userId');
@@ -242,13 +242,13 @@ describe('test PlayserManager', () => {
       });
     });
 
-    it('プレイヤーが存在しない場合、空オブジェクトを返す', () => {
+    it('should return empty object when no players exist', () => {
       playerManager.players = {};
       const playersInfo = playerManager.getPlayersInfo(true);
       expect(playersInfo).toEqual({});
     });
 
-    it('ロールを含む場合、全てのプレイヤーにロールが設定されている', () => {
+    it('should set role for all players when including roles', () => {
       const playersInfo = playerManager.getPlayersInfo(true);
       Object.values(playersInfo).forEach((player) => {
         expect(player.role).toBeDefined();
@@ -256,28 +256,28 @@ describe('test PlayserManager', () => {
       });
     });
 
-    it('ロールを含まない場合、プレイヤー数が正しい', () => {
+    it('should return correct number of players when excluding roles', () => {
       const playersInfo = playerManager.getPlayersInfo(false);
       expect(Object.keys(playersInfo).length).toBe(
         Object.keys(playerManager.players).length,
       );
     });
 
-    it('ロールを含む場合、プレイヤー数が正しい', () => {
+    it('should return correct number of players when including roles', () => {
       const playersInfo = playerManager.getPlayersInfo(true);
       expect(Object.keys(playersInfo).length).toBe(
         Object.keys(playerManager.players).length,
       );
     });
 
-    it('返されるオブジェクトのキーが正しい', () => {
+    it('should return object with correct player keys', () => {
       const playersInfo = playerManager.getPlayersInfo(true);
       Object.keys(playersInfo).forEach((userId) => {
         expect(playerManager.players[userId]).toBeDefined();
       });
     });
 
-    it('一部のプレイヤーが死亡した場合でも正しく情報を返す', () => {
+    it('should return correct information when some players are dead', () => {
       const targetUserId = Object.keys(playerManager.players)[0];
       playerManager.players[targetUserId].status = 'dead';
 
@@ -285,7 +285,7 @@ describe('test PlayserManager', () => {
       expect(playersInfo[targetUserId].status).toBe('dead');
     });
 
-    it('返されるオブジェクトが元のオブジェクトを変更しない', () => {
+    it('should not modify original player objects', () => {
       const originalPlayers = { ...playerManager.players };
       const playersInfo = playerManager.getPlayersInfo(true);
 
@@ -296,14 +296,14 @@ describe('test PlayserManager', () => {
       expect(playerManager.players).toEqual(originalPlayers);
     });
 
-    it('全てのプレイヤーのステータスが正しく含まれている', () => {
+    it('should include correct status for all players', () => {
       const playersInfo = playerManager.getPlayersInfo(true);
       Object.entries(playersInfo).forEach(([userId, player]) => {
         expect(player.status).toBe(playerManager.players[userId].status);
       });
     });
 
-    it('ロールを含む場合、全てのプレイヤーのロールが正しく含まれている', () => {
+    it('should include correct roles for all players when requested', () => {
       const playersInfo = playerManager.getPlayersInfo(true);
       Object.entries(playersInfo).forEach(([userId, player]) => {
         expect(player.role).toBe(playerManager.players[userId].role);
@@ -316,7 +316,7 @@ describe('test PlayserManager', () => {
       playerManager.players = gamePlayers();
     });
 
-    it('指定された役職のプレイヤーは選択されない', () => {
+    it('should not select players of specified role', () => {
       const targetRole = 'seer';
       const iterations = 1000;
       const selectedTargets = new Set();
@@ -327,17 +327,15 @@ describe('test PlayserManager', () => {
         selectedTargets.add(randomTarget);
       }
 
-      // ランダム性の確認
       expect(selectedTargets.size).toBeGreaterThan(1);
     });
 
-    it('プレイヤーが存在しない場合、エラーを投げる', () => {
+    it('should throw error when no players exist', () => {
       playerManager.players = {};
       expect(() => playerManager.getRandomTarget('seer')).toThrow();
     });
 
-    it('指定された役職のプレイヤーしかいない場合、エラーを投げる', () => {
-      // 全てのプレイヤーを同じ役職に設定
+    it('should throw error when all players have specified role', () => {
       Object.values(playerManager.players).forEach((player) => {
         player.role = 'seer';
       });
@@ -345,14 +343,13 @@ describe('test PlayserManager', () => {
       expect(() => playerManager.getRandomTarget('seer')).toThrow();
     });
 
-    it('返されるターゲットが有効なプレイヤーIDである', () => {
+    it('should return valid player ID', () => {
       const randomTarget = playerManager.getRandomTarget('seer');
       expect(playerManager.players[randomTarget]).toBeDefined();
       expect(typeof randomTarget).toBe('string');
     });
 
-    it('生存プレイヤーの中から選択される', () => {
-      // 一部のプレイヤーを死亡させる
+    it('should select only from living players', () => {
       const targetUserId = Object.keys(playerManager.players)[0];
       playerManager.players[targetUserId].status = 'dead';
 
@@ -363,25 +360,20 @@ describe('test PlayserManager', () => {
       }
     });
 
-    it('選択の分布が偏りすぎていない', () => {
+    it('should maintain reasonable distribution in selection', () => {
       const targetRole = 'seer';
-      const iterations = 1000;
+      const iterations = 10000;
       const selectionCount: { [key: string]: number } = {};
 
-      // 選択回数をカウント
       for (let i = 0; i < iterations; i++) {
         const randomTarget = playerManager.getRandomTarget(targetRole);
         selectionCount[randomTarget] = (selectionCount[randomTarget] || 0) + 1;
       }
 
-      // 選択されたプレイヤーの数
       const selectedPlayers = Object.keys(selectionCount).length;
-      // 期待される選択回数（均等に選択された場合）
       const expectedCount = iterations / selectedPlayers;
-      // 許容される偏差（20%）
       const allowedDeviation = expectedCount * 0.2;
 
-      // 各プレイヤーの選択回数が期待値から大きく外れていないことを確認
       Object.values(selectionCount).forEach((count) => {
         expect(Math.abs(count - expectedCount)).toBeLessThan(allowedDeviation);
       });
@@ -393,25 +385,25 @@ describe('test PlayserManager', () => {
       playerManager.players = gamePlayers();
     });
 
-    it('存在するプレイヤーで正しい役職の場合、エラーを投げない', () => {
+    it('should not throw error for valid player and role', () => {
       expect(() => {
         playerManager.validatePlayerByRole('villager', 'villager');
       }).not.toThrow();
     });
 
-    it('存在しないプレイヤーの場合、エラーを投げる', () => {
+    it('should throw error for non-existent player', () => {
       expect(() => {
         playerManager.validatePlayerByRole('notExist', 'villager');
       }).toThrow();
     });
 
-    it('役職が一致しない場合、エラーを投げる', () => {
+    it('should throw error for mismatched role', () => {
       expect(() => {
         playerManager.validatePlayerByRole('villager', 'werewolf');
       }).toThrow();
     });
 
-    it('全ての役職で正しく動作する', () => {
+    it('should work correctly for all roles', () => {
       const roles: Role[] = [
         'villager',
         'seer',

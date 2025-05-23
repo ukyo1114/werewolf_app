@@ -1,17 +1,20 @@
 import { EventEmitter } from 'events';
 import PhaseManager from '../../src/classes/PhaseManager';
-import { IGameResult } from '../../src/config/types';
 
 describe('test PhaseManager', () => {
+  const registerListnerSpy = jest.spyOn(
+    PhaseManager.prototype,
+    'registerListner',
+  );
   const startTimerSpy = jest.spyOn(PhaseManager.prototype, 'startTimer');
   const nextPhaseSpy = jest.spyOn(PhaseManager.prototype, 'nextPhase');
-
-  const result: IGameResult = { value: 'running' };
   let phaseManager: PhaseManager;
 
   beforeEach(() => {
     jest.useFakeTimers();
-    phaseManager = new PhaseManager(new EventEmitter(), result);
+    phaseManager = new PhaseManager(new EventEmitter(), { value: 'running' });
+    startTimerSpy.mockClear();
+    nextPhaseSpy.mockClear();
   });
 
   afterAll(() => {
@@ -21,27 +24,39 @@ describe('test PhaseManager', () => {
     jest.restoreAllMocks();
   });
 
-  it('正しく初期化されること', () => {
+  it('should initialize correctly', () => {
+    phaseManager = new PhaseManager(new EventEmitter(), { value: 'running' });
+
     expect(phaseManager).toBeInstanceOf(PhaseManager);
     expect(phaseManager.currentDay).toBe(0);
     expect(phaseManager.currentPhase).toBe('pre');
     expect(phaseManager.result).toEqual({ value: 'running' });
     expect(phaseManager.eventEmitter).toBeInstanceOf(EventEmitter);
+    expect(registerListnerSpy).toHaveBeenCalled();
     expect(startTimerSpy).toHaveBeenCalled();
   });
 
-  it('test registerListner', () => {
+  it('should register event listener for process completion', () => {
     const mockOn = jest.spyOn(phaseManager.eventEmitter, 'on');
+    const mockEmit = jest.spyOn(phaseManager.eventEmitter, 'emit');
     phaseManager.registerListner();
 
     expect(mockOn).toHaveBeenCalledWith(
       'processCompleted',
       expect.any(Function),
     );
+
+    phaseManager.eventEmitter.emit('processCompleted');
+
+    expect(nextPhaseSpy).toHaveBeenCalled();
+    expect(mockEmit).toHaveBeenCalledWith('phaseSwitched');
+    expect(startTimerSpy).toHaveBeenCalled();
+
     mockOn.mockRestore();
+    mockEmit.mockRestore();
   });
 
-  it('test startTimer', () => {
+  it('should start timer and emit timerEnd event when time is up', () => {
     const mockEmit = jest.spyOn(phaseManager.eventEmitter, 'emit');
     const msToRun =
       phaseManager.phaseDurations_sec[phaseManager.currentPhase] * 1000;
@@ -52,40 +67,28 @@ describe('test PhaseManager', () => {
     mockEmit.mockRestore();
   });
 
-  it('test nextPhase', () => {
-    // 準備中から昼へ
+  it('should transition through phases correctly', () => {
+    // From preparation to day
     phaseManager.nextPhase();
     expect(phaseManager.currentDay).toBe(1);
     expect(phaseManager.currentPhase).toBe('day');
 
-    // 昼から夜へ
+    // From day to night
     phaseManager.nextPhase();
     expect(phaseManager.currentDay).toBe(1);
     expect(phaseManager.currentPhase).toBe('night');
 
-    // 夜から翌日へ
+    // From night to next day
     phaseManager.nextPhase();
     expect(phaseManager.currentDay).toBe(2);
     expect(phaseManager.currentPhase).toBe('day');
 
-    // ゲームが終了
+    // Game ends
     phaseManager.result.value = 'villagersWin';
     phaseManager.nextPhase();
     expect(phaseManager.currentDay).toBe(2);
     expect(phaseManager.currentPhase).toBe('finished');
 
     expect(() => phaseManager.nextPhase()).toThrow();
-  });
-
-  it('processCompletedイベントを受信して処理を行うこと', () => {
-    const mockEmit = jest.spyOn(phaseManager.eventEmitter, 'emit');
-
-    phaseManager.eventEmitter.emit('processCompleted');
-
-    expect(nextPhaseSpy).toHaveBeenCalled();
-    expect(startTimerSpy).toHaveBeenCalled();
-    expect(mockEmit).toHaveBeenCalledWith('phaseSwitched');
-
-    mockEmit.mockRestore();
   });
 });

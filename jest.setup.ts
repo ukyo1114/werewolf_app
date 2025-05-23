@@ -37,10 +37,6 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  // テスト用データベースを削除
-  if (mongoose.connection.db) {
-    await mongoose.connection.db.dropDatabase();
-  }
   await mongoose.disconnect();
   // io.close();
   // app.close();
