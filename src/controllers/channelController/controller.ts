@@ -16,12 +16,7 @@ export const getChannelList = asyncHandler(
   async (req: CustomRequest, res: Response): Promise<void> => {
     const { userId } = req as { userId: string };
 
-    const channelList = await Channel.find({})
-      .select('-password')
-      .populate('channelAdmin', '_id name pic')
-      .lean();
-    if (channelList.length === 0)
-      throw new AppError(404, errors.CHANNEL_NOT_FOUND);
+    const channelList = await Channel.getChannelList();
 
     const [joinedChannels, blockedChannels] = await Promise.all([
       ChannelUser.find({ userId }).select('channelId').lean(),

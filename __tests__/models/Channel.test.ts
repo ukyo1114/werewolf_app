@@ -1,3 +1,4 @@
+import User from '../../src/models/User';
 import Channel from '../../src/models/Channel';
 import mongoose from 'mongoose';
 
@@ -9,10 +10,21 @@ describe('Channel Model Test', () => {
     if (mongoose.connection.db) {
       await mongoose.connection.db.dropDatabase();
     }
+
+    await User.create({
+      _id: adminId,
+      userName: 'Admin',
+      email: 'admin@example.com',
+      password: 'password',
+    });
   });
 
   afterEach(async () => {
     await Channel.deleteMany({});
+  });
+
+  afterAll(async () => {
+    await User.deleteMany({});
   });
 
   describe('Channel Creation', () => {
@@ -198,6 +210,41 @@ describe('Channel Model Test', () => {
       const invalidUserId = 'invalid-user-id';
       const isAdmin = await Channel.isChannelAdmin(channelId, invalidUserId);
       expect(isAdmin).toBe(false);
+    });
+  });
+
+  describe('test getChannelList', () => {
+    it('should return all channels', async () => {
+      const channels = await Channel.getChannelList();
+      expect(channels.length).toBe(0);
+    });
+
+    it('should return all channels correctly', async () => {
+      const channel = await Channel.create({
+        channelName: 'Test Channel',
+        channelDescription: 'A test channel',
+        channelAdmin: adminId,
+        passwordEnabled: true,
+        password: 'securepass123',
+      });
+      const channelId = channel._id;
+
+      const channels = await Channel.getChannelList();
+      expect(channels[0]).toEqual({
+        _id: channelId,
+        channelName: 'Test Channel',
+        channelDescription: 'A test channel',
+        channelAdmin: {
+          _id: new mongoose.Types.ObjectId(adminId),
+          userName: 'Admin',
+          pic: null,
+        },
+        denyGuests: false,
+        passwordEnabled: true,
+        numberOfPlayers: 10,
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
+      });
     });
   });
 });

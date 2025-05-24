@@ -49,7 +49,7 @@ describe('test ChannelManager', () => {
   });
 
   describe('constructor', () => {
-    it('通常のチャンネルで正しく初期化されること', () => {
+    it('should initialize correctly for normal channel', () => {
       const channel = new ChannelManager(mockChannelId);
 
       expect(channel.channelId).toBe(mockChannelId);
@@ -57,7 +57,7 @@ describe('test ChannelManager', () => {
       expect(channel.game).toBeNull;
     });
 
-    it('ゲーム用チャンネルで正しく初期化されること', () => {
+    it('should initialize correctly for game channel', () => {
       const channel = new ChannelManager(mockGameId, game);
 
       expect(channel.channelId).toBe(mockGameId);
@@ -67,7 +67,7 @@ describe('test ChannelManager', () => {
   });
 
   describe('test userJoined', () => {
-    it('通常のチャンネルでユーザーがチャンネルに参加できる', async () => {
+    it('should allow user to join normal channel', async () => {
       const channel = new ChannelManager(mockChannelId);
       await channel.userJoined(mockUserId, mockSocketId);
 
@@ -77,7 +77,7 @@ describe('test ChannelManager', () => {
       expect(user.status).toBe('normal');
     });
 
-    it('ゲーム用のチャンネルでユーザーがチャンネルに参加できる', async () => {
+    it('should allow user to join game channel', async () => {
       const channel = new ChannelManager(mockGameId, game);
 
       await channel.userJoined('villager', mockSocketId);
@@ -88,7 +88,7 @@ describe('test ChannelManager', () => {
       expect(user.status).toBe('normal');
     });
 
-    it('ユーザーが人狼のとき', async () => {
+    it('should set status to werewolf when user is werewolf', async () => {
       const channel = new ChannelManager(mockGameId, game);
 
       await channel.userJoined('werewolf', mockSocketId);
@@ -99,7 +99,7 @@ describe('test ChannelManager', () => {
       expect(user.status).toBe('werewolf');
     });
 
-    it('ユーザーが死亡しているとき', async () => {
+    it('should set status to spectator when user is dead', async () => {
       const channel = new ChannelManager(mockGameId, game);
       game.playerManager.players.villager.status = 'dead';
 
@@ -111,7 +111,7 @@ describe('test ChannelManager', () => {
       expect(user.status).toBe('spectator');
     });
 
-    it('ユーザーがゲームに参加していないとき', async () => {
+    it('should set status to spectator when user is not in game', async () => {
       const channel = new ChannelManager(mockGameId, game);
 
       await channel.userJoined(mockUserId, mockSocketId);
@@ -124,7 +124,7 @@ describe('test ChannelManager', () => {
   });
 
   describe('test userLeft', () => {
-    it('ユーザーが退出', async () => {
+    it('should remove user when they leave', async () => {
       channelManagers[mockChannelId] = new ChannelManager(mockChannelId);
       const channel = channelManagers[mockChannelId];
       channel.users = channelUsers();
@@ -134,7 +134,7 @@ describe('test ChannelManager', () => {
       expect(channel.users).not.toHaveProperty('normal');
     });
 
-    it('最後のユーザーが退出するとchannelオブジェクトを削除する', () => {
+    it('should delete channel object when last user leaves', () => {
       channelManagers[mockChannelId] = new ChannelManager(mockChannelId);
       const channel = channelManagers[mockChannelId];
       channel.users = channelUsers();
@@ -145,7 +145,7 @@ describe('test ChannelManager', () => {
       expect(channelManagers).not.toHaveProperty('mockChannelId');
     });
 
-    it('存在しないユーザーを削除しようとしてもエラーにならない', () => {
+    it('should not throw error when removing non-existent user', () => {
       channelManagers[mockChannelId] = new ChannelManager(mockChannelId);
       const channel = channelManagers[mockChannelId];
       channel.users = channelUsers();
@@ -155,12 +155,12 @@ describe('test ChannelManager', () => {
   });
 
   describe('test getSendMesageType', () => {
-    it('ユーザーがチャンネルにいない場合エラーを返す', () => {
+    it('should throw error when user is not in channel', () => {
       const channel = new ChannelManager(mockChannelId);
       expect(() => channel.getSendMessageType(mockUserId)).toThrow();
     });
 
-    it('通常のチャンネルのときnormalを返す', () => {
+    it('should return normal for normal channel', () => {
       const channel = new ChannelManager(mockChannelId);
       channel.users = channelUsers();
 
@@ -168,7 +168,7 @@ describe('test ChannelManager', () => {
       expect(sendMessageType).toBe('normal');
     });
 
-    it('finishedフェーズのときnormalを返す', () => {
+    it('should return normal when phase is finished', () => {
       const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
       game.phaseManager.currentPhase = 'finished';
@@ -177,7 +177,7 @@ describe('test ChannelManager', () => {
       expect(sendMessageType).toBe('normal');
     });
 
-    it('ユーザーがspectatorのときspectatorを返す', () => {
+    it('should return spectator for spectator users', () => {
       const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
       game.phaseManager.currentPhase = 'day';
@@ -186,7 +186,7 @@ describe('test ChannelManager', () => {
       expect(sendMessageType).toBe('spectator');
     });
 
-    it('nightフェーズでないときnormalを返す', () => {
+    it('should return normal when not in night phase', () => {
       const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
       game.phaseManager.currentPhase = 'day';
@@ -195,7 +195,7 @@ describe('test ChannelManager', () => {
       expect(sendMessageType).toBe('normal');
     });
 
-    it('nightフェーズのとき人狼にはwerewolfを返す', () => {
+    it('should return werewolf for werewolves during night phase', () => {
       const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
       game.phaseManager.currentPhase = 'night';
@@ -204,7 +204,7 @@ describe('test ChannelManager', () => {
       expect(sendMessageType).toBe('werewolf');
     });
 
-    it('nightフェーズのとき人狼以外にはエラーを返す', () => {
+    it('should throw error for non-werewolves during night phase', () => {
       const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
       game.phaseManager.currentPhase = 'night';
@@ -214,20 +214,20 @@ describe('test ChannelManager', () => {
   });
 
   describe('test checkCanUserAccessChannel', () => {
-    it('チャンネルにユーザーがいないときエラーを返す', () => {
+    it('should throw error when user is not in channel', () => {
       const channel = new ChannelManager(mockChannelId);
       expect(() => channel.checkCanUserAccessChannel('notExist')).toThrow();
     });
   });
 
   describe('test getMessageReceivers', () => {
-    it('メッセージタイプがnormalのときnullを返す', () => {
+    it('should return null for normal message type', () => {
       const channel = new ChannelManager(mockChannelId);
       const messageReceivers = channel.getMessageReceivers('normal');
       expect(messageReceivers).toBe(null);
     });
 
-    it('メッセージタイプがspectatorのとき観戦者を返す', () => {
+    it('should return spectators for spectator message type', () => {
       const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
 
@@ -235,7 +235,7 @@ describe('test ChannelManager', () => {
       expect(messageReceivers).toEqual(['spectator']);
     });
 
-    it('メッセージタイプがwerewolfのとき人狼と観戦者を返す', () => {
+    it('should return werewolves and spectators for werewolf message type', () => {
       const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
 
@@ -252,7 +252,7 @@ describe('test ChannelManager', () => {
       channel.users = channelUsers();
     });
 
-    it('通常のチャンネルのとき', () => {
+    it('should return null for normal channel', () => {
       const normalChanel = new ChannelManager(mockChannelId);
       normalChanel.users = channelUsers();
 
@@ -260,27 +260,27 @@ describe('test ChannelManager', () => {
       expect(receiveMessageType).toBe(null);
     });
 
-    it('ユーザーが見つからないとき', () => {
+    it('should throw error when user is not found', () => {
       const normalChanel = new ChannelManager(mockChannelId);
       expect(() => normalChanel.getReceiveMessageType('notExist')).toThrow();
     });
 
-    it('ユーザーが観戦者', () => {
+    it('should return null for spectator users', () => {
       const receiveMessageType = channel.getReceiveMessageType('spectator');
       expect(receiveMessageType).toBe(null);
     });
 
-    it('ユーザーがnormal', () => {
+    it('should return normal for normal users', () => {
       const receiveMessageType = channel.getReceiveMessageType('normal');
       expect(receiveMessageType).toEqual(['normal']);
     });
 
-    it('ユーザーが人狼', () => {
+    it('should return normal and werewolf for werewolf users', () => {
       const receiveMessageType = channel.getReceiveMessageType('werewolf');
       expect(receiveMessageType).toEqual(['normal', 'werewolf']);
     });
 
-    it('ゲームが終了しているとき', () => {
+    it('should return null when game is finished', () => {
       game.phaseManager.currentPhase = 'finished';
       const receiveMessageType = channel.getReceiveMessageType('normal');
       expect(receiveMessageType).toBe(null);
@@ -293,7 +293,7 @@ describe('test ChannelManager', () => {
       await Game.deleteMany({});
     });
 
-    it('チャンネルが存在するとき', async () => {
+    it('should create instance when channel exists', async () => {
       const channel = await Channel.create({
         channelName: 'test',
         channelDescription: 'test',
@@ -307,7 +307,7 @@ describe('test ChannelManager', () => {
       expect(channelManagers[channelId]).toBe(channelManager);
     });
 
-    it('ゲームが存在するとき', async () => {
+    it('should create instance when game exists', async () => {
       await Game.create({
         _id: mockGameId,
         channelId: mockChannelId,
@@ -319,19 +319,19 @@ describe('test ChannelManager', () => {
       expect(channelManagers[mockGameId]).toBe(channelManager);
     });
 
-    it('チャンネルもゲームも存在しないとき', async () => {
+    it('should throw error when neither channel nor game exists', async () => {
       await expect(
         ChannelManager.createChannelInstance('notExist'),
       ).rejects.toThrow();
     });
 
-    it('ゲームがデータベース内に存在しないとき', async () => {
+    it('should throw error when game does not exist in database', async () => {
       await expect(
         ChannelManager.createChannelInstance(mockGameId),
       ).rejects.toThrow();
     });
 
-    it('ゲームインスタンスが存在しないとき', async () => {
+    it('should throw error when game instance does not exist', async () => {
       const game = await Game.create({
         channelId: mockChannelId,
       });

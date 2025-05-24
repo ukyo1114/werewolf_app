@@ -18,6 +18,7 @@ interface IChannel extends Document {
 
 interface IChannelModel extends mongoose.Model<IChannel> {
   isChannelAdmin(channelId: string, userId: string): Promise<boolean>;
+  getChannelList(): Promise<IChannel[]>;
 }
 
 const ChannelSchema = new Schema<IChannel>(
@@ -79,6 +80,14 @@ ChannelSchema.statics.isChannelAdmin = async function (
   const channel = await this.findById(channelId);
   if (!channel) return false;
   return channel.channelAdmin.toString() === userId;
+};
+
+// チャンネル一覧を取得
+ChannelSchema.statics.getChannelList = async function (): Promise<IChannel[]> {
+  return this.find({})
+    .select('-__v -password')
+    .populate('channelAdmin', '_id userName pic')
+    .lean();
 };
 
 ChannelSchema.pre<IChannel>('save', async function (next) {
