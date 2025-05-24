@@ -1,6 +1,12 @@
+import { EventEmitter } from 'events';
+
 jest.mock('../../src/app', () => ({
   appState: {
     channelManagers: {},
+  },
+  Events: {
+    channelEvents: new EventEmitter(),
+    gameEvents: new EventEmitter(),
   },
 }));
 

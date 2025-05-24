@@ -28,6 +28,11 @@ beforeAll(async () => {
     dbName: 'werewolf_test_db',
   });
 
+  // データベースをリセット
+  if (mongoose.connection.db) {
+    await mongoose.connection.db.dropDatabase();
+  }
+
   /* const port: number = parseInt(process.env.PORT || '5000', 10);
   app.listen(port, () => {
     console.log(`Server is running at http://localhost:${port}`);

@@ -61,36 +61,51 @@ export default class GameManager {
     channelId: string,
     users: string[],
   ): Promise<string> {
-    // ゲームを作成
-    const game = await Game.create({
-      channelId,
-      numberOfPlayers: users.length,
-    });
-    const gameId = game._id.toString();
+    let gameId: string | undefined;
 
-    // ユーザーの詳細を取得
-    const dbUsers = await User.find({ _id: { $in: users } })
-      .select('_id userName')
-      .lean();
+    try {
+      // ゲームを作成
+      const game = await Game.create({
+        channelId,
+        numberOfPlayers: users.length,
+      });
+      gameId = game._id.toString();
 
-    const usersDetail = dbUsers.map((user) => ({
-      userId: user._id.toString(),
-      userName: user.userName,
-    }));
+      // ユーザーの詳細を取得
+      const dbUsers = await User.find({ _id: { $in: users } })
+        .select('_id userName')
+        .lean();
+      if (dbUsers.length !== users.length) {
+        throw new Error('Some users were not found');
+      }
 
-    // ゲームマネージャーを作成
-    gameManagers[gameId] = new GameManager(channelId, gameId, usersDetail);
+      const usersDetail = dbUsers.map((user) => ({
+        userId: user._id.toString(),
+        userName: user.userName,
+      }));
 
-    // プレイヤーのデータをDBに保存
-    const players = gameManagers[gameId].playerManager.players;
-    const userList = Object.values(players).map((player) => ({
-      gameId,
-      userId: player.userId,
-      role: player.role,
-    }));
-    await GameUser.insertMany(userList);
+      // ゲームマネージャーを作成
+      gameManagers[gameId] = new GameManager(channelId, gameId, usersDetail);
 
-    return gameId;
+      // プレイヤーのデータをDBに保存
+      const players = gameManagers[gameId].playerManager.players;
+      const userList = Object.values(players).map((player) => ({
+        gameId,
+        userId: player.userId,
+        role: player.role,
+      }));
+      await GameUser.insertMany(userList);
+
+      return gameId;
+    } catch (error) {
+      if (gameId) {
+        await Game.findByIdAndDelete(gameId);
+        const timerId = gameManagers[gameId]?.phaseManager.timerId;
+        if (timerId) clearTimeout(timerId);
+        delete gameManagers[gameId];
+      }
+      throw error;
+    }
   }
 
   static checkIsUserInGame(userId: string): boolean {
@@ -182,6 +197,7 @@ export default class GameManager {
 
   curse(): string {
     const fox = this.playerManager.getLivingPlayers('fox')[0];
+    if (!fox) throw new Error();
     this.playerManager.kill(fox.userId);
 
     this.suicide();
@@ -202,11 +218,11 @@ export default class GameManager {
   async handleGameEnd(): Promise<void> {
     try {
       await Game.findByIdAndUpdate(this.gameId, { result: this.result.value });
-      this.eventEmitter.removeAllListeners();
-
-      delete gameManagers[this.gameId];
     } catch (error) {
       console.error(`Failed to end game ${this.gameId}:`, error);
+    } finally {
+      this.eventEmitter.removeAllListeners();
+      delete gameManagers[this.gameId];
     }
   }
 
@@ -242,7 +258,7 @@ export default class GameManager {
       channelId: this.gameId,
       userId: '672626acf66b851cf141bd0f', // GMのid
       message,
-      messageType: 'normal',
+      messageType: 'system',
     });
 
     channelEvents.emit('newMessage', newMessage);

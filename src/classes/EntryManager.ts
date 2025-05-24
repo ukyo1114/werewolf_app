@@ -9,7 +9,7 @@ export default class EntryManager {
   public MAX_USERS: number;
   public isProcessing: boolean = false;
 
-  constructor(channelId: string, max_users: number) {
+  constructor(channelId: string, max_users: number = 10) {
     this.channelId = channelId;
     this.MAX_USERS = max_users;
   }
@@ -18,7 +18,7 @@ export default class EntryManager {
     if (this.isProcessing)
       throw new Error('ゲームの開始処理中です。しばらくお待ちください。');
 
-    this.users[socketId].userId = userId;
+    this.users[socketId] = { userId };
 
     if (Object.keys(this.users).length === this.MAX_USERS) {
       this.isProcessing = true;

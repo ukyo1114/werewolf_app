@@ -72,6 +72,7 @@ const UserSchema = new Schema<IUser>(
     email: {
       type: String,
       unique: true,
+      sparse: true,
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
       default: null,
     },

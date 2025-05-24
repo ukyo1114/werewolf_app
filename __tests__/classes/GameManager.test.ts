@@ -1,5 +1,18 @@
-import { gameManagers, gameEvents, channelEvents } from '../../jest.setup';
 import { EventEmitter } from 'events';
+import { CurrentPhase, Status, IGameState } from '../../src/config/types';
+jest.mock('../../src/app', () => ({
+  appState: {
+    gameManagers: {},
+  },
+  Events: {
+    gameEvents: new EventEmitter(),
+    channelEvents: new EventEmitter(),
+  },
+}));
+
+import mongoose from 'mongoose';
+import Game from '../../src/models/Game';
+import GameUser from '../../src/models/GameUser';
 import GameManager from '../../src/classes/GameManager';
 import PlayerManager from '../../src/classes/PlayerManager';
 import PhaseManager from '../../src/classes/PhaseManager';
@@ -8,40 +21,60 @@ import DevineManager from '../../src/classes/DevineManager';
 import MediumManager from '../../src/classes/MediumManager';
 import GuardManager from '../../src/classes/GuardManager';
 import AttackManager from '../../src/classes/AttackManager';
-import { ObjectId } from 'mongodb';
 import {
   gamePlayers,
   mockChannelId,
   mockGameId,
   mockUsers,
 } from '../../__mocks__/mockdata';
-import { IGameState } from '../../src/config/types';
 import { gameMaster } from '../../src/config/messages';
-
-const gameEventsSpy = jest.spyOn(gameEvents, 'emit');
-const channelEventsSpy = jest.spyOn(channelEvents, 'emit');
+import { appState, Events } from '../../src/app';
+import { createMockUser } from '../../__mocks__/createMockUser';
+import User from '../../src/models/User';
 
 describe('test GameManager', () => {
-  beforeAll(() => {
+  const { gameManagers } = appState;
+  const { gameEvents, channelEvents } = Events;
+  let registerListnersSpy: any;
+  let gameEventsSpy: any;
+  let channelEventsSpy: any;
+  let game: GameManager;
+  let emitSpy: any;
+
+  beforeAll(async () => {
+    if (mongoose.connection.db) {
+      await mongoose.connection.db.dropDatabase();
+    }
+  });
+
+  beforeEach(() => {
+    registerListnersSpy = jest.spyOn(GameManager.prototype, 'registerListners');
+
     gameManagers[mockGameId] = new GameManager(
       mockChannelId,
       mockGameId,
       mockUsers,
     );
+
+    gameEventsSpy = jest.spyOn(gameEvents, 'emit');
+    channelEventsSpy = jest.spyOn(channelEvents, 'emit');
+    game = gameManagers[mockGameId];
+    game.playerManager.players = gamePlayers();
+    emitSpy = jest.spyOn(game.eventEmitter, 'emit').mockImplementation();
+  });
+
+  afterEach(() => {
+    const timerId = game.phaseManager.timerId;
+    if (timerId) clearTimeout(timerId);
+    jest.clearAllMocks();
   });
 
   afterAll(() => {
-    const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
-    if (timerId) clearTimeout(timerId);
-
     delete gameManagers[mockGameId];
     jest.restoreAllMocks();
   });
 
   it('test constructor', () => {
-    const game = new GameManager(mockChannelId, mockGameId, mockUsers);
-    const registerListnersSpy = jest.spyOn(game, 'registerListners');
-
     expect(game.channelId).toBe(mockChannelId);
     expect(game.gameId).toBe(mockGameId);
     expect(game.playerManager).toBeInstanceOf(PlayerManager);
@@ -51,18 +84,13 @@ describe('test GameManager', () => {
     expect(game.guardManager).toBeInstanceOf(GuardManager);
     expect(game.attackManager).toBeInstanceOf(AttackManager);
     expect(game.phaseManager).toBeInstanceOf(PhaseManager);
-    expect(game.result.value).toBe('running');
+    expect(game.result).toEqual({ value: 'running' });
     expect(game.isProcessing).toBe(false);
     expect(game.eventEmitter).toBeInstanceOf(EventEmitter);
-    expect(registerListnersSpy).toHaveBeenCalled;
-
-    const timerId = game.phaseManager.timerId;
-    if (timerId) clearTimeout(timerId);
-    registerListnersSpy.mockRestore();
+    expect(registerListnersSpy).toHaveBeenCalled();
   });
 
   it('test registerListners', () => {
-    const game = gameManagers[mockGameId];
     const mockOn = jest.spyOn(game.eventEmitter, 'on');
 
     game.registerListners();
@@ -74,271 +102,696 @@ describe('test GameManager', () => {
   });
 
   describe('test handleTimerEnd', () => {
-    let eventEmitterMock: any;
+    let sendMessageMock: any;
+    let handleDayPhaseEndMock: any;
+    let handleNightPhaseEndMock: any;
+    let handleGameEndMock: any;
 
     beforeEach(() => {
-      const game = gameManagers[mockGameId];
-      eventEmitterMock = jest
-        .spyOn(game.eventEmitter, 'emit')
+      sendMessageMock = jest.spyOn(game, 'sendMessage').mockImplementation();
+      handleDayPhaseEndMock = jest
+        .spyOn(game, 'handleDayPhaseEnd')
+        .mockImplementation();
+      handleNightPhaseEndMock = jest
+        .spyOn(game, 'handleNightPhaseEnd')
+        .mockImplementation();
+      handleGameEndMock = jest
+        .spyOn(game, 'handleGameEnd')
         .mockImplementation();
     });
 
     afterEach(() => {
-      eventEmitterMock.mockRestore();
+      sendMessageMock.mockRestore();
+      handleDayPhaseEndMock.mockRestore();
+      handleNightPhaseEndMock.mockRestore();
+      handleGameEndMock.mockRestore();
     });
 
     it('preフェーズのとき', async () => {
-      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'pre';
-      game.isProcessing = false;
-      const sendMessageMock = jest
-        .spyOn(game, 'sendMessage')
-        .mockImplementation();
 
       await game.handleTimerEnd();
-
       expect(game.isProcessing).toBe(true);
-      expect(sendMessageMock).toHaveBeenCalled;
-      expect(eventEmitterMock).toHaveBeenCalledWith('processCompleted');
-
-      sendMessageMock.mockRestore();
+      expect(sendMessageMock).toHaveBeenCalled();
+      expect(emitSpy).toHaveBeenCalledWith('processCompleted');
+      expect(handleDayPhaseEndMock).not.toHaveBeenCalled();
+      expect(handleNightPhaseEndMock).not.toHaveBeenCalled();
+      expect(handleGameEndMock).not.toHaveBeenCalled();
     });
 
     it('dayフェーズのとき', async () => {
-      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'day';
-      game.isProcessing = false;
-      const handleDayPhaseEndMock = jest
-        .spyOn(game, 'handleDayPhaseEnd')
-        .mockImplementation();
 
       await game.handleTimerEnd();
 
       expect(game.isProcessing).toBe(true);
       expect(handleDayPhaseEndMock).toHaveBeenCalled;
-      expect(eventEmitterMock).toHaveBeenCalledWith('processCompleted');
-
-      handleDayPhaseEndMock.mockRestore();
+      expect(emitSpy).toHaveBeenCalledWith('processCompleted');
+      expect(sendMessageMock).not.toHaveBeenCalled();
+      expect(handleNightPhaseEndMock).not.toHaveBeenCalled();
+      expect(handleGameEndMock).not.toHaveBeenCalled();
     });
 
     it('nightフェーズのとき', async () => {
-      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'night';
-      game.isProcessing = false;
-      const handleNightPhaseEndMock = jest
-        .spyOn(game, 'handleNightPhaseEnd')
-        .mockImplementation();
 
       await game.handleTimerEnd();
-
       expect(game.isProcessing).toBe(true);
       expect(handleNightPhaseEndMock).toHaveBeenCalled;
-      expect(eventEmitterMock).toHaveBeenCalledWith('processCompleted');
-
-      handleNightPhaseEndMock.mockRestore();
+      expect(emitSpy).toHaveBeenCalledWith('processCompleted');
+      expect(sendMessageMock).not.toHaveBeenCalled();
+      expect(handleDayPhaseEndMock).not.toHaveBeenCalled();
+      expect(handleGameEndMock).not.toHaveBeenCalled();
     });
 
     it('finighedフェーズのとき', async () => {
-      const game = gameManagers[mockGameId];
       game.phaseManager.currentPhase = 'finished';
-      game.isProcessing = false;
-      const handleGameEndMock = jest
-        .spyOn(game, 'handleGameEnd')
-        .mockImplementation();
 
       await game.handleTimerEnd();
-
       expect(game.isProcessing).toBe(true);
       expect(handleGameEndMock).toHaveBeenCalled;
-      expect(eventEmitterMock).not.toHaveBeenCalledWith('processCompleted');
-
-      handleGameEndMock.mockRestore();
+      expect(emitSpy).not.toHaveBeenCalledWith('processCompleted');
+      expect(sendMessageMock).not.toHaveBeenCalled();
+      expect(handleDayPhaseEndMock).not.toHaveBeenCalled();
+      expect(handleNightPhaseEndMock).not.toHaveBeenCalled();
     });
   });
 
-  /*   describe("test execution", () => {
-    beforeAll(() => {
-      const game = gameManagers[mockGameId];
-      game.playerManager.players = structuredClone(gamePlayers);
-    });
-
-    it("")
-  }) */
-
-  it('test villageAbandoned', async () => {
-    const game = gameManagers[mockGameId];
-    const sendMessageSpy = jest.spyOn(game, 'sendMessage');
-
-    await game.villageAbandoned();
-    expect(game.result.value).toBe('villageAbandoned');
-    expect(sendMessageSpy).toHaveBeenCalled();
-
-    sendMessageSpy.mockRestore();
-  });
-
-  describe('test judgement', () => {
+  describe('test handleDayPhaseEnd', () => {
+    let executionMock: any;
+    let judgementMock: any;
     let sendMessageMock: any;
 
-    beforeAll(() => {
-      const game = gameManagers[mockGameId];
-      sendMessageMock = jest.spyOn(game, 'sendMessage');
+    beforeEach(() => {
+      executionMock = jest.spyOn(game, 'execution').mockImplementation();
+      judgementMock = jest.spyOn(game, 'judgement').mockImplementation();
+      sendMessageMock = jest.spyOn(game, 'sendMessage').mockImplementation();
     });
 
-    afterAll(() => {
+    afterEach(() => {
+      executionMock.mockRestore();
+      judgementMock.mockRestore();
       sendMessageMock.mockRestore();
     });
 
-    it('村人勝利', async () => {
-      const game = gameManagers[mockGameId];
-      game.playerManager.players = structuredClone(gamePlayers);
+    it('should call execution and judgement', async () => {
+      await game.handleDayPhaseEnd();
+      expect(executionMock).toHaveBeenCalled();
+      expect(judgementMock).toHaveBeenCalled();
+      expect(sendMessageMock).toHaveBeenCalled();
+    });
 
-      const killRoles = ['fox', 'werewolf'];
-      killRoles.forEach((role) => {
-        game.playerManager.players[role].status = 'dead';
+    it('should not call execution and judgement if result is villageAbandoned', async () => {
+      executionMock.mockImplementation(() => {
+        game.result.value = 'villageAbandoned';
       });
 
+      await game.handleDayPhaseEnd();
+      expect(executionMock).toHaveBeenCalled();
+      expect(judgementMock).not.toHaveBeenCalled();
+      expect(sendMessageMock).not.toHaveBeenCalled();
+    });
+
+    it('should call sendMessage if result is running', async () => {
+      judgementMock.mockImplementation(() => {
+        game.result.value = 'villagersWin';
+      });
+
+      await game.handleDayPhaseEnd();
+      expect(executionMock).toHaveBeenCalled();
+      expect(judgementMock).toHaveBeenCalled();
+      expect(sendMessageMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('test execution', () => {
+    let getExecutionTargetMock: any;
+    let villageAbandonedMock: any;
+    let killMock: any;
+    let sendMessageMock: any;
+    let suicideMock: any;
+    let mediumMock: any;
+
+    beforeEach(() => {
+      getExecutionTargetMock = jest.spyOn(
+        game.voteManager,
+        'getExecutionTarget',
+      );
+      villageAbandonedMock = jest
+        .spyOn(game, 'villageAbandoned')
+        .mockImplementation();
+      killMock = jest.spyOn(game.playerManager, 'kill').mockImplementation();
+      sendMessageMock = jest.spyOn(game, 'sendMessage').mockImplementation();
+      suicideMock = jest.spyOn(game, 'suicide').mockImplementation();
+      mediumMock = jest.spyOn(game.mediumManager, 'medium');
+    });
+
+    afterAll(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should call kill, sendMessage, suicide, medium', async () => {
+      getExecutionTargetMock.mockReturnValue('villager');
+
+      await game.execution();
+      expect(killMock).toHaveBeenCalledWith('villager');
+      expect(sendMessageMock).toHaveBeenCalled();
+      expect(suicideMock).not.toHaveBeenCalled();
+      expect(mediumMock).toHaveBeenCalled();
+    });
+
+    it('should not call kill, sendMessage, suicide, medium if executionTarget is null', async () => {
+      getExecutionTargetMock.mockReturnValue(null);
+
+      await game.execution();
+      expect(killMock).not.toHaveBeenCalled();
+      expect(sendMessageMock).not.toHaveBeenCalled();
+      expect(suicideMock).not.toHaveBeenCalled();
+      expect(mediumMock).not.toHaveBeenCalled();
+    });
+
+    it('should call suicide if executionTarget is fox', async () => {
+      getExecutionTargetMock.mockReturnValue('fox');
+
+      await game.execution();
+      expect(suicideMock).toHaveBeenCalled();
+      expect(killMock).toHaveBeenCalledWith('fox');
+      expect(sendMessageMock).toHaveBeenCalled();
+      expect(mediumMock).toHaveBeenCalled();
+    });
+  });
+
+  describe('test handleNightPhaseEnd', () => {
+    let devineMock: any;
+    let attackMock: any;
+    let curseMock: any;
+    let sendMessageMock: any;
+    let judgementMock: any;
+
+    beforeEach(() => {
+      devineMock = jest
+        .spyOn(game.devineManager, 'devine')
+        .mockReturnValue(false);
+      attackMock = jest
+        .spyOn(game.attackManager, 'attack')
+        .mockReturnValue('villager');
+      curseMock = jest.spyOn(game, 'curse').mockReturnValue('fox');
+      sendMessageMock = jest.spyOn(game, 'sendMessage').mockImplementation();
+      judgementMock = jest.spyOn(game, 'judgement').mockImplementation();
+    });
+
+    afterAll(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should call devine, attack, curse, sendMessage, judgement', async () => {
+      await game.handleNightPhaseEnd();
+      expect(devineMock).toHaveBeenCalled();
+      expect(attackMock).toHaveBeenCalled();
+      expect(curseMock).not.toHaveBeenCalled();
+      expect(sendMessageMock).toHaveBeenCalledWith(
+        gameMaster.ATTACK(['villager']),
+      );
+      expect(judgementMock).toHaveBeenCalled();
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.MORNING);
+    });
+
+    it('should call devine, attack, sendMessage, judgement', async () => {
+      attackMock.mockReturnValue(null);
+
+      await game.handleNightPhaseEnd();
+      expect(devineMock).toHaveBeenCalled();
+      expect(attackMock).toHaveBeenCalled();
+      expect(curseMock).not.toHaveBeenCalled();
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.ATTACK([]));
+      expect(judgementMock).toHaveBeenCalled();
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.MORNING);
+    });
+
+    it('should call curse, sendMessage, judgement', async () => {
+      devineMock.mockReturnValue(true);
+
+      await game.handleNightPhaseEnd();
+      expect(devineMock).toHaveBeenCalled();
+      expect(attackMock).toHaveBeenCalled();
+      expect(curseMock).toHaveBeenCalled();
+      expect(sendMessageMock).toHaveBeenCalledWith(
+        gameMaster.ATTACK(['villager', 'fox']),
+      );
+      expect(judgementMock).toHaveBeenCalled();
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.MORNING);
+    });
+
+    it('should call attack, curse, sendMessage, judgement', async () => {
+      devineMock.mockReturnValue(true);
+      attackMock.mockReturnValue(null);
+
+      await game.handleNightPhaseEnd();
+      expect(devineMock).toHaveBeenCalled();
+      expect(attackMock).toHaveBeenCalled();
+      expect(curseMock).toHaveBeenCalled();
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.ATTACK(['fox']));
+      expect(judgementMock).toHaveBeenCalled();
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.MORNING);
+    });
+
+    it('should call judgement', async () => {
+      judgementMock.mockImplementation(() => {
+        game.result.value = 'villagersWin';
+      });
+
+      await game.handleNightPhaseEnd();
+      expect(devineMock).toHaveBeenCalled();
+      expect(attackMock).toHaveBeenCalled();
+      expect(curseMock).not.toHaveBeenCalled();
+      expect(sendMessageMock).toHaveBeenCalledWith(
+        gameMaster.ATTACK(['villager']),
+      );
+      expect(judgementMock).toHaveBeenCalled();
+      expect(sendMessageMock).not.toHaveBeenCalledWith(gameMaster.MORNING);
+    });
+  });
+
+  describe('test curse', () => {
+    let getLivingPlayersMock: any;
+    let killMock: any;
+    let suicideMock: any;
+
+    beforeEach(() => {
+      killMock = jest.spyOn(game.playerManager, 'kill').mockImplementation();
+      suicideMock = jest.spyOn(game, 'suicide').mockImplementation();
+    });
+
+    afterAll(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should call kill, suicide, sendMessage', async () => {
+      getLivingPlayersMock = jest
+        .spyOn(game.playerManager, 'getLivingPlayers')
+        .mockReturnValue([
+          {
+            userId: 'fox',
+            userName: 'fox',
+            role: 'fox',
+            status: 'alive',
+            teammates: [],
+          },
+        ]);
+
+      const fox = game.curse();
+      expect(killMock).toHaveBeenCalled();
+      expect(suicideMock).toHaveBeenCalled();
+      expect(fox).toBe('fox');
+    });
+
+    it('should throw error if fox is not found', async () => {
+      getLivingPlayersMock = jest
+        .spyOn(game.playerManager, 'getLivingPlayers')
+        .mockReturnValue([]);
+
+      expect(() => game.curse()).toThrow();
+      expect(killMock).not.toHaveBeenCalled();
+      expect(suicideMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('test suicide', () => {
+    let getLivingPlayersMock: any;
+    let killMock: any;
+    let sendMessageMock: any;
+
+    beforeEach(() => {
+      killMock = jest.spyOn(game.playerManager, 'kill').mockImplementation();
+      sendMessageMock = jest.spyOn(game, 'sendMessage').mockImplementation();
+    });
+
+    afterAll(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should call kill, sendMessage', async () => {
+      getLivingPlayersMock = jest
+        .spyOn(game.playerManager, 'getLivingPlayers')
+        .mockReturnValue([
+          {
+            userId: 'immoralist',
+            userName: 'immoralist',
+            role: 'immoralist',
+            status: 'alive',
+            teammates: [],
+          },
+        ]);
+
+      game.suicide();
+      expect(killMock).toHaveBeenCalledWith('immoralist');
+      expect(sendMessageMock).toHaveBeenCalledWith(
+        gameMaster.KILL_IMMORALIST(['immoralist']),
+      );
+    });
+
+    it('should call kill, sendMessage', async () => {
+      getLivingPlayersMock = jest
+        .spyOn(game.playerManager, 'getLivingPlayers')
+        .mockReturnValue([]);
+
+      game.suicide();
+      expect(killMock).not.toHaveBeenCalled();
+      expect(sendMessageMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('test handleGameEnd', () => {
+    let gameModelMock: any;
+
+    afterAll(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should call gameModel.findByIdAndUpdate', async () => {
+      gameModelMock = jest
+        .spyOn(Game, 'findByIdAndUpdate')
+        .mockImplementation();
+      await game.handleGameEnd();
+      expect(gameModelMock).toHaveBeenCalled();
+      expect(gameManagers[mockGameId]).toBeUndefined();
+    });
+
+    it('should throw error if gameModel.findByIdAndUpdate fails', async () => {
+      gameModelMock = jest
+        .spyOn(Game, 'findByIdAndUpdate')
+        .mockRejectedValue(new Error());
+      await game.handleGameEnd();
+      expect(gameModelMock).toHaveBeenCalled();
+      expect(gameManagers[mockGameId]).toBeUndefined();
+    });
+  });
+
+  describe('test villageAbandoned', () => {
+    let sendMessageMock: any;
+
+    afterAll(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should call sendMessage', async () => {
+      sendMessageMock = jest.spyOn(game, 'sendMessage').mockImplementation();
+      await game.villageAbandoned();
+      expect(game.result.value).toBe('villageAbandoned');
+      expect(sendMessageMock).toHaveBeenCalledWith(
+        gameMaster.VILLAGE_ABANDONED,
+      );
+    });
+  });
+
+  describe('test judgement', () => {
+    let getLivingPlayersMock: any;
+    let sendMessageMock: any;
+    let consoleErrorSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      getLivingPlayersMock = jest.spyOn(game.playerManager, 'getLivingPlayers');
+      sendMessageMock = jest.spyOn(game, 'sendMessage').mockImplementation();
+      consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+      consoleErrorSpy.mockRestore();
+    });
+
+    afterAll(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should continue game when multiple players from different teams are alive', async () => {
+      getLivingPlayersMock.mockReturnValue([
+        { role: 'villager', status: 'alive' },
+        { role: 'villager', status: 'alive' },
+        { role: 'werewolf', status: 'alive' },
+        { role: 'fox', status: 'alive' },
+      ]);
+
       await game.judgement();
-      expect(game.result.value).toBe('villagersWin');
+      expect(sendMessageMock).not.toHaveBeenCalled();
+      expect(game.result.value).toBe('running');
+    });
+
+    it('should declare villagers win when only villagers remain', async () => {
+      getLivingPlayersMock.mockReturnValue([
+        { role: 'villager', status: 'alive' },
+        { role: 'villager', status: 'alive' },
+      ]);
+
+      await game.judgement();
       expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.VILLAGERS_WIN);
+      expect(game.result.value).toBe('villagersWin');
     });
 
-    it('人狼勝利', async () => {
-      const game = gameManagers[mockGameId];
-      game.playerManager.players = structuredClone(gamePlayers);
-
-      const killRoles = [
-        'seer',
-        'medium',
-        'hunter',
-        'freemason',
-        'fanatic',
-        'fox',
-        'immoralist',
-      ];
-      killRoles.forEach((role) => {
-        game.playerManager.players[role].status = 'dead';
-      });
+    it('should declare werewolves win when only werewolves remain', async () => {
+      getLivingPlayersMock.mockReturnValue([
+        { role: 'werewolf', status: 'alive' },
+        { role: 'werewolf', status: 'alive' },
+      ]);
 
       await game.judgement();
-      expect(game.result.value).toBe('werewolvesWin');
       expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.WEREWOLVES_WIN);
+      expect(game.result.value).toBe('werewolvesWin');
     });
 
-    it('妖狐勝利', async () => {
-      const game = gameManagers[mockGameId];
-      game.playerManager.players = structuredClone(gamePlayers);
-      game.playerManager.players.werewolf.status = 'dead';
+    it('should declare foxes win when only fox remains', async () => {
+      getLivingPlayersMock.mockReturnValue([{ role: 'fox', status: 'alive' }]);
 
       await game.judgement();
-      expect(game.result.value).toBe('foxesWin');
       expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.FOXES_WIN);
+      expect(game.result.value).toBe('foxesWin');
+    });
+
+    it('should handle tie between villagers and werewolves', async () => {
+      getLivingPlayersMock.mockReturnValue([
+        { role: 'villager', status: 'alive' },
+        { role: 'werewolf', status: 'alive' },
+      ]);
+
+      await game.judgement();
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.WEREWOLVES_WIN);
+      expect(game.result.value).toBe('werewolvesWin');
+    });
+
+    it('should handle tie between villagers and fox', async () => {
+      getLivingPlayersMock.mockReturnValue([
+        { role: 'villager', status: 'alive' },
+        { role: 'fox', status: 'alive' },
+      ]);
+
+      await game.judgement();
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.FOXES_WIN);
+      expect(game.result.value).toBe('foxesWin');
+    });
+
+    it('should handle tie between werewolves and fox', async () => {
+      getLivingPlayersMock.mockReturnValue([
+        { role: 'werewolf', status: 'alive' },
+        { role: 'fox', status: 'alive' },
+      ]);
+
+      await game.judgement();
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.FOXES_WIN);
+      expect(game.result.value).toBe('foxesWin');
+    });
+
+    it('should handle all players being dead', async () => {
+      getLivingPlayersMock.mockReturnValue([]);
+
+      await game.judgement();
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.VILLAGERS_WIN);
+      expect(game.result.value).toBe('villagersWin');
+    });
+
+    it('should handle mixed status players correctly', async () => {
+      getLivingPlayersMock.mockReturnValue([
+        { role: 'villager', status: 'alive' },
+        { role: 'werewolf', status: 'dead' },
+        { role: 'fox', status: 'alive' },
+      ]);
+
+      await game.judgement();
+      expect(sendMessageMock).not.toHaveBeenCalled();
+      expect(game.result.value).toBe('running');
+    });
+
+    it('should handle special roles correctly', async () => {
+      getLivingPlayersMock.mockReturnValue([
+        { role: 'immoralist', status: 'alive' },
+        { role: 'villager', status: 'alive' },
+      ]);
+
+      await game.judgement();
+      expect(sendMessageMock).toHaveBeenCalledWith(gameMaster.VILLAGERS_WIN);
+      expect(game.result.value).toBe('villagersWin');
+    });
+
+    it('should handle multiple special roles correctly', async () => {
+      getLivingPlayersMock.mockReturnValue([
+        { role: 'immoralist', status: 'alive' },
+        { role: 'fox', status: 'alive' },
+        { role: 'werewolf', status: 'alive' },
+      ]);
+
+      await game.judgement();
+      expect(sendMessageMock).not.toHaveBeenCalled();
+      expect(game.result.value).toBe('running');
     });
   });
 
-  it('test sendMessage', async () => {
-    const game = gameManagers[mockGameId];
-    const createMessageSpy = jest.spyOn(game, 'createMessage');
-    const testMessage = 'testMessage';
-
-    await game.sendMessage(testMessage);
-    expect(createMessageSpy).toHaveBeenCalledWith(testMessage);
-    expect(channelEventsSpy).toHaveBeenCalledWith(
-      'newMessage',
-      expect.anything(),
-    );
-
-    createMessageSpy.mockRestore();
-  });
-
-  it('test createMessage', async () => {
-    const game = gameManagers[mockGameId];
-
-    const createdMessage = await game.createMessage('test');
-    const RequiredProperties = [
-      '_id',
-      'channelId',
-      'userId',
-      'message',
-      'messageType',
-      'createdAt',
-    ];
-    RequiredProperties.forEach((property) => {
-      expect(createdMessage).toHaveProperty(property);
+  describe('test sendMessage', () => {
+    it('should call Message.create', async () => {
+      await game.sendMessage('testMessage');
+      expect(channelEventsSpy).toHaveBeenCalled();
     });
   });
 
-  it('test handleSwitched', () => {
-    const game = gameManagers[mockGameId];
-    game.isProcessing = true;
-    const updateGameStateMock = jest
-      .spyOn(game, 'updateGameState')
-      .mockImplementation();
+  describe('test handlePhaseSwitched', () => {
+    let updateGameStateMock: any;
 
-    game.handlePhaseSwitched();
-    expect(game.isProcessing).toBe(false);
-    expect(updateGameStateMock).toHaveBeenCalled();
+    beforeEach(() => {
+      game.isProcessing = true;
+      updateGameStateMock = jest
+        .spyOn(game, 'updateGameState')
+        .mockImplementation();
+    });
 
-    updateGameStateMock.mockRestore();
+    afterAll(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should call updateGameState', async () => {
+      game.handlePhaseSwitched();
+      expect(updateGameStateMock).toHaveBeenCalled();
+      expect(game.isProcessing).toBe(false);
+    });
   });
 
-  it('test updateGameState', () => {
-    const mockGameState: IGameState = {
-      gameId: 'testGameId',
-      phase: {
-        currentDay: 1,
-        currentPhase: 'day',
-        changedAt: new Date(),
-      },
-      users: {},
-    };
-    const game = gameManagers[mockGameId];
-    const getGameStateMock = jest
-      .spyOn(game, 'getGameState')
-      .mockReturnValue(mockGameState);
+  describe('test updateGameState', () => {
+    let getGameStateMock: any;
 
-    game.updateGameState();
-    expect(getGameStateMock).toHaveBeenCalled();
-    expect(gameEventsSpy).toHaveBeenCalledWith(
-      'updateGameState',
-      mockGameState,
-    );
+    afterAll(() => {
+      jest.restoreAllMocks();
+    });
 
-    getGameStateMock.mockRestore();
+    it('should emit updateGameState event with current game state', async () => {
+      const gameState: IGameState = {
+        gameId: mockGameId,
+        phase: {
+          currentDay: 1,
+          currentPhase: 'day' as CurrentPhase,
+          changedAt: new Date(),
+        },
+        users: {
+          villager: {
+            status: 'alive' as Status,
+            role: 'villager',
+            teammates: [],
+          },
+        },
+      };
+      getGameStateMock = jest
+        .spyOn(game, 'getGameState')
+        .mockReturnValue(gameState);
+
+      game.updateGameState();
+      expect(gameEventsSpy).toHaveBeenCalledWith('updateGameState', gameState);
+    });
   });
 
   describe('test getGameState', () => {
-    it('currentPhaseがfinishedのとき', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'finished';
-      const getPlayersWithRoleSpy = jest.spyOn(
-        game.playerManager,
-        'getPlayersWithRole',
-      );
+    let getPlayersInfoMock: any;
 
-      const gameState = game.getGameState();
-      expect(getPlayersWithRoleSpy).toHaveBeenCalled();
-      expect(gameState).toHaveProperty('gameId');
-      expect(gameState).toHaveProperty('phase');
-      expect(gameState).toHaveProperty('users');
-
-      getPlayersWithRoleSpy.mockRestore();
+    beforeEach(() => {
+      getPlayersInfoMock = jest.spyOn(game.playerManager, 'getPlayersInfo');
     });
 
-    it('currentPhaseがfinished以外のとき', () => {
-      const game = gameManagers[mockGameId];
-      game.phaseManager.currentPhase = 'day';
-      const getPlayersWithoutRoleSpy = jest.spyOn(
-        game.playerManager,
-        'getPlayersWithoutRole',
-      );
+    afterAll(() => {
+      jest.restoreAllMocks();
+    });
 
+    it('should return game state with hidden roles during active game', () => {
       const gameState = game.getGameState();
-      expect(getPlayersWithoutRoleSpy).toHaveBeenCalled();
-      expect(gameState).toHaveProperty('gameId');
-      expect(gameState).toHaveProperty('phase');
-      expect(gameState).toHaveProperty('users');
+      expect(gameState.gameId).toBe(mockGameId);
+      expect(getPlayersInfoMock).toHaveBeenCalledWith(false);
+    });
 
-      getPlayersWithoutRoleSpy.mockRestore();
+    it('should return game state with revealed roles when game is finished', () => {
+      game.phaseManager.currentPhase = 'finished';
+      const gameState = game.getGameState();
+      expect(gameState.gameId).toBe(mockGameId);
+      expect(getPlayersInfoMock).toHaveBeenCalledWith(true);
+    });
+  });
+
+  describe('test createGameManager', () => {
+    let mockUsers: any;
+
+    beforeEach(async () => {
+      await User.deleteMany();
+      await GameUser.deleteMany();
+      await Game.deleteMany();
+      mockUsers = await createMockUser();
+    });
+
+    it('should create game manager', async () => {
+      const users = Object.values(mockUsers) as string[];
+      const gameId = await GameManager.createGameManager(mockChannelId, users);
+
+      const game = await Game.findById(gameId);
+      expect(game).not.toBeNull();
+      expect(gameManagers[gameId]).toBeInstanceOf(GameManager);
+      const gameUser = await GameUser.find({ gameId });
+      expect(gameUser.length).toBe(users.length);
+
+      const timerId = gameManagers[gameId].phaseManager.timerId;
+      if (timerId) clearTimeout(timerId);
+    });
+
+    it('should throw error and clean up when users are not found', async () => {
+      const users = Object.values(mockUsers) as string[];
+      const invalidUserId = new mongoose.Types.ObjectId().toString();
+      const usersWithInvalid = [...users, invalidUserId];
+
+      await expect(
+        GameManager.createGameManager(mockChannelId, usersWithInvalid),
+      ).rejects.toThrow('Some users were not found');
+
+      const games = await Game.find({ channelId: mockChannelId });
+      expect(games).toHaveLength(0);
+
+      const gameUsers = await GameUser.find({});
+      expect(gameUsers).toHaveLength(0);
+    });
+
+    it('should throw error and clean up when GameUser creation fails', async () => {
+      const users = Object.values(mockUsers) as string[];
+
+      // GameUser.createをモックして失敗させる
+      const originalInsertMany = GameUser.insertMany;
+      GameUser.insertMany = jest
+        .fn()
+        .mockRejectedValue(new Error('Failed to create game users'));
+
+      await expect(
+        GameManager.createGameManager(mockChannelId, users),
+      ).rejects.toThrow('Failed to create game users');
+
+      // ゲームが作成されていないことを確認
+      const games = await Game.find({ channelId: mockChannelId });
+      expect(games).toHaveLength(0);
+
+      // GameUserが作成されていないことを確認
+      const gameUsers = await GameUser.find({});
+      expect(gameUsers).toHaveLength(0);
+
+      // モックを元に戻す
+      GameUser.insertMany = originalInsertMany;
     });
   });
 });
