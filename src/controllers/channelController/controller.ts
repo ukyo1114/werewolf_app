@@ -66,7 +66,7 @@ export const createChannel = asyncHandler(
     });
 
     const channel = await Channel.findById(createdChannel._id)
-      .select('-passwordEnabled -password -denyGuests')
+      .select('-__v -passwordEnabled -password -denyGuests')
       .lean();
 
     res.status(201).json(channel);
@@ -127,13 +127,19 @@ export const joinChannel = asyncHandler(
     const { password } = req.body;
     const { userId } = req as { userId: string };
 
-    const isUserBlocked = await ChannelBlockUser.findOne({ channelId, userId });
+    const isUserBlocked = await ChannelBlockUser.isUserBlocked(
+      channelId,
+      userId,
+    );
     if (isUserBlocked) throw new AppError(403, errors.USER_BLOCKED);
 
     const channel = await Channel.findById(channelId);
     if (!channel) throw new AppError(404, errors.CHANNEL_NOT_FOUND);
 
-    const isUserInChannel = await ChannelUser.findOne({ channelId, userId });
+    const isUserInChannel = await ChannelUser.isUserInChannel(
+      channelId,
+      userId,
+    );
 
     if (!isUserInChannel) {
       if (channel.denyGuests && (await User.isGuestUser(userId))) {

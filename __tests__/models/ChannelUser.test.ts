@@ -7,6 +7,7 @@ describe('ChannelUser Model Test', () => {
   const nonDuplicateUser = new ObjectId().toString();
   const testChannelId = new ObjectId().toString();
   let testUser: any;
+  let testChannelUserId: any;
 
   beforeAll(async () => {
     if (mongoose.connection.db) {
@@ -22,10 +23,11 @@ describe('ChannelUser Model Test', () => {
 
   beforeEach(async () => {
     // 各テスト前にチャンネルユーザーを作成
-    await ChannelUser.create({
+    const channelUser = await ChannelUser.create({
       channelId: testChannelId,
       userId: testUser._id,
     });
+    testChannelUserId = channelUser._id;
     await ChannelUser.createIndexes();
   });
 
@@ -60,9 +62,11 @@ describe('ChannelUser Model Test', () => {
     it('should get all users in a channel', async () => {
       const users = await ChannelUser.getChannelUsers(testChannelId);
       expect(users).toHaveLength(1);
-      expect(users[0].userId._id.toString()).toBe(testUser._id.toString());
-      expect(users[0].userId).toHaveProperty('userName');
-      expect(users[0].userId).toHaveProperty('pic');
+      expect(users[0]).toEqual({
+        _id: testUser._id,
+        userName: 'testuser',
+        pic: null,
+      });
     });
 
     it('should return empty array for channel with no users', async () => {

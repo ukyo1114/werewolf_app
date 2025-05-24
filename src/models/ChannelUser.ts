@@ -9,7 +9,9 @@ interface IChannelUserModel extends Document {
 }
 
 interface IChannelUser extends mongoose.Model<IChannelUserModel> {
-  getChannelUsers(channelId: string): Promise<IChannelUserModel[]>;
+  getChannelUsers(
+    channelId: string,
+  ): Promise<{ _id: Types.ObjectId; userName: string; pic: string | null }[]>;
   isUserInChannel(channelId: string, userId: string): Promise<boolean>;
   leaveChannel(channelId: string, userId: string): Promise<boolean>;
 }
@@ -39,8 +41,17 @@ ChannelUserSchema.index({ channelId: 1, userId: 1 }, { unique: true });
 // チャンネルのユーザー一覧を取得
 ChannelUserSchema.statics.getChannelUsers = async function (
   channelId: string,
-): Promise<IChannelUserModel[]> {
-  return this.find({ channelId }).populate('userId', '_iduserName pic');
+): Promise<{ _id: Types.ObjectId; userName: string; pic: string | null }[]> {
+  const users = await this.find({ channelId })
+    .select('-_id userId')
+    .populate('userId', '_id userName pic')
+    .lean();
+
+  return users.map(
+    (user: {
+      userId: { _id: Types.ObjectId; userName: string; pic: string | null };
+    }) => user.userId,
+  );
 };
 
 // ユーザーがチャンネルにいるかどうかを確認
