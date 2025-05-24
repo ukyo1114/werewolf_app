@@ -27,7 +27,7 @@ export default class ChannelManager {
       Channel.exists({ _id: channelId }),
       Game.exists({ _id: channelId }),
     ]);
-    if (!(isChannel || isGame)) throw new Error(errors.CHANNEL_NOT_FOUND);
+    if (!isChannel && !isGame) throw new Error(errors.CHANNEL_NOT_FOUND);
 
     if (isChannel) {
       return (channelManagers[channelId] = new ChannelManager(channelId));

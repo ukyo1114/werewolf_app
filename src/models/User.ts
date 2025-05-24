@@ -16,7 +16,7 @@ interface IGameStats {
 interface IUser extends Document {
   _id: Types.ObjectId;
   userName: string;
-  email: string | null;
+  email: string | undefined;
   password: string | null;
   pic: string | null;
   isGuest: boolean;
@@ -74,7 +74,7 @@ const UserSchema = new Schema<IUser>(
       unique: true,
       sparse: true,
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-      default: null,
+      default: undefined,
     },
     password: { type: String, minlength: 8, default: null },
     pic: { type: String, default: null },

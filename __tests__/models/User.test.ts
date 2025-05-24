@@ -36,7 +36,7 @@ describe('User Model Test', () => {
 
       expect(user.userName).toBe('guestUser');
       expect(user.isGuest).toBe(true);
-      expect(user.email).toBeNull();
+      expect(user.email).toBeUndefined();
       expect(user.password).toBeNull();
     });
 

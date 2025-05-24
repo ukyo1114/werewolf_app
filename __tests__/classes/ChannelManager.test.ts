@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 jest.mock('../../src/app', () => ({
   appState: {
     channelManagers: {},
+    gameManagers: {},
   },
   Events: {
     channelEvents: new EventEmitter(),
@@ -10,6 +11,8 @@ jest.mock('../../src/app', () => ({
   },
 }));
 
+import Channel from '../../src/models/Channel';
+import Game from '../../src/models/Game';
 import { appState } from '../../src/app';
 import GameManager from '../../src/classes/GameManager';
 import ChannelManager from '../../src/classes/ChannelManager';
@@ -23,18 +26,23 @@ import {
 } from '../../__mocks__/mockdata';
 
 describe('test ChannelManager', () => {
-  const { channelManagers } = appState;
+  const { channelManagers, gameManagers } = appState;
   const mockSocketId = 'mockSocketId';
-  let gameManager: GameManager;
+  let game: GameManager;
 
   beforeAll(async () => {
-    gameManager = new GameManager(mockChannelId, mockGameId, mockUsers);
-    gameManager.sendMessage = jest.fn();
-    gameManager.playerManager.players = gamePlayers();
+    gameManagers[mockGameId] = new GameManager(
+      mockChannelId,
+      mockGameId,
+      mockUsers,
+    );
+    game = gameManagers[mockGameId];
+    game.sendMessage = jest.fn();
+    game.playerManager.players = gamePlayers();
   });
 
   afterAll(() => {
-    const timerId = gameManager.phaseManager.timerId;
+    const timerId = game.phaseManager.timerId;
     if (timerId) clearTimeout(timerId);
 
     jest.restoreAllMocks();
@@ -50,7 +58,7 @@ describe('test ChannelManager', () => {
     });
 
     it('ゲーム用チャンネルで正しく初期化されること', () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
+      const channel = new ChannelManager(mockGameId, game);
 
       expect(channel.channelId).toBe(mockGameId);
       expect(channel.users).toEqual({});
@@ -70,7 +78,7 @@ describe('test ChannelManager', () => {
     });
 
     it('ゲーム用のチャンネルでユーザーがチャンネルに参加できる', async () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
+      const channel = new ChannelManager(mockGameId, game);
 
       await channel.userJoined('villager', mockSocketId);
       const user = channel.users.villager;
@@ -81,7 +89,7 @@ describe('test ChannelManager', () => {
     });
 
     it('ユーザーが人狼のとき', async () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
+      const channel = new ChannelManager(mockGameId, game);
 
       await channel.userJoined('werewolf', mockSocketId);
       const user = channel.users.werewolf;
@@ -92,8 +100,8 @@ describe('test ChannelManager', () => {
     });
 
     it('ユーザーが死亡しているとき', async () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
-      gameManager.playerManager.players.villager.status = 'dead';
+      const channel = new ChannelManager(mockGameId, game);
+      game.playerManager.players.villager.status = 'dead';
 
       await channel.userJoined('villager', mockSocketId);
       const user = channel.users.villager;
@@ -104,7 +112,7 @@ describe('test ChannelManager', () => {
     });
 
     it('ユーザーがゲームに参加していないとき', async () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
+      const channel = new ChannelManager(mockGameId, game);
 
       await channel.userJoined(mockUserId, mockSocketId);
       const user = channel.users[mockUserId];
@@ -161,45 +169,45 @@ describe('test ChannelManager', () => {
     });
 
     it('finishedフェーズのときnormalを返す', () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
+      const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
-      gameManager.phaseManager.currentPhase = 'finished';
+      game.phaseManager.currentPhase = 'finished';
 
       const sendMessageType = channel.getSendMessageType('normal');
       expect(sendMessageType).toBe('normal');
     });
 
     it('ユーザーがspectatorのときspectatorを返す', () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
+      const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
-      gameManager.phaseManager.currentPhase = 'day';
+      game.phaseManager.currentPhase = 'day';
 
       const sendMessageType = channel.getSendMessageType('spectator');
       expect(sendMessageType).toBe('spectator');
     });
 
     it('nightフェーズでないときnormalを返す', () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
+      const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
-      gameManager.phaseManager.currentPhase = 'day';
+      game.phaseManager.currentPhase = 'day';
 
       const sendMessageType = channel.getSendMessageType('normal');
       expect(sendMessageType).toBe('normal');
     });
 
     it('nightフェーズのとき人狼にはwerewolfを返す', () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
+      const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
-      gameManager.phaseManager.currentPhase = 'night';
+      game.phaseManager.currentPhase = 'night';
 
       const sendMessageType = channel.getSendMessageType('werewolf');
       expect(sendMessageType).toBe('werewolf');
     });
 
     it('nightフェーズのとき人狼以外にはエラーを返す', () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
+      const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
-      gameManager.phaseManager.currentPhase = 'night';
+      game.phaseManager.currentPhase = 'night';
 
       expect(() => channel.getSendMessageType('normal')).toThrow();
     });
@@ -220,7 +228,7 @@ describe('test ChannelManager', () => {
     });
 
     it('メッセージタイプがspectatorのとき観戦者を返す', () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
+      const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
 
       const messageReceivers = channel.getMessageReceivers('spectator');
@@ -228,7 +236,7 @@ describe('test ChannelManager', () => {
     });
 
     it('メッセージタイプがwerewolfのとき人狼と観戦者を返す', () => {
-      const channel = new ChannelManager(mockGameId, gameManager);
+      const channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
 
       const messageReceivers = channel.getMessageReceivers('werewolf');
@@ -240,7 +248,7 @@ describe('test ChannelManager', () => {
     let channel: ChannelManager;
 
     beforeAll(() => {
-      channel = new ChannelManager(mockGameId, gameManager);
+      channel = new ChannelManager(mockGameId, game);
       channel.users = channelUsers();
     });
 
@@ -273,9 +281,65 @@ describe('test ChannelManager', () => {
     });
 
     it('ゲームが終了しているとき', () => {
-      gameManager.phaseManager.currentPhase = 'finished';
+      game.phaseManager.currentPhase = 'finished';
       const receiveMessageType = channel.getReceiveMessageType('normal');
       expect(receiveMessageType).toBe(null);
+    });
+  });
+
+  describe('test createChannelInstance', () => {
+    beforeEach(async () => {
+      await Channel.deleteMany({});
+      await Game.deleteMany({});
+    });
+
+    it('チャンネルが存在するとき', async () => {
+      const channel = await Channel.create({
+        channelName: 'test',
+        channelDescription: 'test',
+        channelAdmin: mockUserId,
+      });
+      const channelId = channel._id.toString();
+
+      const channelManager =
+        await ChannelManager.createChannelInstance(channelId);
+      expect(channelManager).toBeInstanceOf(ChannelManager);
+      expect(channelManagers[channelId]).toBe(channelManager);
+    });
+
+    it('ゲームが存在するとき', async () => {
+      await Game.create({
+        _id: mockGameId,
+        channelId: mockChannelId,
+      });
+
+      const channelManager =
+        await ChannelManager.createChannelInstance(mockGameId);
+      expect(channelManager).toBeInstanceOf(ChannelManager);
+      expect(channelManagers[mockGameId]).toBe(channelManager);
+    });
+
+    it('チャンネルもゲームも存在しないとき', async () => {
+      await expect(
+        ChannelManager.createChannelInstance('notExist'),
+      ).rejects.toThrow();
+    });
+
+    it('ゲームがデータベース内に存在しないとき', async () => {
+      await expect(
+        ChannelManager.createChannelInstance(mockGameId),
+      ).rejects.toThrow();
+    });
+
+    it('ゲームインスタンスが存在しないとき', async () => {
+      const game = await Game.create({
+        channelId: mockChannelId,
+      });
+      const gameId = game._id.toString();
+
+      await expect(
+        ChannelManager.createChannelInstance(gameId),
+      ).rejects.toThrow();
     });
   });
 });

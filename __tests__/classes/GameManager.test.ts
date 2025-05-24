@@ -66,6 +66,7 @@ describe('test GameManager', () => {
   afterEach(() => {
     const timerId = game.phaseManager.timerId;
     if (timerId) clearTimeout(timerId);
+    // Object.keys(gameManagers).forEach((key) => delete gameManagers[key]);
     jest.clearAllMocks();
   });
 
@@ -751,6 +752,7 @@ describe('test GameManager', () => {
 
       const timerId = gameManagers[gameId].phaseManager.timerId;
       if (timerId) clearTimeout(timerId);
+      delete gameManagers[gameId];
     });
 
     it('should throw error and clean up when users are not found', async () => {
@@ -792,6 +794,60 @@ describe('test GameManager', () => {
 
       // モックを元に戻す
       GameUser.insertMany = originalInsertMany;
+    });
+  });
+
+  describe('test checkIsUserInGame', () => {
+    it('should return true when user is in game', () => {
+      const isInGame = GameManager.checkIsUserInGame('villager');
+      expect(isInGame).toBe(true);
+    });
+
+    it('should return false when user is not in game', () => {
+      const isInGame = GameManager.checkIsUserInGame('notInGame');
+      expect(isInGame).toBe(false);
+    });
+
+    it('should return false when game is finished', () => {
+      game.result.value = 'villagersWin';
+      const isInGame = GameManager.checkIsUserInGame('villager');
+      expect(isInGame).toBe(false);
+    });
+  });
+
+  describe('test isUserPlayingGame', () => {
+    it('should return gameId when user is playing game', () => {
+      const gameId = GameManager.isUserPlayingGame('villager');
+      expect(gameId).toBe(mockGameId);
+    });
+
+    it('should return null when user is not playing game', () => {
+      const gameId = GameManager.isUserPlayingGame('notInGame');
+      expect(gameId).toBeNull();
+    });
+
+    it('should return null when game is finished', () => {
+      game.result.value = 'villagersWin';
+      const gameId = GameManager.isUserPlayingGame('villager');
+      expect(gameId).toBeNull();
+    });
+
+    it('should return null when user is dead', () => {
+      game.playerManager.players.villager.status = 'dead';
+      const gameId = GameManager.isUserPlayingGame('villager');
+      expect(gameId).toBeNull();
+    });
+  });
+
+  describe('test getGamesByChannelId', () => {
+    it('should return games when channelId is valid', () => {
+      const games = GameManager.getGamesByChannelId(mockChannelId);
+      expect(games).toEqual([game]);
+    });
+
+    it('should return empty array when channelId is not valid', () => {
+      const games = GameManager.getGamesByChannelId('notValidChannelId');
+      expect(games).toEqual([]);
     });
   });
 });
