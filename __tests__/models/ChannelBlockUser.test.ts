@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
 import ChannelBlockUser from '../../src/models/ChannelBlockUser';
 import User from '../../src/models/User';
+import { errors } from '../../src/config/messages';
 
 describe('ChannelBlockUser Model Test', () => {
   const testChannelId = new ObjectId().toString();
@@ -59,11 +60,11 @@ describe('ChannelBlockUser Model Test', () => {
       const blockedUsers =
         await ChannelBlockUser.getBlockedUsers(testChannelId);
       expect(blockedUsers).toHaveLength(1);
-      expect(blockedUsers[0].userId._id.toString()).toBe(
-        testUser._id.toString(),
-      );
-      expect(blockedUsers[0].userId).toHaveProperty('userName');
-      expect(blockedUsers[0].userId).toHaveProperty('pic');
+      expect(blockedUsers[0]).toEqual({
+        _id: testUser._id,
+        userName: 'testuser',
+        pic: null,
+      });
     });
 
     it('should return empty array for channel with no blocked users', async () => {
@@ -89,6 +90,23 @@ describe('ChannelBlockUser Model Test', () => {
         nonBlockedUserId,
       );
       expect(isBlocked).toBe(false);
+    });
+  });
+
+  describe('test addBlockUser', () => {
+    it('should add a blocked user to the channel', async () => {
+      await ChannelBlockUser.addBlockUser(testChannelId, nonBlockedUserId);
+      const isBlocked = await ChannelBlockUser.findOne({
+        channelId: testChannelId,
+        userId: nonBlockedUserId,
+      });
+      expect(isBlocked).toBeDefined();
+    });
+
+    it('should not add a duplicate block entry', async () => {
+      await expect(
+        ChannelBlockUser.addBlockUser(testChannelId, testUser._id),
+      ).rejects.toThrow(errors.USER_ALREADY_BLOCKED);
     });
   });
 

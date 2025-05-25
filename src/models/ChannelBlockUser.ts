@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
+import { errors } from '../config/messages';
 
 interface IChannelBlockUser extends Document {
   _id: Types.ObjectId;
@@ -11,6 +12,7 @@ interface IChannelBlockUser extends Document {
 interface IChannelBlockUserModel extends mongoose.Model<IChannelBlockUser> {
   getBlockedUsers(channelId: string): Promise<IChannelBlockUser[]>;
   isUserBlocked(channelId: string, userId: string): Promise<boolean>;
+  addBlockUser(channelId: string, userId: string): Promise<boolean>;
   unblockUser(channelId: string, userId: string): Promise<boolean>;
 }
 
@@ -38,7 +40,16 @@ ChannelBlockUserSchema.index({ channelId: 1, userId: 1 }, { unique: true });
 ChannelBlockUserSchema.statics.getBlockedUsers = async function (
   channelId: string,
 ): Promise<IChannelBlockUser[]> {
-  return this.find({ channelId }).populate('userId', '_id userName pic').lean();
+  const blockedUsers = await this.find({ channelId })
+    .select('-_id userId')
+    .populate('userId', '_id userName pic')
+    .lean();
+
+  return blockedUsers.map(
+    (user: {
+      userId: { _id: Types.ObjectId; userName: string; pic: string | null };
+    }) => user.userId,
+  );
 };
 
 // ユーザーがブロックされているかどうかを確認
@@ -48,6 +59,19 @@ ChannelBlockUserSchema.statics.isUserBlocked = async function (
 ): Promise<boolean> {
   const blockedUser = await this.findOne({ channelId, userId });
   return !!blockedUser;
+};
+
+// ユーザーをブロック
+ChannelBlockUserSchema.statics.addBlockUser = async function (
+  channelId: string,
+  userId: string,
+): Promise<void> {
+  try {
+    await this.create({ channelId, userId });
+  } catch (error: any) {
+    if (error.code === 11000) throw new Error(errors.USER_ALREADY_BLOCKED);
+    throw error;
+  }
 };
 
 // ユーザーのブロックを解除

@@ -8,10 +8,10 @@ interface IUploadPicture {
 }
 
 const s3 = new S3Client({
-  region: process.env.AWS_REGION,
+  region: process.env.AWS_REGION as string,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
   },
 });
 
@@ -35,8 +35,20 @@ const uploadPicture = async ({
     const command = new PutObjectCommand(params);
     await s3.send(command);
     return `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
-  } catch (error) {
+  } catch (error: any) {
     console.error('S3 upload error:', error);
+    if (error.name === 'NoSuchBucket') {
+      throw new AppError(404, 'S3バケットが見つかりません');
+    }
+    if (error.name === 'AccessDenied') {
+      throw new AppError(403, 'S3へのアクセス権限がありません');
+    }
+    if (
+      error.name === 'InvalidAccessKeyId' ||
+      error.name === 'SignatureDoesNotMatch'
+    ) {
+      throw new AppError(401, 'AWS認証情報が無効です');
+    }
     throw new AppError(500, errors.SERVER_ERROR);
   }
 };

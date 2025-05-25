@@ -1,8 +1,8 @@
-import User from '../../models/userModel';
-import { getGamesByChannelId } from '../../utils/gameUtils';
+import User from '../../models/User';
+import GameManager from '../../classes/GameManager';
 
 export const createGameList = async (channelId: string) => {
-  const filteredGames = getGamesByChannelId(channelId);
+  const filteredGames = GameManager.getGamesByChannelId(channelId);
   if (!filteredGames.length) return [];
 
   return Promise.all(

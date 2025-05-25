@@ -3,7 +3,7 @@ import asyncHandler from 'express-async-handler';
 import { decodeToken } from '../../utils/decodeToken';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
-import User from '../../models/userModel';
+import User from '../../models/User';
 import { genUserToken } from '../../utils/generateToken';
 import uploadPicture from './utils';
 import {

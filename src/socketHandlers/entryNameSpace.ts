@@ -2,8 +2,8 @@ import { Namespace, Socket } from 'socket.io';
 import { errors } from '../config/messages';
 import { appState, Events } from '../app';
 import EntryManager from '../classes/EntryManager';
-import Channel from '../models/channelModel';
-import ChannelUser from '../models/channelUserModel';
+import Channel from '../models/Channel';
+import ChannelUser from '../models/ChannelUser';
 
 const { entryManagers } = appState;
 const { entryEvents } = Events;

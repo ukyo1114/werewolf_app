@@ -2,7 +2,7 @@ import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import { mailContent, sendMail } from './utils';
 import { genVerificationToken } from '../../utils/generateToken';
-import User from '../../models/userModel';
+import User from '../../models/User';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 import { CustomRequest } from '../../config/types';
@@ -37,7 +37,7 @@ export const sendVerificationEmail = (action: keyof typeof mailContent) =>
         throw new AppError(400, errors.EMAIL_NOT_REGISTERED);
 
       const verificationToken: string = genVerificationToken({
-        userId,
+        userId: userId || null,
         email,
         action,
       });

@@ -41,16 +41,7 @@ export const registerBlockUser = asyncHandler(
     const isChannelAdmin = await Channel.isChannelAdmin(channelId, userId);
     if (!isChannelAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
 
-    try {
-      await ChannelBlockUser.create({
-        channelId,
-        userId: selectedUser,
-      });
-    } catch (error: any) {
-      if (error.code === 11000) {
-        throw new AppError(400, errors.USER_ALREADY_BLOCKED);
-      } else throw error;
-    }
+    await ChannelBlockUser.addBlockUser(channelId, selectedUser);
 
     channelEvents.emit('registerBlockUser', { channelId, selectedUser });
     res.status(200).send();
@@ -73,7 +64,6 @@ export const cancelBlock = asyncHandler(
     if (!result) throw new AppError(404, errors.USER_NOT_BLOCKED);
 
     channelEvents.emit('cancelBlockUser', { channelId, selectedUser });
-
     res.status(200).send();
   },
 );

@@ -156,12 +156,7 @@ export const joinChannel = asyncHandler(
       }
     }
 
-    const users = await ChannelUser.find({ channelId })
-      .select('userId')
-      .populate('userId', '_id userName pic')
-      .lean();
-
-    const userList = users.map((user) => user.userId);
+    const channelUsers = await ChannelUser.getChannelUsers(channelId);
 
     // const user = await User.findById(userId).select("_id nam pic").lean();
     // channelEvents.emit("userJoined", { channelId, user });
@@ -170,7 +165,7 @@ export const joinChannel = asyncHandler(
       channelName: channel.channelName,
       channelDescription: channel.channelDescription,
       channelAdmin: channel.channelAdmin.toString(),
-      users: userList,
+      channelUsers,
     });
   },
 );
@@ -186,8 +181,8 @@ export const leaveChannel = asyncHandler(
     const isChannelAdmin = await Channel.isChannelAdmin(channelId, userId);
     if (isChannelAdmin) throw new AppError(403, errors.ADMIN_LEAVE_DENIED);
 
-    const leftUser = await ChannelUser.findOneAndDelete({ channelId, userId });
-    if (!leftUser) throw new AppError(400, errors.USER_ALREADY_LEFT);
+    const result = await ChannelUser.leaveChannel(channelId, userId);
+    if (!result) throw new AppError(400, errors.USER_ALREADY_LEFT);
 
     // channelEvents.emit("userLeft", { channelId, usrId });
 

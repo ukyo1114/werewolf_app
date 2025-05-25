@@ -2,7 +2,7 @@ import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
-import Message from '../../models/messageModel';
+import Message from '../../models/Message';
 import { MessageType } from '../../config/types';
 import { appState, Events } from '../../app';
 import { CustomRequest } from '../../config/types';
@@ -32,7 +32,7 @@ export const getMessages = asyncHandler(
     };
 
     const messageType = channel.getReceiveMessageType(userId);
-    if (messageType) query.messageType = messageType;
+    if (messageType) query.messageType = { $in: messageType };
 
     if (messageId) {
       const message = await Message.findById(messageId)

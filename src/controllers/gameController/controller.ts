@@ -33,6 +33,7 @@ export const joinGame = asyncHandler(
     if (!(await ChannelUser.exists({ channelId, userId })))
       throw new AppError(403, errors.GAME_ACCESS_FORBIDDEN);
 
+    // ユーザーがゲームに参加していない場合
     await GameUser.updateOne(
       { gameId, userId },
       { $setOnInsert: { gameId, userId } },

@@ -41,7 +41,7 @@ ChannelUserSchema.index({ channelId: 1, userId: 1 }, { unique: true });
 // チャンネルのユーザー一覧を取得
 ChannelUserSchema.statics.getChannelUsers = async function (
   channelId: string,
-): Promise<{ _id: Types.ObjectId; userName: string; pic: string | null }[]> {
+): Promise<IChannelUserModel[]> {
   const users = await this.find({ channelId })
     .select('-_id userId')
     .populate('userId', '_id userName pic')
