@@ -58,13 +58,26 @@ describe('test blockRoutes', () => {
   });
 
   describe('/list', () => {
-    it('ブロックユーザーのリストを取得する', async () => {
-      const mockToken = genUserToken(testUserId);
+    const customRequest = async (
+      userId: string,
+      channelId: string,
+      status: number,
+      errorMessage?: string,
+    ) => {
+      const mockToken = genUserToken(userId);
       const response = await request(app)
-        .get(`/api/block/list/${testChannelId}`)
+        .get(`/api/block/list/${channelId}`)
         .send()
         .set('authorization', `Bearer ${mockToken}`)
-        .expect(200);
+        .expect(status);
+
+      if (errorMessage)
+        expect(response.body).toHaveProperty('message', errorMessage);
+      return response;
+    };
+
+    it('should get list of blocked users', async () => {
+      const response = await customRequest(testUserId, testChannelId, 200);
 
       expect(response.body).toEqual([
         {
@@ -75,35 +88,30 @@ describe('test blockRoutes', () => {
       ]);
     });
 
-    it('管理者でなければエラーを返す', async () => {
-      const mockToken = genUserToken(blockUserId);
-      const response = await request(app)
-        .get(`/api/block/list/${testChannelId}`)
-        .send()
-        .set('authorization', `Bearer ${mockToken}`)
-        .expect(403);
+    it('should return error if not admin', async () => {
+      const response = await customRequest(blockUserId, testChannelId, 403);
 
       expect(response.body).toHaveProperty('message', errors.PERMISSION_DENIED);
     });
 
-    it('チャンネルが見つからない時エラーを返す', async () => {
-      const mockToken = genUserToken(testUserId);
-      const response = await request(app)
-        .get(`/api/block/list/${mockChannelId}`)
-        .send()
-        .set('authorization', `Bearer ${mockToken}`)
-        .expect(403);
+    it('should return error when channel not found', async () => {
+      const response = await customRequest(
+        testUserId,
+        mockChannelId,
+        403,
+        errors.PERMISSION_DENIED,
+      );
 
       expect(response.body).toHaveProperty('message', errors.PERMISSION_DENIED);
     });
 
     it('should return 400 when channelId is not a valid mongoId', async () => {
-      const mockToken = genUserToken(testUserId);
-      const response = await request(app)
-        .get('/api/block/list/wrongId')
-        .send()
-        .set('authorization', `Bearer ${mockToken}`)
-        .expect(400);
+      const response = await customRequest(
+        testUserId,
+        'wrongId',
+        400,
+        validation.INVALID_CHANNEL_ID,
+      );
 
       expect(response.body).toHaveProperty(
         'message',
@@ -131,7 +139,7 @@ describe('test blockRoutes', () => {
         expect(response.body).toHaveProperty('message', errorMessage);
     };
 
-    it('ブロックユーザーを追加する', async () => {
+    it('should add blocked user', async () => {
       const badUserId = new ObjectId().toString();
       await customRequest(testUserId, testChannelId, badUserId, 200);
 
@@ -143,7 +151,7 @@ describe('test blockRoutes', () => {
       expect(createdBlockUser).not.toBeNull();
     });
 
-    it('管理者でなければエラーを返す', async () => {
+    it('should return error if not admin', async () => {
       const badUserId = new ObjectId().toString();
 
       await customRequest(
@@ -155,7 +163,7 @@ describe('test blockRoutes', () => {
       );
     });
 
-    it('ユーザーが既にブロックされているときエラーを返す', async () => {
+    it('should return error when user is already blocked', async () => {
       await customRequest(
         testUserId,
         testChannelId,
@@ -165,7 +173,7 @@ describe('test blockRoutes', () => {
       );
     });
 
-    it('チャンネルが見つからない時エラーを返す', async () => {
+    it('should return error when channel not found', async () => {
       await customRequest(
         testUserId,
         mockChannelId,
@@ -175,7 +183,7 @@ describe('test blockRoutes', () => {
       );
     });
 
-    it('自身をブロックしようとするとエラーを返す', async () => {
+    it('should return error when trying to block self', async () => {
       await customRequest(
         testUserId,
         testChannelId,
@@ -185,7 +193,7 @@ describe('test blockRoutes', () => {
       );
     });
 
-    it('チャンネルIDがmongoIDでないとき', async () => {
+    it('should return error when channel ID is not a valid mongoId', async () => {
       await customRequest(
         testUserId,
         'wrongChannelId',
@@ -195,7 +203,7 @@ describe('test blockRoutes', () => {
       );
     });
 
-    it('ブロックするユーザーIDがmongoIDでないとき', async () => {
+    it('should return error when user ID is not a valid mongoId', async () => {
       await customRequest(
         testUserId,
         testChannelId,
@@ -225,7 +233,7 @@ describe('test blockRoutes', () => {
         expect(response.body).toHaveProperty('message', errorMessage);
     };
 
-    it('ブロックを取り消す', async () => {
+    it('should cancel block', async () => {
       await customRequest(testUserId, testChannelId, blockUserId, 200);
 
       const deletedBlockUser = await ChannelBlockUser.findOne({
@@ -236,7 +244,7 @@ describe('test blockRoutes', () => {
       expect(deletedBlockUser).toBeNull();
     });
 
-    it('管理者でないとき', async () => {
+    it('should return error if not admin', async () => {
       await customRequest(
         blockUserId,
         testChannelId,
@@ -246,7 +254,7 @@ describe('test blockRoutes', () => {
       );
     });
 
-    it('ユーザーがブロックされていなかったとき', async () => {
+    it('should return error when user is not blocked', async () => {
       await customRequest(
         testUserId,
         testChannelId,
@@ -256,7 +264,7 @@ describe('test blockRoutes', () => {
       );
     });
 
-    it('チャンネルが見つからないとき', async () => {
+    it('should return error when channel not found', async () => {
       await customRequest(
         testUserId,
         mockChannelId,
@@ -266,7 +274,7 @@ describe('test blockRoutes', () => {
       );
     });
 
-    it('チャンネルIDがmongoIDでないとき', async () => {
+    it('should return error when channel ID is not a valid mongoId', async () => {
       await customRequest(
         testUserId,
         'wrongChannelId',
@@ -276,7 +284,7 @@ describe('test blockRoutes', () => {
       );
     });
 
-    it('ブロックを取り消したいユーザーIDがmongoIDでないとき', async () => {
+    it('should return error when user ID is not a valid mongoId', async () => {
       await customRequest(
         testUserId,
         testChannelId,
