@@ -1,5 +1,7 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 import bcrypt from 'bcryptjs';
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
 
 interface IChannel extends Document {
   _id: Types.ObjectId;
@@ -76,10 +78,11 @@ ChannelSchema.methods.matchPassword = async function (
 ChannelSchema.statics.isChannelAdmin = async function (
   channelId: string,
   userId: string,
-): Promise<boolean> {
+): Promise<void> {
   const channel = await this.findById(channelId);
-  if (!channel) return false;
-  return channel.channelAdmin.toString() === userId;
+  if (!channel) throw new AppError(404, errors.CHANNEL_NOT_FOUND);
+  if (channel.channelAdmin.toString() !== userId)
+    throw new AppError(403, errors.PERMISSION_DENIED);
 };
 
 // チャンネル一覧を取得

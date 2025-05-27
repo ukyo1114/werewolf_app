@@ -16,10 +16,7 @@ export const getBlockUserList = asyncHandler(
   ): Promise<void> => {
     const { channelId } = req.params;
     const userId = req.userId as string;
-
-    const isChannelAdmin = await Channel.isChannelAdmin(channelId, userId);
-    if (!isChannelAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
-
+    await Channel.isChannelAdmin(channelId, userId);
     const blockUserList = await ChannelBlockUser.getBlockedUsers(channelId);
 
     res.status(200).send(blockUserList);
@@ -34,13 +31,9 @@ export const registerBlockUser = asyncHandler(
     const { channelId } = req.params;
     const { selectedUser } = req.body;
     const userId = req.userId as string;
-
     if (selectedUser === userId)
       throw new AppError(403, errors.DENIED_SELF_BLOCK);
-
-    const isChannelAdmin = await Channel.isChannelAdmin(channelId, userId);
-    if (!isChannelAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
-
+    await Channel.isChannelAdmin(channelId, userId);
     await ChannelBlockUser.addBlockUser(channelId, selectedUser);
 
     channelEvents.emit('registerBlockUser', { channelId, selectedUser });
@@ -56,10 +49,7 @@ export const cancelBlock = asyncHandler(
     const { channelId } = req.params;
     const { selectedUser } = req.body;
     const userId = req.userId as string;
-
-    const isChannelAdmin = await Channel.isChannelAdmin(channelId, userId);
-    if (!isChannelAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
-
+    await Channel.isChannelAdmin(channelId, userId);
     const result = await ChannelBlockUser.unblockUser(channelId, selectedUser);
     if (!result) throw new AppError(404, errors.USER_NOT_BLOCKED);
 

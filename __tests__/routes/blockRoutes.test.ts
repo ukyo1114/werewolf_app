@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import app from '../../src/app';
+import app, { Events } from '../../src/app';
 import request from 'supertest';
 import User from '../../src/models/User';
 import Channel from '../../src/models/Channel';
@@ -9,6 +9,8 @@ import { errors, validation } from '../../src/config/messages';
 import { genUserToken } from '../../src/utils/generateToken';
 
 describe('test blockRoutes', () => {
+  const { channelEvents } = Events;
+  const emitSpy = jest.spyOn(channelEvents, 'emit');
   let testUserId: string;
   let blockUserId: string;
   let testChannelId: string;
@@ -51,6 +53,10 @@ describe('test blockRoutes', () => {
       channelId: testChannelId,
       userId: blockUserId,
     });
+  });
+
+  afterEach(() => {
+    emitSpy.mockClear();
   });
 
   afterAll(() => {
@@ -98,11 +104,11 @@ describe('test blockRoutes', () => {
       const response = await customRequest(
         testUserId,
         mockChannelId,
-        403,
-        errors.PERMISSION_DENIED,
+        404,
+        errors.CHANNEL_NOT_FOUND,
       );
 
-      expect(response.body).toHaveProperty('message', errors.PERMISSION_DENIED);
+      expect(response.body).toHaveProperty('message', errors.CHANNEL_NOT_FOUND);
     });
 
     it('should return 400 when channelId is not a valid mongoId', async () => {
@@ -149,6 +155,10 @@ describe('test blockRoutes', () => {
       });
 
       expect(createdBlockUser).not.toBeNull();
+      expect(emitSpy).toHaveBeenCalledWith('registerBlockUser', {
+        channelId: testChannelId,
+        selectedUser: badUserId,
+      });
     });
 
     it('should return error if not admin', async () => {
@@ -161,6 +171,8 @@ describe('test blockRoutes', () => {
         403,
         errors.PERMISSION_DENIED,
       );
+
+      expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('should return error when user is already blocked', async () => {
@@ -171,6 +183,8 @@ describe('test blockRoutes', () => {
         500,
         errors.USER_ALREADY_BLOCKED,
       );
+
+      expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('should return error when channel not found', async () => {
@@ -178,9 +192,11 @@ describe('test blockRoutes', () => {
         testUserId,
         mockChannelId,
         new ObjectId().toString(),
-        403,
-        errors.PERMISSION_DENIED,
+        404,
+        errors.CHANNEL_NOT_FOUND,
       );
+
+      expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('should return error when trying to block self', async () => {
@@ -191,6 +207,7 @@ describe('test blockRoutes', () => {
         403,
         errors.DENIED_SELF_BLOCK,
       );
+      expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('should return error when channel ID is not a valid mongoId', async () => {
@@ -201,6 +218,8 @@ describe('test blockRoutes', () => {
         400,
         validation.INVALID_CHANNEL_ID,
       );
+
+      expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('should return error when user ID is not a valid mongoId', async () => {
@@ -211,6 +230,8 @@ describe('test blockRoutes', () => {
         400,
         validation.INVALID_SELECTED_USER,
       );
+
+      expect(emitSpy).not.toHaveBeenCalled();
     });
   });
 
@@ -242,6 +263,10 @@ describe('test blockRoutes', () => {
       });
 
       expect(deletedBlockUser).toBeNull();
+      expect(emitSpy).toHaveBeenCalledWith('cancelBlockUser', {
+        channelId: testChannelId,
+        selectedUser: blockUserId,
+      });
     });
 
     it('should return error if not admin', async () => {
@@ -252,6 +277,7 @@ describe('test blockRoutes', () => {
         403,
         errors.PERMISSION_DENIED,
       );
+      expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('should return error when user is not blocked', async () => {
@@ -262,6 +288,7 @@ describe('test blockRoutes', () => {
         404,
         errors.USER_NOT_BLOCKED,
       );
+      expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('should return error when channel not found', async () => {
@@ -269,9 +296,10 @@ describe('test blockRoutes', () => {
         testUserId,
         mockChannelId,
         blockUserId,
-        403,
-        errors.PERMISSION_DENIED,
+        404,
+        errors.CHANNEL_NOT_FOUND,
       );
+      expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('should return error when channel ID is not a valid mongoId', async () => {
@@ -282,6 +310,7 @@ describe('test blockRoutes', () => {
         400,
         validation.INVALID_CHANNEL_ID,
       );
+      expect(emitSpy).not.toHaveBeenCalled();
     });
 
     it('should return error when user ID is not a valid mongoId', async () => {
@@ -292,6 +321,7 @@ describe('test blockRoutes', () => {
         400,
         validation.INVALID_SELECTED_USER,
       );
+      expect(emitSpy).not.toHaveBeenCalled();
     });
   });
 });
