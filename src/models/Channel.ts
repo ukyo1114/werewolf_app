@@ -21,6 +21,25 @@ interface IChannel extends Document {
 interface IChannelModel extends mongoose.Model<IChannel> {
   isChannelAdmin(channelId: string, userId: string): Promise<boolean>;
   getChannelList(): Promise<IChannel[]>;
+  updateChannelSettings({
+    userId,
+    channelId,
+    channelName,
+    channelDescription,
+    passwordEnabled,
+    password,
+    denyGuests,
+    numberOfPlayers,
+  }: {
+    userId: string;
+    channelId: string;
+    channelName: string | null;
+    channelDescription: string | null;
+    passwordEnabled: boolean;
+    password: string | null;
+    denyGuests: boolean;
+    numberOfPlayers: number;
+  }): Promise<[string, string, number]>;
 }
 
 const ChannelSchema = new Schema<IChannel>(
@@ -78,11 +97,10 @@ ChannelSchema.methods.matchPassword = async function (
 ChannelSchema.statics.isChannelAdmin = async function (
   channelId: string,
   userId: string,
-): Promise<void> {
+): Promise<boolean> {
   const channel = await this.findById(channelId);
   if (!channel) throw new AppError(404, errors.CHANNEL_NOT_FOUND);
-  if (channel.channelAdmin.toString() !== userId)
-    throw new AppError(403, errors.PERMISSION_DENIED);
+  return channel.channelAdmin.toString() === userId;
 };
 
 // チャンネル一覧を取得
@@ -91,6 +109,49 @@ ChannelSchema.statics.getChannelList = async function (): Promise<IChannel[]> {
     .select('-__v -password')
     .populate('channelAdmin', '_id userName pic')
     .lean();
+};
+
+ChannelSchema.statics.updateChannelSettings = async function ({
+  userId,
+  channelId,
+  channelName,
+  channelDescription,
+  passwordEnabled,
+  password,
+  denyGuests,
+  numberOfPlayers,
+}: {
+  userId: string;
+  channelId: string;
+  channelName: string | null;
+  channelDescription: string | null;
+  passwordEnabled: boolean;
+  password: string | null;
+  denyGuests: boolean;
+  numberOfPlayers: number;
+}): Promise<[string, string, number]> {
+  const isAdmin = await Channel.isChannelAdmin(channelId, userId);
+  if (!isAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
+
+  const channel = await this.findById(channelId);
+  if (channelName) channel.channelName = channelName;
+  if (channelDescription) channel.channelDescription = channelDescription;
+  if (!passwordEnabled) {
+    channel.passwordEnabled = false;
+  } else if (!channel.passwordEnabled && password) {
+    channel.passwordEnabled = true;
+  }
+  if (passwordEnabled && password) channel.password = password;
+  channel.denyGuests = denyGuests;
+  channel.numberOfPlayers = numberOfPlayers;
+
+  await channel.save();
+
+  return [
+    channel.channelName,
+    channel.channelDescription,
+    channel.numberOfPlayers,
+  ];
 };
 
 ChannelSchema.pre<IChannel>('save', async function (next) {

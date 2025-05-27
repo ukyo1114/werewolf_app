@@ -16,28 +16,9 @@ const validateChannelId = param('channelId')
   .isMongoId()
   .withMessage(validation.INVALID_CHANNEL_ID);
 
-/* const validateChannelNameRequired = body('channelName')
-  .exists()
-  .trim()
-  .isString()
-  .isLength({ min: 1, max: 20 })
-  .withMessage(validation.CHANNEL_NAME_LENGTH)
-  .escape();
-
-const validateChannelNameOptional = body('channelName')
-  .trim()
-  .optional()
-  .isString()
-  .isLength({ min: 1, max: 20 })
-  .withMessage(validation.CHANNEL_NAME_LENGTH)
-  .escape(); */
-
 const validateChannelName = (isOptional: boolean) => {
   let validator = body('channelName').trim();
-
-  if (isOptional) {
-    validator = validator.optional();
-  }
+  if (isOptional) validator = validator.optional({ nullable: true });
 
   return validator
     .isString()
@@ -46,28 +27,9 @@ const validateChannelName = (isOptional: boolean) => {
     .escape();
 };
 
-/* const validateChannelDescriptionRequired = body('channelDescription')
-  .exists()
-  .trim()
-  .isString()
-  .isLength({ min: 1, max: 2000 })
-  .withMessage(validation.CHANNEL_DESCRIPTION_LENGTH)
-  .escape();
-
-const validateChannelDescriptionOptional = body('channelDescription')
-  .trim()
-  .optional()
-  .isString()
-  .isLength({ min: 1, max: 2000 })
-  .withMessage(validation.CHANNEL_DESCRIPTION_LENGTH)
-  .escape(); */
-
 const validateChannelDescription = (isOptional: boolean) => {
   let validator = body('channelDescription').trim();
-
-  if (isOptional) {
-    validator = validator.optional();
-  }
+  if (isOptional) validator = validator.optional({ nullable: true });
 
   return validator
     .isString()
@@ -83,7 +45,7 @@ const validatePasswordEnabled = body('passwordEnabled')
 
 const validatePassword = body('password')
   .trim()
-  .optional()
+  .optional({ nullable: true })
   .isString()
   .isLength({ min: 8, max: 64 })
   .withMessage(validation.PASSWORD_LENGTH);

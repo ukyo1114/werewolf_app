@@ -11,14 +11,15 @@ import {
   ICreateChannel,
   IChannelSettings,
 } from '../../config/types';
+import { Events } from '../../app';
+
+const { channelEvents } = Events;
 
 export const getChannelList = asyncHandler(
   async (req: CustomRequest, res: Response): Promise<void> => {
-    const { userId } = req as { userId: string };
-
-    const channelList = await Channel.getChannelList();
-
-    const [joinedChannels, blockedChannels] = await Promise.all([
+    const userId = req.userId as string;
+    const [channelList, joinedChannels, blockedChannels] = await Promise.all([
+      Channel.getChannelList(),
       ChannelUser.find({ userId }).select('channelId').lean(),
       ChannelBlockUser.find({ userId }).select('channelId').lean(),
     ]);
@@ -41,15 +42,13 @@ export const createChannel = asyncHandler(
       denyGuests,
       numberOfPlayers,
     } = req.body;
-    const { userId } = req as { userId: string };
-
+    const userId = req.userId as string;
+    // ゲストユーザーはチャンネルを作成できない
     const isUserGuest = await User.isGuestUser(userId);
     if (isUserGuest)
       throw new AppError(403, errors.GUEST_CREATE_CHANNEL_DENIED);
 
-    if (passwordEnabled && !password)
-      throw new AppError(400, validation.PASSWORD_LENGTH);
-
+    // チャンネルを作成
     const createdChannel = await Channel.create({
       channelName,
       channelDescription,
@@ -60,16 +59,17 @@ export const createChannel = asyncHandler(
       numberOfPlayers,
     });
 
-    await ChannelUser.create({
-      channelId: createdChannel._id,
-      userId,
-    });
+    try {
+      await ChannelUser.create({
+        channelId: createdChannel._id,
+        userId,
+      });
+    } catch (error) {
+      await Channel.findByIdAndDelete(createdChannel._id);
+      throw error;
+    }
 
-    const channel = await Channel.findById(createdChannel._id)
-      .select('-__v -passwordEnabled -password -denyGuests')
-      .lean();
-
-    res.status(201).json(channel);
+    res.status(201).json({ channelId: createdChannel._id });
   },
 );
 
@@ -87,33 +87,29 @@ export const updateChannelSettings = asyncHandler(
       denyGuests,
       numberOfPlayers,
     } = req.body;
-    const { userId } = req as { userId: string };
+    const userId = req.userId as string;
+    const [
+      updatedChannelName,
+      updatedChannelDescription,
+      updatedNumberOfPlayers,
+    ] = await Channel.updateChannelSettings({
+      userId,
+      channelId,
+      channelName,
+      channelDescription,
+      passwordEnabled,
+      password,
+      denyGuests,
+      numberOfPlayers,
+    });
 
-    const isChannelAdmin = await Channel.isChannelAdmin(channelId, userId);
-    if (!isChannelAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
-
-    const channel = await Channel.findById(channelId);
-    if (!channel) throw new AppError(404, errors.CHANNEL_NOT_FOUND);
-
-    if (channelName) channel.channelName = channelName;
-    if (channelDescription) channel.channelDescription = channelDescription;
-    if (!passwordEnabled) {
-      channel.passwordEnabled = false;
-    } else if (!channel.passwordEnabled && password) {
-      channel.passwordEnabled = true;
-    }
-    if (passwordEnabled && password) channel.password = password;
-    channel.denyGuests = denyGuests;
-    channel.numberOfPlayers = numberOfPlayers;
-
-    await channel.save();
-
-    /* const updatedChannel = await Channel.findById(channelId)
-      .select('channelName channelDescription')
-      .lean();
-
-    channelEvents.emit('channelSettingsUpdated', { channelId, updatedChannel }); */
-
+    const data = {
+      channelId,
+      channelName: updatedChannelName,
+      channelDescription: updatedChannelDescription,
+      numberOfPlayers: updatedNumberOfPlayers,
+    };
+    channelEvents.emit('channelSettingsUpdated', data);
     res.status(200).send();
   },
 );
@@ -125,7 +121,7 @@ export const joinChannel = asyncHandler(
   ): Promise<void> => {
     const { channelId } = req.params;
     const { password } = req.body;
-    const { userId } = req as { userId: string };
+    const userId = req.userId as string;
 
     const isUserBlocked = await ChannelBlockUser.isUserBlocked(
       channelId,
@@ -156,10 +152,11 @@ export const joinChannel = asyncHandler(
       }
     }
 
-    const channelUsers = await ChannelUser.getChannelUsers(channelId);
-
-    // const user = await User.findById(userId).select("_id nam pic").lean();
-    // channelEvents.emit("userJoined", { channelId, user });
+    const [channelUsers, user] = await Promise.all([
+      ChannelUser.getChannelUsers(channelId),
+      User.findById(userId).select('_id userName pic').lean(),
+    ]);
+    channelEvents.emit('userJoined', { channelId, user });
 
     res.status(200).json({
       channelName: channel.channelName,
@@ -176,7 +173,7 @@ export const leaveChannel = asyncHandler(
     res: Response,
   ): Promise<void> => {
     const { channelId } = req.params;
-    const { userId } = req as { userId: string };
+    const userId = req.userId as string;
 
     const isChannelAdmin = await Channel.isChannelAdmin(channelId, userId);
     if (isChannelAdmin) throw new AppError(403, errors.ADMIN_LEAVE_DENIED);
@@ -184,8 +181,7 @@ export const leaveChannel = asyncHandler(
     const result = await ChannelUser.leaveChannel(channelId, userId);
     if (!result) throw new AppError(400, errors.USER_ALREADY_LEFT);
 
-    // channelEvents.emit("userLeft", { channelId, usrId });
-
+    channelEvents.emit('userLeft', { channelId, userId });
     res.status(200).send();
   },
 );
