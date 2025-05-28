@@ -6,6 +6,7 @@ import { appState } from '../app';
 import Channel from '../models/Channel';
 import Game from '../models/Game';
 import { errors } from '../config/messages';
+import AppError from '../utils/AppError';
 
 const { channelManagers, gameManagers } = appState;
 
@@ -83,7 +84,7 @@ export default class ChannelManager {
       return 'freemason';
     }
 
-    throw new Error(errors.MESSAGE_SENDING_FORBIDDEN);
+    throw new AppError(403, errors.MESSAGE_SENDING_FORBIDDEN);
   }
 
   getMessageReceivers(messageType: MessageType): string[] | null {
@@ -122,6 +123,7 @@ export default class ChannelManager {
   }
 
   checkCanUserAccessChannel(userId: string) {
-    if (!this.users[userId]) throw new Error(errors.CHANNEL_ACCESS_FORBIDDEN);
+    if (!this.users[userId])
+      throw new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN);
   }
 }
