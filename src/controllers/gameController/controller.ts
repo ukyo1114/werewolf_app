@@ -7,19 +7,19 @@ import ChannelUser from '../../models/ChannelUser';
 import Game from '../../models/Game';
 import GameUser from '../../models/GameUser';
 import GameManager from '../../classes/GameManager';
-import { appState } from '../../app';
+import { appState, Events } from '../../app';
 import { CustomRequest } from '../../config/types';
 
 const { gameManagers } = appState;
+const { channelEvents } = Events;
 
 export const joinGame = asyncHandler(
   async (
     req: CustomRequest<{}, { gameId: string }>,
     res: Response,
   ): Promise<void> => {
-    const { userId } = req as { userId: string };
+    const userId = req.userId as string;
     const { gameId } = req.params;
-
     if (!gameManagers[gameId]) throw new AppError(403, errors.GAME_NOT_FOUND);
 
     const game = await Game.findById(gameId)
@@ -27,30 +27,20 @@ export const joinGame = asyncHandler(
       .populate('channelId', '_id channelName channelDescription')
       .lean();
     if (!game) throw new AppError(403, errors.GAME_NOT_FOUND);
+    const channelId = game.channelId._id.toString();
 
-    const channelId = game.channelId._id;
-
-    if (!(await ChannelUser.exists({ channelId, userId })))
+    if (!(await ChannelUser.isUserInChannel(channelId, userId)))
       throw new AppError(403, errors.GAME_ACCESS_FORBIDDEN);
 
-    // ユーザーがゲームに参加していない場合
-    await GameUser.updateOne(
-      { gameId, userId },
-      { $setOnInsert: { gameId, userId } },
-      { upsert: true },
-    );
+    await GameUser.joinGame(gameId, userId);
 
     const [gameUsers, user] = await Promise.all([
-      GameUser.find({ gameId })
-        .select('userId')
-        .populate('userId', '_id userName pic')
-        .lean(),
+      GameUser.getGameUsers(gameId),
       User.findById(userId).select('_id userName pic').lean(),
     ]);
 
-    // channelEvents.emit("userJoined", { channelId: gameId, user });
-
-    res.status(200).json({ game, users: gameUsers.map((user) => user.userId) });
+    channelEvents.emit('userJoined', { channelId: gameId, user });
+    res.status(200).json({ game, users: gameUsers });
   },
 );
 

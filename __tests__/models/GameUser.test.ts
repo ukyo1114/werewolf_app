@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
 import GameUser from '../../src/models/GameUser';
+import User from '../../src/models/User';
 
 describe('GameUser Model Test', () => {
   const gameId1 = new ObjectId().toString();
@@ -9,9 +10,19 @@ describe('GameUser Model Test', () => {
   const userId2 = new ObjectId().toString();
 
   beforeAll(async () => {
-    if (mongoose.connection.db) {
-      await mongoose.connection.db.dropDatabase();
-    }
+    await Promise.all([User.deleteMany({}), GameUser.deleteMany({})]);
+    await Promise.all([
+      User.create({
+        _id: userId1,
+        userName: 'testuser',
+        email: 'test@example.com',
+      }),
+      User.create({
+        _id: userId2,
+        userName: 'testuser2',
+        email: 'test2@example.com',
+      }),
+    ]);
   });
 
   afterEach(async () => {
@@ -113,6 +124,70 @@ describe('GameUser Model Test', () => {
       });
 
       expect(gameUser.role).toBe(role);
+    });
+  });
+
+  describe('test joinGame', () => {
+    it('should create a new game user', async () => {
+      await GameUser.joinGame(gameId1, userId1);
+      const gameUser = await GameUser.findOne({
+        gameId: gameId1,
+        userId: userId1,
+      });
+      expect(gameUser).toBeDefined();
+      expect(gameUser?.gameId.toString()).toEqual(gameId1.toString());
+      expect(gameUser?.userId.toString()).toEqual(userId1.toString());
+      expect(gameUser?.role).toBe('spectator');
+    });
+
+    it('should not create a new game user if it already exists', async () => {
+      await GameUser.create({
+        gameId: gameId1,
+        userId: userId1,
+        role: 'villager',
+      });
+
+      await GameUser.joinGame(gameId1, userId1);
+      const gameUser = await GameUser.findOne({
+        gameId: gameId1,
+        userId: userId1,
+      });
+      expect(gameUser?.role).toBe('villager');
+    });
+  });
+
+  describe('test getGameUsers', () => {
+    it('should return all users in a game', async () => {
+      await GameUser.create({
+        gameId: gameId1,
+        userId: userId1,
+        role: 'villager',
+      });
+      await GameUser.create({
+        gameId: gameId1,
+        userId: userId2,
+        role: 'villager',
+      });
+
+      const gameUsers = await GameUser.getGameUsers(gameId1);
+      expect(gameUsers).toHaveLength(2);
+      expect(gameUsers).toEqual([
+        {
+          _id: new ObjectId(userId1),
+          userName: 'testuser',
+          pic: null,
+        },
+        {
+          _id: new ObjectId(userId2),
+          userName: 'testuser2',
+          pic: null,
+        },
+      ]);
+    });
+
+    it('should return empty array for game with no users', async () => {
+      const gameUsers = await GameUser.getGameUsers(gameId1);
+      expect(gameUsers).toEqual([]);
     });
   });
 });
