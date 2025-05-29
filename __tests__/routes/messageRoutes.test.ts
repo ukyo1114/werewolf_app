@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import app, { appState } from '../../src/app';
+import app, { appState, Events } from '../../src/app';
 import { decodeToken } from '../../src/utils/decodeToken';
 import request from 'supertest';
 import User from '../../src/models/User';
@@ -92,7 +92,7 @@ describe('test messageRoutes', () => {
     delete gameManagers[mockGameId];
     delete channelManagers[mockGameId];
     await Message.deleteMany({});
-    jest.restoreAllMocks();
+    //jest.restoreAllMocks();
   });
 
   afterAll(() => {
@@ -128,7 +128,6 @@ describe('test messageRoutes', () => {
       });
 
       const messages = await customRequest(testUserId, testChannelId, 200);
-
       expect(messages[0].channelId).toBe(testChannelId);
     });
 
@@ -326,7 +325,6 @@ describe('test messageRoutes', () => {
       ]);
 
       const messages = await customRequest(testUserId, mockGameId, 200);
-
       expect(messages).toHaveLength(1);
     });
 
@@ -362,6 +360,8 @@ describe('test messageRoutes', () => {
   });
 
   describe('test sendMessage', () => {
+    const { channelEvents } = Events;
+    const emitSpy = jest.spyOn(channelEvents, 'emit');
     const customRequest = async (
       userId: string,
       channelId: string | undefined,
@@ -384,8 +384,14 @@ describe('test messageRoutes', () => {
       await customRequest(testUserId, testChannelId, 'testMessage', 200);
 
       const messages = await Message.find({ channelId: testChannelId });
-
       expect(messages[0].message).toBe('testMessage');
+
+      expect(emitSpy).toHaveBeenCalledWith(
+        'newMessage',
+        testChannelId,
+        expect.any(Object),
+        null,
+      );
     });
 
     it('チャンネルが存在しない時', async () => {
@@ -423,7 +429,6 @@ describe('test messageRoutes', () => {
       await customRequest(testUserId, mockGameId, 'testMessage', 200);
 
       const messages = await Message.find({ channelId: mockGameId });
-
       expect(messages[0].messageType).toBe('normal');
     });
 
@@ -439,7 +444,6 @@ describe('test messageRoutes', () => {
       await customRequest(testUserId, mockGameId, 'testMessage', 200);
 
       const messages = await Message.find({ channelId: mockGameId });
-
       expect(messages[0].messageType).toBe('spectator');
     });
 
@@ -458,7 +462,6 @@ describe('test messageRoutes', () => {
       await customRequest(testUserId, mockGameId, 'testMessage', 200);
 
       const messages = await Message.find({ channelId: mockGameId });
-
       expect(messages[0].messageType).toBe('werewolf');
     });
 

@@ -28,9 +28,8 @@ export const sendVerificationEmail = (action: keyof typeof mailContent) =>
       if (
         (action === 'registerUser' || action === 'changeEmail') &&
         emailExists
-      ) {
+      )
         throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
-      }
 
       // メールアドレスが登録されていなければ通知する
       if (action === 'forgotPassword' && !emailExists)

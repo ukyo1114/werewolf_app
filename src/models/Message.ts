@@ -1,5 +1,7 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 import { MessageType } from '../config/types';
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
 
 export interface IMessage extends Document {
   _id: Types.ObjectId;
@@ -11,11 +13,12 @@ export interface IMessage extends Document {
 }
 
 interface IMessageModel extends mongoose.Model<IMessage> {
-  getChannelMessages(
-    channelId: string,
-    limit?: number,
-    before?: Date | null,
-  ): Promise<IMessage[]>;
+  getMessages(params: {
+    channelId: string;
+    messageId?: string;
+    limit?: number;
+    messageType?: MessageType[] | null;
+  }): Promise<IMessage[]>;
 }
 
 const MessageSchema = new Schema<IMessage>(
@@ -49,21 +52,31 @@ const MessageSchema = new Schema<IMessage>(
 MessageSchema.index({ channelId: 1, createdAt: -1 });
 
 // チャンネルのメッセージ一覧を取得
-MessageSchema.statics.getChannelMessages = async function (
-  channelId: string,
-  limit: number = 50,
-  before: Date | null = null,
-): Promise<IMessage[]> {
+MessageSchema.statics.getMessages = async function ({
+  channelId,
+  messageId,
+  limit = 50,
+  messageType = null,
+}: {
+  channelId: string;
+  messageId?: string;
+  limit?: number;
+  messageType: MessageType[] | null;
+}): Promise<IMessage[]> {
   const query: any = { channelId };
-  if (before) {
-    query.createdAt = { $lt: before };
+  if (messageType) query.messageType = { $in: messageType };
+  if (messageId) {
+    const message = await this.findById(messageId).select('createdAt').lean();
+    if (!message) throw new AppError(404, errors.MESSAGE_NOT_FOUND);
+    query._id = { $ne: messageId };
+    query.createdAt = { $lt: message.createdAt };
   }
 
   return this.find(query)
     .sort({ createdAt: -1 })
     .limit(limit)
-    .populate('userId', 'userName pic')
-    .select('-__v');
+    .select('-__v')
+    .lean();
 };
 
 const Message = mongoose.model<IMessage, IMessageModel>(
