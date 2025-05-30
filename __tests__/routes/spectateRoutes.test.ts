@@ -1,106 +1,95 @@
-jest.mock('../../src/utils/decodeToken', () => ({
-  decodeToken: jest.fn(),
-}));
-
 import app, { appState } from '../../src/app';
 import { decodeToken } from '../../src/utils/decodeToken';
 import request from 'supertest';
-import User from '../../src/models/userModel';
-import Channel from '../../src/models/channelModel';
-import { mockChannelId, mockGameId, mockUsers } from '../../jest.setup';
+import User from '../../src/models/User';
+import Channel from '../../src/models/Channel';
+import { mockChannelId, mockGameId, mockUsers } from '../../__mocks__/mockdata';
 import { errors, validation } from '../../src/config/messages';
 import ChannelUserManager from '../../src/classes/ChannelUserManager';
 import ChannelManager from '../../src/classes/ChannelManager';
 import GameManager from '../../src/classes/GameManager';
-
+import { genUserToken } from '../../src/utils/generateToken';
+import { ObjectId } from 'mongodb';
 const { gameManagers, channelManagers } = appState;
 
-let testUserId: string;
-let testUser2Id: string;
-let testChannelId: string;
+describe('test spectateRoutes', () => {
+  const testUserId = new ObjectId().toString();
+  const testUser2Id = new ObjectId().toString();
+  const testChannelId = new ObjectId().toString();
 
-beforeAll(async () => {
-  const [testUser, testUser2] = await Promise.all([
-    User.create({
-      userName: 'testUser',
-      email: 'test@example.com',
-      password: 'password123',
-      pic: null,
-      isGuest: false,
-    }),
-    User.create({
-      userName: 'testUser2',
-      email: 'test2@example.com',
-      password: 'password123',
-      pic: null,
-      isGuest: false,
-    }),
-  ]);
+  beforeAll(async () => {
+    await User.deleteMany();
 
-  testUserId = testUser._id.toString();
-  testUser2Id = testUser2._id.toString();
+    const [testUser, testUser2] = await Promise.all([
+      User.create({
+        _id: testUserId,
+        userName: 'testUser',
+        email: 'test@example.com',
+        password: 'password123',
+        pic: null,
+        isGuest: false,
+      }),
+      User.create({
+        _id: testUser2Id,
+        userName: 'testUser2',
+        email: 'test2@example.com',
+        password: 'password123',
+        pic: null,
+        isGuest: false,
+      }),
+      Channel.create({
+        _id: testChannelId,
+        channelName: 'testChannel',
+        channelDescription: 'testDescription',
+        channelAdmin: testUserId,
+      }),
+    ]);
 
-  const testChannel = await Channel.create({
-    channelName: 'testChannel',
-    channelDescription: 'testDescription',
-    channelAdmin: testUserId,
+    channelManagers[testChannelId] = new ChannelManager(testChannelId);
+
+    channelManagers[testChannelId].users = {
+      [testUserId]: new ChannelUserManager({
+        userId: testUserId,
+        socketId: 'testUser',
+        status: 'normal',
+      }),
+    };
+
+    gameManagers[mockGameId] = new GameManager(
+      testChannelId,
+      mockGameId,
+      mockUsers,
+    );
+    gameManagers[mockGameId].playerManager.players = {
+      [testUserId]: {
+        userId: testUserId,
+        userName: 'testUser',
+        status: 'alive',
+        role: 'villager',
+        teammates: null,
+      },
+    };
+    gameManagers[mockGameId].sendMessage = jest.fn();
   });
 
-  testChannelId = testChannel._id.toString();
+  afterAll(() => {
+    const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
+    if (timerId) clearTimeout(timerId);
+    delete gameManagers[mockGameId];
+    app.close();
+  });
 
-  channelManagers[testChannelId] = new ChannelManager(testChannelId);
-
-  channelManagers[testChannelId].users = {
-    [testUserId]: new ChannelUserManager({
-      userId: testUserId,
-      socketId: 'testUser',
-      status: 'normal',
-    }),
-  };
-
-  gameManagers[mockGameId] = new GameManager(
-    testChannelId,
-    mockGameId,
-    mockUsers,
-  );
-  gameManagers[mockGameId].playerManager.players = {
-    [testUserId]: {
-      userId: testUserId,
-      userName: 'testUser',
-      status: 'alive',
-      role: 'villager',
-    },
-  };
-  gameManagers[mockGameId].sendMessage = jest.fn();
-});
-
-afterEach(() => {
-  jest.restoreAllMocks();
-  app.close();
-});
-
-afterAll(() => {
-  const timerId = gameManagers[mockGameId]?.phaseManager.timerId;
-
-  if (timerId) {
-    clearTimeout(timerId);
-  }
-  delete gameManagers[mockGameId];
-});
-
-describe('getMessages', () => {
   const customRequest = async (
     userId: string,
     channelId: string | undefined,
     status: number,
     errorMessage?: string,
   ) => {
-    (decodeToken as jest.Mock).mockReturnValue({ userId });
-
+    const mockToken = genUserToken(userId);
     const response = await request(app)
       .get(`/api/spectate/${channelId}`)
       .send()
-      .set('authorization', 'Bearer mockToken')
+      .set('authorization', `Bearer ${mockToken}`)
       .expect(status);
 
     if (errorMessage)

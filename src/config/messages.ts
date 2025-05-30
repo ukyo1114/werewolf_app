@@ -35,6 +35,8 @@ export const errors = {
   EMAIL_NOT_REGISTERED: 'メールアドレスが登録されていません。',
   GAME_CREATION_FAILED: 'ゲームの開始中にエラーが発生しました',
   PLAYING_GAME: 'ゲームをプレイ中です。',
+  IMAGE_UPLOAD_FAILED: '画像のアップロードに失敗しました',
+  USER_IN_GAME: 'ゲーム中のユーザーは編集できません。',
 };
 
 export const validation = {

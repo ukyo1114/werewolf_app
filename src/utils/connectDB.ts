@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 
 const connectDB = async (): Promise<void> => {
+  if (process.env.NODE_ENV === 'test') return;
+
   try {
     const mongoURI = process.env.MONGO_URI;
     if (!mongoURI) {

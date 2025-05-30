@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { getSecret } from './getSecret';
 
-type actionType = 'registerUser' | 'changeEmail' | 'forgotPassword';
+export type actionType = 'registerUser' | 'changeEmail' | 'forgotPassword';
 
 export interface IVerificationTokenPayload {
   userId: string | null;

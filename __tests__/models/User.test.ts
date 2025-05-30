@@ -1,5 +1,8 @@
 import User from '../../src/models/User';
 import mongoose from 'mongoose';
+import { ObjectId } from 'mongodb';
+import AppError from '../../src/utils/AppError';
+import { errors } from '../../src/config/messages';
 
 describe('User Model Test', () => {
   beforeAll(async () => {
@@ -30,14 +33,38 @@ describe('User Model Test', () => {
 
     it('should create a guest user', async () => {
       const user = await User.create({
-        userName: 'guestUser',
         isGuest: true,
       });
 
-      expect(user.userName).toBe('guestUser');
+      expect(user.userName).toBe('ゲスト');
       expect(user.isGuest).toBe(true);
       expect(user.email).toBeUndefined();
       expect(user.password).toBeNull();
+    });
+
+    it('testのためのテスト', async () => {
+      await Promise.all([
+        User.create({
+          isGuest: true,
+        }),
+        User.create({
+          isGuest: true,
+        }),
+      ]);
+
+      const users = await User.find({ isGuest: true });
+      expect(users.length).toBe(2);
+    });
+
+    it('should create 2 guest users', async () => {
+      for (let i = 0; i < 2; i++) {
+        await User.create({ isGuest: true });
+
+        await User.createIndexes();
+      }
+
+      const users = await User.find({ isGuest: true });
+      expect(users.length).toBe(2);
     });
 
     it('should hash password for non-guest users', async () => {
@@ -218,6 +245,141 @@ describe('User Model Test', () => {
     it('should throw error when user id is invalid', async () => {
       const invalidUserId = 'invalid-user-id';
       await expect(User.isGuestUser(invalidUserId)).rejects.toThrow();
+    });
+  });
+
+  describe('test login', () => {
+    const testUserId = new ObjectId().toString();
+    beforeEach(async () => {
+      await User.create({
+        _id: testUserId,
+        userName: 'testUser',
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    });
+
+    it('should return user when email and password are correct', async () => {
+      const user = await User.login('test@example.com', 'password123');
+      expect(user._id.toString()).toBe(testUserId);
+    });
+
+    it('should throw error when email is incorrect', async () => {
+      await expect(
+        User.login('wrong@example.com', 'password123'),
+      ).rejects.toThrow(new AppError(401, errors.EMAIL_NOT_FOUND));
+    });
+
+    it('should throw error when password is incorrect', async () => {
+      await expect(
+        User.login('test@example.com', 'wrongpassword'),
+      ).rejects.toThrow(new AppError(401, errors.WRONG_PASSWORD));
+    });
+  });
+
+  describe('test updateEmail', () => {
+    const testUserId = new ObjectId().toString();
+    beforeEach(async () => {
+      await User.create({
+        _id: testUserId,
+        userName: 'testUser',
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    });
+
+    it('should update email correctly', async () => {
+      await User.updateEmail(testUserId, 'new@example.com');
+      const user = await User.findById(testUserId);
+      expect(user?.email).toBe('new@example.com');
+    });
+
+    it('should throw error when user does not exist', async () => {
+      const nonExistentUserId = new ObjectId().toString();
+      await expect(
+        User.updateEmail(nonExistentUserId, 'new@example.com'),
+      ).rejects.toThrow(new AppError(401, errors.USER_NOT_FOUND));
+    });
+
+    it('should throw error when email is already registered', async () => {
+      await User.create({
+        _id: new ObjectId().toString(),
+        userName: 'testUser',
+        email: 'new@example.com',
+        password: 'password123',
+      });
+
+      await expect(
+        User.updateEmail(testUserId, 'new@example.com'),
+      ).rejects.toThrow(new AppError(400, errors.EMAIL_ALREADY_REGISTERED));
+    });
+  });
+
+  describe('test changePassword', () => {
+    const testUserId = new ObjectId().toString();
+    beforeEach(async () => {
+      await User.create({
+        _id: testUserId,
+        userName: 'testUser',
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    });
+
+    it('should update password correctly', async () => {
+      await User.changePassword(testUserId, 'password123', 'newpassword');
+      const user = await User.findById(testUserId);
+      expect(await user?.matchPassword('newpassword')).toBe(true);
+    });
+
+    it('should throw error when user does not exist', async () => {
+      const nonExistentUserId = new ObjectId().toString();
+      await expect(
+        User.changePassword(nonExistentUserId, 'password123', 'newpassword'),
+      ).rejects.toThrow(new AppError(401, errors.USER_NOT_FOUND));
+    });
+
+    it('should throw error when password is incorrect', async () => {
+      await expect(
+        User.changePassword(testUserId, 'wrongpassword', 'newpassword'),
+      ).rejects.toThrow(new AppError(401, errors.WRONG_PASSWORD));
+    });
+
+    it('should throw error when user is guest', async () => {
+      const guestUserId = new ObjectId().toString();
+      await User.create({
+        _id: guestUserId,
+        password: 'password123',
+        isGuest: true,
+      });
+
+      await expect(
+        User.changePassword(guestUserId, 'password123', 'newpassword'),
+      ).rejects.toThrow(new AppError(403, errors.PERMISSION_DENIED));
+    });
+  });
+
+  describe('test resetPassword', () => {
+    const testUserId = new ObjectId().toString();
+    beforeEach(async () => {
+      await User.create({
+        _id: testUserId,
+        userName: 'testUser',
+        email: 'test@example.com',
+        password: 'password123',
+      });
+    });
+
+    it('should update password correctly', async () => {
+      await User.resetPassword('test@example.com', 'newpassword');
+      const user = await User.findById(testUserId);
+      expect(await user?.matchPassword('newpassword')).toBe(true);
+    });
+
+    it('should throw error when user does not exist', async () => {
+      await expect(
+        User.resetPassword('wrong@example.com', 'newpassword'),
+      ).rejects.toThrow(new AppError(401, errors.USER_NOT_FOUND));
     });
   });
 });

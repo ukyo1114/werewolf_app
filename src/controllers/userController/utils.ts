@@ -4,7 +4,11 @@ import { errors } from '../../config/messages';
 
 interface IUploadPicture {
   userId: string;
-  pic: string;
+  file: {
+    buffer: Buffer;
+    originalname: string;
+    mimetype: string;
+  };
 }
 
 const s3 = new S3Client({
@@ -17,16 +21,13 @@ const s3 = new S3Client({
 
 const uploadPicture = async ({
   userId,
-  pic,
+  file,
 }: IUploadPicture): Promise<string> => {
-  const filePath = `user-icons/${userId}_profile.jpeg`;
-  const base64Data = pic.replace(/^data:image\/\w+;base64,/, '');
-  const buffer = Buffer.from(base64Data, 'base64');
-
+  const filePath = `user-icons/${userId}_profile.jpg`;
   const params = {
     Bucket: process.env.S3_BUCKET_NAME,
     Key: filePath,
-    Body: buffer,
+    Body: file.buffer,
     ContentType: 'image/jpeg',
     CacheControl: 'no-cache',
   };
@@ -37,19 +38,7 @@ const uploadPicture = async ({
     return `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
   } catch (error: any) {
     console.error('S3 upload error:', error);
-    if (error.name === 'NoSuchBucket') {
-      throw new AppError(404, 'S3バケットが見つかりません');
-    }
-    if (error.name === 'AccessDenied') {
-      throw new AppError(403, 'S3へのアクセス権限がありません');
-    }
-    if (
-      error.name === 'InvalidAccessKeyId' ||
-      error.name === 'SignatureDoesNotMatch'
-    ) {
-      throw new AppError(401, 'AWS認証情報が無効です');
-    }
-    throw new AppError(500, errors.SERVER_ERROR);
+    throw new AppError(500, errors.IMAGE_UPLOAD_FAILED);
   }
 };
 

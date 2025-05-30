@@ -130,7 +130,11 @@ export interface ILogin {
 
 export interface IUpdateProfile {
   userName: string | null;
-  pic: string | null;
+  pic: {
+    buffer: Buffer;
+    originalname: string;
+    mimetype: string;
+  } | null;
 }
 
 export interface IUpdateEmail {
