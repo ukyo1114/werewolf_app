@@ -1,6 +1,8 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { Role } from '../config/types';
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
 
 interface IGameStats {
   totalGames: number;
@@ -30,6 +32,14 @@ interface IUser extends Document {
 
 interface IUserModel extends mongoose.Model<IUser> {
   isGuestUser(userId: string): Promise<boolean>;
+  login(email: string, password: string): Promise<IUser>;
+  updateEmail(userId: string, email: string): Promise<void>;
+  changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void>;
+  resetPassword(email: string, password: string): Promise<void>;
 }
 
 const GameStatsSchema = new Schema<IGameStats>({
@@ -140,6 +150,63 @@ UserSchema.statics.isGuestUser = async function (
     throw new Error(`User not found with id: ${userId}`);
   }
   return user.isGuest;
+};
+
+UserSchema.statics.login = async function (
+  email: string,
+  password: string,
+): Promise<IUser> {
+  const user = await this.findOne({ email });
+  if (!user) throw new AppError(400, errors.EMAIL_NOT_FOUND);
+  if (!(await user.matchPassword(password))) {
+    throw new AppError(401, errors.WRONG_PASSWORD);
+  }
+
+  return user;
+};
+
+UserSchema.statics.updateEmail = async function (
+  userId: string,
+  email: string,
+): Promise<void> {
+  try {
+    const user = await this.findByIdAndUpdate(
+      userId,
+      { email },
+      { runValidators: true },
+    );
+    if (!user) throw new AppError(401, errors.USER_NOT_FOUND);
+  } catch (error: any) {
+    if (error.code === 11000) {
+      throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
+    }
+    throw error;
+  }
+};
+
+UserSchema.statics.changePassword = async function (
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  const user = await this.findById(userId);
+  if (!user) throw new AppError(401, errors.USER_NOT_FOUND);
+  if (user.isGuest) throw new AppError(403, errors.PERMISSION_DENIED);
+  if (!(await user.matchPassword(currentPassword))) {
+    throw new AppError(401, errors.WRONG_PASSWORD);
+  }
+  user.password = newPassword;
+  await user.save();
+};
+
+UserSchema.statics.resetPassword = async function (
+  email: string,
+  password: string,
+): Promise<void> {
+  const user = await this.findOne({ email });
+  if (!user) throw new AppError(401, errors.USER_NOT_FOUND);
+  user.password = password;
+  await user.save();
 };
 
 const User = mongoose.model<IUser, IUserModel>('User', UserSchema);
