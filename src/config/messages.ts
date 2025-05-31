@@ -44,7 +44,7 @@ export const validation = {
   USER_NAME_LENGTH: 'ユーザー名は1文字以上20文字以内で入力してください',
   PASSWORD_LENGTH: 'パスワードは8文字以上64文字以内で入力してください',
   INVALID_PIC: '画像の形式が無効です',
-  PIC_SIZE: '画像のサイズが5MBを超えています',
+  PIC_SIZE: '画像のサイズが1MBを超えています',
   INVALID_CHANNEL_ID: 'チャンネルIDが無効です',
   INVALID_SELECTED_USER: '選択されたユーザーが無効です',
   CHANNEL_NAME_LENGTH: 'チャンネル名は1文字以上20文字以内で入力してください',

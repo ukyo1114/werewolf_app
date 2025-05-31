@@ -1,3 +1,9 @@
+const mockUploadPicture = jest.fn();
+
+jest.mock('../../src/controllers/userController/utils', () => ({
+  uploadPicture: mockUploadPicture,
+}));
+
 import app from '../../src/app';
 import request from 'supertest';
 import User from '../../src/models/User';
@@ -48,6 +54,7 @@ describe('test userRoutes', () => {
   afterEach(async () => {
     // jest.clearAllMocks();
     await User.deleteMany({});
+    mockUploadPicture.mockClear();
   });
 
   afterAll(() => {
@@ -295,8 +302,8 @@ describe('test userRoutes', () => {
   describe('updateProfile', () => {
     const customRequest = async (
       userId: string,
-      userName: string | undefined,
-      pic: string | undefined,
+      userName: string | null,
+      pic: string | null,
       status: number,
       errorMessage?: string,
     ) => {
@@ -314,27 +321,21 @@ describe('test userRoutes', () => {
     };
 
     it('ユーザー名の更新に成功する', async () => {
-      await customRequest(testUserId, 'newUserName', undefined, 200);
+      await customRequest(testUserId, 'newUserName', null, 200);
     });
 
     it('ゲストユーザーのユーザー名の更新に成功する', async () => {
-      await customRequest(guestUserId, 'newUsername', undefined, 200);
+      await customRequest(guestUserId, 'newUsername', null, 200);
     });
 
     it('ユーザー名と画像が送信されなかったとき', async () => {
-      await customRequest(
-        testUserId,
-        undefined,
-        undefined,
-        400,
-        errors.NO_UPDATE_DATA,
-      );
+      await customRequest(testUserId, null, null, 400, errors.NO_UPDATE_DATA);
     });
 
     it('画像の形式が正しくないとき', async () => {
       await customRequest(
         testUserId,
-        undefined,
+        null,
         'invalidPicture',
         400,
         validation.INVALID_PIC,
@@ -345,7 +346,7 @@ describe('test userRoutes', () => {
       await customRequest(
         testUserId,
         '',
-        undefined,
+        null,
         400,
         validation.USER_NAME_LENGTH,
       );
@@ -355,10 +356,78 @@ describe('test userRoutes', () => {
       await customRequest(
         testUserId,
         'a'.repeat(21),
-        undefined,
+        null,
         400,
         validation.USER_NAME_LENGTH,
       );
+    });
+
+    it('JPEG画像のアップロードに成功する', async () => {
+      const validJpegBase64 =
+        'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDAREAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAAAv/EABQRAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AP/8A/9k=';
+
+      await customRequest(testUserId, null, validJpegBase64, 200);
+      expect(mockUploadPicture).toHaveBeenCalledWith({
+        userId: testUserId,
+        pic: validJpegBase64,
+      });
+    });
+
+    it('1MB未満のJPEG画像のアップロードに成功する', async () => {
+      const validJpegBase64 =
+        'data:image/jpeg;base64,' + 'A'.repeat(1 * 1024 * 1024 - 100);
+
+      await customRequest(testUserId, null, validJpegBase64, 200);
+      expect(mockUploadPicture).toHaveBeenCalledWith({
+        userId: testUserId,
+        pic: validJpegBase64,
+      });
+    });
+
+    it('1MBを超えるJPEG画像のアップロードに失敗する', async () => {
+      // 1MBを超えるサイズのJPEG画像のBase64データを生成
+      const largeJpegBase64 =
+        'data:image/jpeg;base64,' + 'A'.repeat(1 * 1024 * 1024);
+
+      await customRequest(testUserId, null, largeJpegBase64, 413);
+      expect(mockUploadPicture).not.toHaveBeenCalled();
+    });
+
+    it('JPEG以外の画像形式のアップロードに失敗する', async () => {
+      // PNG画像のBase64データ
+      const pngBase64 =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+      await customRequest(
+        testUserId,
+        null,
+        pngBase64,
+        400,
+        validation.INVALID_PIC,
+      );
+      expect(mockUploadPicture).not.toHaveBeenCalled();
+    });
+
+    it('不正なBase64データのアップロードに失敗する', async () => {
+      await customRequest(
+        testUserId,
+        null,
+        'invalid-base64-data',
+        400,
+        validation.INVALID_PIC,
+      );
+      expect(mockUploadPicture).not.toHaveBeenCalled();
+    });
+
+    it('ユーザー名と画像の同時更新に成功する', async () => {
+      const validJpegBase64 =
+        'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDAREAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAAAv/EABQRAQAAAAAAAAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8AP/8A/9k=';
+
+      await customRequest(testUserId, 'newUserName', validJpegBase64, 200);
+      expect(mockUploadPicture).toHaveBeenCalledWith({
+        userId: testUserId,
+        pic: validJpegBase64,
+      });
     });
   });
 

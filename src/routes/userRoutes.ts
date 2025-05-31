@@ -1,5 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
+import AppError from '../utils/AppError';
 import { validation } from '../config/messages';
 import validateRequest from '../middleware/validateRequest';
 import {
@@ -44,10 +45,10 @@ const validatePic = body('pic')
       throw new Error(validation.INVALID_PIC);
     }
 
-    // Check file size (5MB = 5 * 1024 * 1024 bytes)
+    // Check file size (1MB = 1 * 1024 * 1024 bytes)
     const base64Data = value.split(',')[1];
     const buffer = Buffer.from(base64Data, 'base64');
-    if (buffer.length > 5 * 1024 * 1024) {
+    if (buffer.length > 1 * 1024 * 1024) {
       throw new Error(validation.PIC_SIZE);
     }
 

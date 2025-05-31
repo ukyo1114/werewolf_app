@@ -12,7 +12,7 @@ jest.mock('@aws-sdk/client-s3', () => ({
 }));
 
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import uploadPicture from '../../../src/controllers/userController/utils';
+import { uploadPicture } from '../../../src/controllers/userController/utils';
 import AppError from '../../../src/utils/AppError';
 import { errors } from '../../../src/config/messages';
 

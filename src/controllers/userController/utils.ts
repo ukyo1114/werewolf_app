@@ -15,7 +15,7 @@ const s3 = new S3Client({
   },
 });
 
-const uploadPicture = async ({
+export const uploadPicture = async ({
   userId,
   pic,
 }: IUploadPicture): Promise<string> => {
@@ -40,5 +40,3 @@ const uploadPicture = async ({
     throw new AppError(500, errors.IMAGE_UPLOAD_FAILED);
   }
 };
-
-export default uploadPicture;
