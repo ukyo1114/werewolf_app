@@ -79,6 +79,11 @@ describe('test verifyEmailRoutes', () => {
     it('メールアドレスの形式が正しくないとき', async () => {
       await customRequest('invalidEmail', 400, validation.INVALID_EMAIL);
     });
+
+    it('メール送信に失敗したとき', async () => {
+      sendMailMock.mockRejectedValueOnce(new Error('test error'));
+      await customRequest('test@example.com', 500, errors.EMAIL_SEND_FAILED);
+    });
   });
 
   describe('/change-email', () => {
@@ -140,6 +145,16 @@ describe('test verifyEmailRoutes', () => {
         validation.INVALID_EMAIL,
       );
     });
+
+    it('メール送信に失敗したとき', async () => {
+      sendMailMock.mockRejectedValueOnce(new Error('test error'));
+      await customRequest(
+        testUserId,
+        'change@example.com',
+        500,
+        errors.EMAIL_SEND_FAILED,
+      );
+    });
   });
 
   describe('/forgot-password', () => {
@@ -181,6 +196,15 @@ describe('test verifyEmailRoutes', () => {
         'not-registered@example.com',
         400,
         errors.EMAIL_NOT_REGISTERED,
+      );
+    });
+
+    it('メール送信に失敗したとき', async () => {
+      sendMailMock.mockRejectedValueOnce(new Error('test error'));
+      await customRequest(
+        'already-registered@example.com',
+        500,
+        errors.EMAIL_SEND_FAILED,
       );
     });
   });

@@ -42,7 +42,12 @@ export const sendVerificationEmail = (action: keyof typeof mailContent) =>
         action,
       });
 
-      await sendMail(email, verificationToken, action);
+      try {
+        await sendMail(email, verificationToken, action);
+      } catch (error) {
+        console.error(error);
+        throw new AppError(500, errors.EMAIL_SEND_FAILED);
+      }
 
       res.status(202).send();
     },
