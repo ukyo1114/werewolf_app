@@ -1,6 +1,7 @@
 import GameManager from './GameManager';
-import { Events } from '../app';
+import { appState, Events } from '../app';
 
+const { entryManagers } = appState;
 const { entryEvents } = Events;
 
 export default class EntryManager {
@@ -12,6 +13,11 @@ export default class EntryManager {
   constructor(channelId: string, max_users: number = 10) {
     this.channelId = channelId;
     this.MAX_USERS = max_users;
+  }
+
+  static createEntryManager(channelId: string, max_users: number = 10): void {
+    if (entryManagers[channelId]) return;
+    entryManagers[channelId] = new EntryManager(channelId, max_users);
   }
 
   async register(userId: string, socketId: string): Promise<void> {

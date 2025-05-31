@@ -5,49 +5,46 @@ import GameUser from '../models/GameUser';
 import GameManager from '../classes/GameManager';
 import { decodeToken } from '../utils/decodeToken';
 
+class CustomError extends Error {
+  gameId: string;
+
+  constructor(gameId: string) {
+    super();
+    this.gameId = gameId;
+  }
+}
+
 export const authSocketUser = async (
   socket: Socket,
   next: (err?: Error) => void,
 ): Promise<void> => {
-  const { token, channelId } = socket.handshake.auth;
-  if (!token || !channelId) return errorHandler(socket);
-
   try {
+    const { token, channelId } = socket.handshake.auth;
+    if (!token || !channelId) throw new Error();
+
     const decoded = decodeToken(token);
     const { userId } = decoded;
-    if (!userId) return errorHandler(socket);
+    if (!userId) throw new Error();
 
     // プレイ中のゲームがあるかどうかチェック
     const currentGameId = GameManager.isUserPlayingGame(userId);
     if (currentGameId && currentGameId !== channelId) {
-      return errorHandler(socket, currentGameId);
+      throw new CustomError(currentGameId);
     }
 
     // DBチェック（ユーザーと、チャンネルかゲームどちらかに参加してること）
-    const isValid = await validateUserInChannelOrGame(userId, channelId);
-    if (!isValid) return errorHandler(socket);
+    const [userExists, inChannel, inGame] = await Promise.all([
+      User.exists({ _id: userId }),
+      ChannelUser.exists({ channelId, userId }),
+      GameUser.exists({ gameId: channelId, userId }),
+    ]);
+    if (!userExists || !inChannel || !inGame) throw new Error();
 
     (socket as any).userId = userId;
     (socket as any).channelId = channelId;
     next();
-  } catch (error) {
-    errorHandler(socket);
+  } catch (error: any) {
+    socket.emit('authError', error.gameId || null);
+    socket.disconnect();
   }
-};
-
-const validateUserInChannelOrGame = async (
-  userId: string,
-  channelId: string,
-): Promise<boolean> => {
-  const [userExists, inChannel, inGame] = await Promise.all([
-    User.exists({ _id: userId }),
-    ChannelUser.exists({ channelId, userId }),
-    GameUser.exists({ gameId: channelId, userId }),
-  ]);
-  return Boolean(userExists && (inChannel || inGame));
-};
-
-const errorHandler = (socket: Socket, gameId: string | null = null): void => {
-  socket.emit('authError', gameId);
-  socket.disconnect();
 };

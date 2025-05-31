@@ -24,47 +24,50 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
         Channel.findById(channelId).select('numberOfPlayers').lean(),
         ChannelUser.exists({ channelId, userId }),
       ]);
-      if (!channel || !channelUserExists) {
-        socket.emit('connect_error', errors.CHANNEL_ACCESS_FORBIDDEN);
-        socket.disconnect();
-        return;
-      }
+      if (!channel || !channelUserExists) throw new Error();
 
-      if (!entryManagers[channelId]) {
-        entryManagers[channelId] = new EntryManager(
-          channelId,
-          channel.numberOfPlayers,
-        );
-      }
+      EntryManager.createEntryManager(channelId, channel.numberOfPlayers);
     } catch (error) {
       console.error(error);
-      socket.emit('connect_error');
+      socket.emit('connect_error', errors.CHANNEL_ACCESS_FORBIDDEN);
       socket.disconnect();
       return;
     }
 
     socket.on('registerEntry', async (callback) => {
       try {
-        await entryManagers[channelId]?.register(userId, socketId);
+        const entryManager = entryManagers[channelId];
+        if (!entryManager) throw new Error();
+        await entryManager.register(userId, socketId);
         callback({ success: true });
-      } catch (error) {
-        callback({ success: false });
+      } catch (error: any) {
+        callback({
+          success: false,
+          message: error?.message || errors.CHANNEL_ACCESS_FORBIDDEN,
+        });
       }
     });
 
     socket.on('cancelEntry', (callback) => {
       try {
-        entryManagers[channelId]?.cancel(socketId);
+        const entryManager = entryManagers[channelId];
+        if (!entryManager) throw new Error();
+        entryManager.cancel(socketId);
         callback({ success: true });
-      } catch (error) {
-        callback({ success: false });
+      } catch (error: any) {
+        callback({
+          success: false,
+          message: error?.message || errors.CHANNEL_ACCESS_FORBIDDEN,
+        });
       }
     });
 
     socket.on('disconnect', () => {
       try {
         entryManagers[channelId]?.cancel(socketId);
-      } catch (error) {}
+      } catch (error) {
+        entryNameSpace.to(channelId).emit('userLeave', userId);
+      }
     });
 
     entryEvents.on('entryUpdate', (data) => {
