@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
-import { mailContent, sendMail } from './utils';
+import { mailContent } from '../../config/mailContent';
+import { sendMail } from './utils';
 import { genVerificationToken } from '../../utils/generateToken';
 import User from '../../models/User';
 import AppError from '../../utils/AppError';
