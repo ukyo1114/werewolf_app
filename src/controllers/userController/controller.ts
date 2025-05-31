@@ -80,7 +80,7 @@ export const updateProfile = asyncHandler(
     const result = GameManager.checkIsUserInGame(userId);
     if (result) throw new AppError(400, errors.USER_IN_GAME);
 
-    if (pic) await uploadPicture({ userId, file: pic });
+    if (pic) await uploadPicture({ userId, pic });
     if (userName) {
       await User.findByIdAndUpdate(
         userId,

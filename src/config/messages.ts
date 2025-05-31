@@ -40,19 +40,19 @@ export const errors = {
 };
 
 export const validation = {
-  INVALID_EMAIL: '有効なメールアドレスを入力してください。',
-  USER_NAME_LENGTH: 'ユーザー名は1文字以上20文字以内で入力してください。',
-  PASSWORD_LENGTH: 'パスワードは8文字以上64文字以内で入力してください。',
-  INVALID_PIC: '画像の形式が無効です。',
-  INVALID_CHANNEL_ID: 'チャンネルIDが無効です。',
-  INVALID_SELECTED_USER: '選択されたユーザーが無効です。',
-  CHANNEL_NAME_LENGTH: 'チャンネル名は1文字以上20文字以内で入力してください。',
-  CHANNEL_DESCRIPTION_LENGTH:
-    '説明文は1文字以上2000文字以内で入力してください。',
-  INVALID_GAME_ID: 'ゲームIDが無効です。',
-  MESSAGE_LENGTH: 'メッセージは1文字以上400文字以内で入力してください。',
-  INVALID_MESSAGE_ID: 'メッセージIDが無効です。',
-  NUMBER_OF_PLAYERS: 'プレイヤー数は5人以上20人以下で入力してください。',
+  INVALID_EMAIL: '有効なメールアドレスを入力してください',
+  USER_NAME_LENGTH: 'ユーザー名は1文字以上20文字以内で入力してください',
+  PASSWORD_LENGTH: 'パスワードは8文字以上64文字以内で入力してください',
+  INVALID_PIC: '画像の形式が無効です',
+  PIC_SIZE: '画像のサイズが5MBを超えています',
+  INVALID_CHANNEL_ID: 'チャンネルIDが無効です',
+  INVALID_SELECTED_USER: '選択されたユーザーが無効です',
+  CHANNEL_NAME_LENGTH: 'チャンネル名は1文字以上20文字以内で入力してください',
+  CHANNEL_DESCRIPTION_LENGTH: '説明文は1文字以上2000文字以内で入力してください',
+  INVALID_GAME_ID: 'ゲームIDが無効です',
+  MESSAGE_LENGTH: 'メッセージは1文字以上400文字以内で入力してください',
+  INVALID_MESSAGE_ID: 'メッセージIDが無効です',
+  NUMBER_OF_PLAYERS: 'プレイヤー数は5人以上20人以下で入力してください',
 };
 
 export const gameError = {

@@ -26,12 +26,7 @@ describe('uploadPicture', () => {
   };
 
   // テスト用のデータ
-  const mockFile = {
-    buffer: Buffer.from('test-image-data'),
-    originalname: 'test.jpg',
-    mimetype: 'image/jpeg',
-  };
-
+  const mockBase64Image = 'data:image/jpeg;base64,dGVzdC1pbWFnZS1kYXRh'; // "test-image-data" をbase64エンコード
   const mockUserId = 'user123';
 
   beforeEach(() => {
@@ -49,7 +44,7 @@ describe('uploadPicture', () => {
 
     const result = await uploadPicture({
       userId: mockUserId,
-      file: mockFile,
+      pic: mockBase64Image,
     });
 
     // 期待される結果
@@ -61,7 +56,7 @@ describe('uploadPicture', () => {
     expect(PutObjectCommand).toHaveBeenCalledWith({
       Bucket: mockEnv.S3_BUCKET_NAME,
       Key: `user-icons/${mockUserId}_profile.jpg`,
-      Body: mockFile.buffer,
+      Body: Buffer.from('test-image-data'),
       ContentType: 'image/jpeg',
       CacheControl: 'no-cache',
     });
@@ -75,7 +70,7 @@ describe('uploadPicture', () => {
     await expect(
       uploadPicture({
         userId: mockUserId,
-        file: mockFile,
+        pic: mockBase64Image,
       }),
     ).rejects.toThrow(new AppError(500, errors.IMAGE_UPLOAD_FAILED));
   });

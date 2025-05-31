@@ -4,11 +4,7 @@ import { errors } from '../../config/messages';
 
 interface IUploadPicture {
   userId: string;
-  file: {
-    buffer: Buffer;
-    originalname: string;
-    mimetype: string;
-  };
+  pic: string; // base64 encoded image
 }
 
 const s3 = new S3Client({
@@ -21,13 +17,16 @@ const s3 = new S3Client({
 
 const uploadPicture = async ({
   userId,
-  file,
+  pic,
 }: IUploadPicture): Promise<string> => {
   const filePath = `user-icons/${userId}_profile.jpg`;
+  const base64Data = pic.split(',')[1];
+  const buffer = Buffer.from(base64Data, 'base64');
+
   const params = {
     Bucket: process.env.S3_BUCKET_NAME,
     Key: filePath,
-    Body: file.buffer,
+    Body: buffer,
     ContentType: 'image/jpeg',
     CacheControl: 'no-cache',
   };

@@ -1,6 +1,5 @@
 import express from 'express';
 import { body } from 'express-validator';
-
 import { validation } from '../config/messages';
 import validateRequest from '../middleware/validateRequest';
 import {
@@ -20,7 +19,7 @@ const validateUserName = (isOptional: boolean) => {
   let validator = body('userName').trim();
 
   if (isOptional) {
-    validator = validator.optional();
+    validator = validator.optional({ nullable: true });
   }
 
   return validator
@@ -36,9 +35,24 @@ const validateEmail = body('email')
   .normalizeEmail();
 
 const validatePic = body('pic')
-  .optional()
-  .matches(/^data:image\/[a-zA-Z]+;base64,[A-Za-z0-9+/=]+$/)
-  .withMessage(validation.INVALID_PIC);
+  .optional({ nullable: true })
+  .custom((value) => {
+    if (!value) return true;
+
+    // Check if it's a valid base64 image
+    if (!value.match(/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/)) {
+      throw new Error(validation.INVALID_PIC);
+    }
+
+    // Check file size (5MB = 5 * 1024 * 1024 bytes)
+    const base64Data = value.split(',')[1];
+    const buffer = Buffer.from(base64Data, 'base64');
+    if (buffer.length > 5 * 1024 * 1024) {
+      throw new Error(validation.PIC_SIZE);
+    }
+
+    return true;
+  });
 
 const validatePassword = (password: string) =>
   body(password)
