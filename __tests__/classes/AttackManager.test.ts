@@ -4,6 +4,7 @@ jest.mock('../../src/app', () => ({
   },
 }));
 
+import GameUser from '../../src/models/GameUser';
 import PlayerManager from '../../src/classes/PlayerManager';
 import PhaseManager from '../../src/classes/PhaseManager';
 import GuardManager from '../../src/classes/GuardManager';
@@ -13,6 +14,7 @@ import { gamePlayers } from '../../__mocks__/mockdata';
 import { EventEmitter } from 'events';
 
 describe('test AttackManager', () => {
+  GameUser.updateOne = jest.fn();
   const phaseManager = new PhaseManager(new EventEmitter(), {
     value: 'running',
   });
@@ -231,12 +233,12 @@ describe('test AttackManager', () => {
       guardSpy.mockClear();
     });
 
-    it('襲撃が成功し、対象プレイヤーが死亡する', () => {
+    it('襲撃が成功し、対象プレイヤーが死亡する', async () => {
       guardSpy.mockReturnValueOnce(false);
       phaseManager.currentPhase = 'night';
       attackManager.attackRequest = 'villager';
 
-      const attackTarget = attackManager.attack();
+      const attackTarget = await attackManager.attack();
       expect(attackTarget).toBe('villager');
       expect(playerManager.players.villager.status).toBe('dead');
       expect(attackManager.attackRequest).toBeNull();
@@ -244,12 +246,12 @@ describe('test AttackManager', () => {
       expect(guardSpy).toHaveBeenCalledWith('villager');
     });
 
-    it('護衛が成功した場合、襲撃は失敗し対象プレイヤーは生存する', () => {
+    it('護衛が成功した場合、襲撃は失敗し対象プレイヤーは生存する', async () => {
       guardSpy.mockReturnValueOnce(true);
       phaseManager.currentPhase = 'night';
       attackManager.attackRequest = 'villager';
 
-      const attackTarget = attackManager.attack();
+      const attackTarget = await attackManager.attack();
       expect(attackTarget).toBe(null);
       expect(playerManager.players.villager.status).toBe('alive');
       expect(attackManager.attackRequest).toBeNull();
@@ -257,12 +259,12 @@ describe('test AttackManager', () => {
       expect(guardSpy).toHaveBeenCalledWith('villager');
     });
 
-    it('狐への襲撃は失敗し、対象プレイヤーは生存する', () => {
+    it('狐への襲撃は失敗し、対象プレイヤーは生存する', async () => {
       guardSpy.mockReturnValueOnce(false);
       phaseManager.currentPhase = 'night';
       attackManager.attackRequest = 'fox';
 
-      const attackTarget = attackManager.attack();
+      const attackTarget = await attackManager.attack();
       expect(attackTarget).toBe(null);
       expect(playerManager.players.fox.status).toBe('alive');
       expect(attackManager.attackRequest).toBe(null);
@@ -270,12 +272,12 @@ describe('test AttackManager', () => {
       expect(guardSpy).not.toHaveBeenCalled();
     });
 
-    it('狩人が死亡している場合、護衛は実行されず襲撃は成功する', () => {
+    it('狩人が死亡している場合、護衛は実行されず襲撃は成功する', async () => {
       phaseManager.currentPhase = 'night';
       playerManager.players.hunter.status = 'dead';
       attackManager.attackRequest = 'villager';
 
-      const attackTarget = attackManager.attack();
+      const attackTarget = await attackManager.attack();
       expect(attackTarget).toBe('villager');
       expect(playerManager.players.villager.status).toBe('dead');
       expect(attackManager.attackRequest).toBeNull();

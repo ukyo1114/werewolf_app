@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { roleConfig, teammateMapping } from '../config/roles';
 import { Role, Status, IUser, IPlayer, IPlayerState } from '../config/types';
 import { appState } from '../app';
+import GameUser from '../models/GameUser';
 
 const { channelManagers } = appState;
 
@@ -47,10 +48,13 @@ export default class PlayerManager {
     });
   }
 
-  kill(userId: string): void {
+  async kill(userId: string): Promise<void> {
     const player = this.players[userId];
     player.status = 'dead';
-
+    await GameUser.updateOne(
+      { gameId: this.gameId, userId },
+      { isPlaying: false },
+    );
     channelManagers[this.gameId]?.users[userId]?.kill();
   }
 

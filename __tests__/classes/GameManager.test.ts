@@ -295,8 +295,8 @@ describe('test GameManager', () => {
         .mockReturnValue(false);
       attackMock = jest
         .spyOn(game.attackManager, 'attack')
-        .mockReturnValue('villager');
-      curseMock = jest.spyOn(game, 'curse').mockReturnValue('fox');
+        .mockResolvedValue('villager');
+      curseMock = jest.spyOn(game, 'curse').mockResolvedValue('fox');
       sendMessageMock = jest.spyOn(game, 'sendMessage').mockImplementation();
       judgementMock = jest.spyOn(game, 'judgement').mockImplementation();
     });
@@ -400,7 +400,7 @@ describe('test GameManager', () => {
           },
         ]);
 
-      const fox = game.curse();
+      const fox = await game.curse();
       expect(killMock).toHaveBeenCalled();
       expect(suicideMock).toHaveBeenCalled();
       expect(fox).toBe('fox');
@@ -411,7 +411,7 @@ describe('test GameManager', () => {
         .spyOn(game.playerManager, 'getLivingPlayers')
         .mockReturnValue([]);
 
-      expect(() => game.curse()).toThrow();
+      await expect(game.curse()).rejects.toThrow();
       expect(killMock).not.toHaveBeenCalled();
       expect(suicideMock).not.toHaveBeenCalled();
     });
@@ -444,7 +444,7 @@ describe('test GameManager', () => {
           },
         ]);
 
-      game.suicide();
+      await game.suicide();
       expect(killMock).toHaveBeenCalledWith('immoralist');
       expect(sendMessageMock).toHaveBeenCalledWith(
         gameMaster.KILL_IMMORALIST(['immoralist']),
@@ -456,35 +456,37 @@ describe('test GameManager', () => {
         .spyOn(game.playerManager, 'getLivingPlayers')
         .mockReturnValue([]);
 
-      game.suicide();
+      await game.suicide();
       expect(killMock).not.toHaveBeenCalled();
       expect(sendMessageMock).not.toHaveBeenCalled();
     });
   });
 
   describe('test handleGameEnd', () => {
-    let gameModelMock: any;
+    GameUser.endGame = jest.fn();
+
+    /* afterEach(() => {
+      jest.clearAllMocks();
+    }); */
 
     afterAll(() => {
       jest.restoreAllMocks();
     });
 
     it('should call gameModel.findByIdAndUpdate', async () => {
-      gameModelMock = jest
-        .spyOn(Game, 'findByIdAndUpdate')
-        .mockImplementation();
+      Game.findByIdAndUpdate = jest.fn();
       await game.handleGameEnd();
-      expect(gameModelMock).toHaveBeenCalled();
+      expect(Game.findByIdAndUpdate).toHaveBeenCalled();
       expect(gameManagers[mockGameId]).toBeUndefined();
+      expect(GameUser.endGame).toHaveBeenCalledWith(mockGameId);
     });
 
     it('should throw error if gameModel.findByIdAndUpdate fails', async () => {
-      gameModelMock = jest
-        .spyOn(Game, 'findByIdAndUpdate')
-        .mockRejectedValue(new Error());
+      Game.findByIdAndUpdate = jest.fn().mockRejectedValue(new Error());
       await game.handleGameEnd();
-      expect(gameModelMock).toHaveBeenCalled();
+      expect(Game.findByIdAndUpdate).toHaveBeenCalled();
       expect(gameManagers[mockGameId]).toBeUndefined();
+      expect(GameUser.endGame).not.toHaveBeenCalled();
     });
   });
 
@@ -749,6 +751,9 @@ describe('test GameManager', () => {
       expect(gameManagers[gameId]).toBeInstanceOf(GameManager);
       const gameUser = await GameUser.find({ gameId });
       expect(gameUser.length).toBe(users.length);
+      gameUser.forEach((user) => {
+        expect(user.isPlaying).toBe(true);
+      });
 
       const timerId = gameManagers[gameId].phaseManager.timerId;
       if (timerId) clearTimeout(timerId);

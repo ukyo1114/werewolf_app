@@ -7,6 +7,7 @@ jest.mock('../../src/app', () => ({
 import { appState } from '../../src/app';
 import ChannelManager from '../../src/classes/ChannelManager';
 import ChannelUserManager from '../../src/classes/ChannelUserManager';
+import GameUser from '../../src/models/GameUser';
 import { roleConfig, teammateMapping } from '../../src/config/roles';
 import { mockGameId, mockUserId, mockUsers } from '../../__mocks__/mockdata';
 import PlayerManager from '../../src/classes/PlayerManager';
@@ -14,6 +15,7 @@ import { gamePlayers, mockChannelUser } from '../../__mocks__/mockdata';
 import { Role } from '../../src/config/types';
 
 describe('test PlayserManager', () => {
+  GameUser.updateOne = jest.fn();
   const { channelManagers } = appState;
   let playerManager: PlayerManager;
 
@@ -22,6 +24,10 @@ describe('test PlayserManager', () => {
     channelManagers[mockGameId].users = mockChannelUser();
 
     playerManager = new PlayerManager(mockGameId, mockUsers);
+  });
+
+  afterAll(() => {
+    jest.clearAllMocks();
   });
 
   it('test constructor', () => {
@@ -67,9 +73,9 @@ describe('test PlayserManager', () => {
     });
   });
 
-  it('test kill', () => {
+  it('test kill', async () => {
     const killSpy = jest.spyOn(ChannelUserManager.prototype, 'kill');
-    killSpy.mockImplementation(() => {});
+    killSpy.mockImplementation();
 
     playerManager.players = {
       [mockUserId]: {
@@ -81,9 +87,13 @@ describe('test PlayserManager', () => {
       },
     };
 
-    playerManager.kill(mockUserId);
+    await playerManager.kill(mockUserId);
     expect(playerManager.players[mockUserId]?.status).toBe('dead');
     expect(killSpy).toHaveBeenCalled();
+    expect(GameUser.updateOne).toHaveBeenCalledWith(
+      { gameId: mockGameId, userId: mockUserId },
+      { isPlaying: false },
+    );
 
     killSpy.mockRestore();
   });

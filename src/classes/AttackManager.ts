@@ -47,7 +47,7 @@ export default class AttackManager {
     return attackTargetId;
   }
 
-  attack(): string | null {
+  async attack(): Promise<string | null> {
     const attackTargetId = this.decideAttackTarget();
 
     // 狐を襲撃した場合失敗する
@@ -61,7 +61,7 @@ export default class AttackManager {
       if (guardResult) return null;
     }
 
-    this.playerManager.kill(attackTargetId);
+    await this.playerManager.kill(attackTargetId);
 
     return userName;
   }

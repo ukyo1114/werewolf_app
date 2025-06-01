@@ -93,6 +93,7 @@ export default class GameManager {
         gameId,
         userId: player.userId,
         role: player.role,
+        isPlaying: true,
       }));
       await GameUser.insertMany(userList);
 
@@ -169,10 +170,10 @@ export default class GameManager {
 
     // 処刑を行いメッセージを送信
     const executionTarget = this.playerManager.players[executionTargetId];
-    this.playerManager.kill(executionTargetId);
+    await this.playerManager.kill(executionTargetId);
     await this.sendMessage(gameMaster.EXECUTION(executionTarget.userName));
 
-    if (executionTarget.role === 'fox') this.suicide();
+    if (executionTarget.role === 'fox') await this.suicide();
 
     this.mediumManager.medium(executionTargetId);
   }
@@ -182,10 +183,10 @@ export default class GameManager {
 
     const curseOccurred = this.devineManager.devine();
 
-    const attackTarget = this.attackManager.attack();
+    const attackTarget = await this.attackManager.attack();
     if (attackTarget) deadPlayers.push(attackTarget);
 
-    if (curseOccurred) deadPlayers.push(this.curse());
+    if (curseOccurred) deadPlayers.push(await this.curse());
 
     await this.sendMessage(gameMaster.ATTACK(deadPlayers));
 
@@ -195,21 +196,23 @@ export default class GameManager {
     }
   }
 
-  curse(): string {
+  async curse(): Promise<string> {
     const fox = this.playerManager.getLivingPlayers('fox')[0];
     if (!fox) throw new Error();
-    this.playerManager.kill(fox.userId);
+    await this.playerManager.kill(fox.userId);
 
-    this.suicide();
+    await this.suicide();
 
     return fox.userName;
   }
 
-  suicide(): void {
+  async suicide(): Promise<void> {
     const immoralists = this.playerManager.getLivingPlayers('immoralist');
     if (immoralists.length > 0) {
-      immoralists.forEach((immor) => this.playerManager.kill(immor.userId));
-      this.sendMessage(
+      await Promise.all(
+        immoralists.map((immor) => this.playerManager.kill(immor.userId)),
+      );
+      await this.sendMessage(
         gameMaster.KILL_IMMORALIST(immoralists.map((user) => user.userName)),
       );
     }
@@ -218,6 +221,7 @@ export default class GameManager {
   async handleGameEnd(): Promise<void> {
     try {
       await Game.findByIdAndUpdate(this.gameId, { result: this.result.value });
+      await GameUser.endGame(this.gameId);
     } catch (error) {
       console.error(`Failed to end game ${this.gameId}:`, error);
     } finally {
