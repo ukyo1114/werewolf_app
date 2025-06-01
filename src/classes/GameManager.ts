@@ -22,10 +22,7 @@ export default class GameManager {
   public channelId: string;
   public gameId: string;
   public result: { value: GameResult } = { value: 'running' };
-  public phaseManager: PhaseManager = new PhaseManager(
-    this.eventEmitter,
-    this.result,
-  );
+  public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
   public voteManager: VoteManager;
   public devineManager: DevineManager;
@@ -37,6 +34,11 @@ export default class GameManager {
   constructor(channelId: string, gameId: string, users: IUser[]) {
     this.channelId = channelId;
     this.gameId = gameId;
+    this.phaseManager = new PhaseManager(
+      this.eventEmitter,
+      this.result,
+      this.gameId,
+    );
     this.playerManager = new PlayerManager(gameId, users);
     this.voteManager = new VoteManager(this.phaseManager, this.playerManager);
     this.devineManager = new DevineManager(
@@ -115,17 +117,6 @@ export default class GameManager {
         Object.keys(game.playerManager.players).includes(userId) &&
         game.result.value === 'running',
     );
-  }
-
-  static isUserPlayingGame(userId: string): string | null {
-    const game = Object.values(gameManagers).find(
-      (game) =>
-        Object.keys(game.playerManager.players).includes(userId) &&
-        game.result.value === 'running' &&
-        game.playerManager.players[userId].status === 'alive',
-    );
-
-    return game ? game.gameId : null;
   }
 
   static getGamesByChannelId(channelId: string): GameManager[] {
@@ -221,11 +212,12 @@ export default class GameManager {
   async handleGameEnd(): Promise<void> {
     try {
       await Game.findByIdAndUpdate(this.gameId, { result: this.result.value });
-      await GameUser.endGame(this.gameId);
     } catch (error) {
       console.error(`Failed to end game ${this.gameId}:`, error);
     } finally {
       this.eventEmitter.removeAllListeners();
+      const timerId = this.phaseManager.timerId;
+      if (timerId) clearTimeout(timerId);
       delete gameManagers[this.gameId];
     }
   }

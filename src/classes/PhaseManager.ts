@@ -1,5 +1,6 @@
 import EventEmitter from 'events';
 import { IGameResult, CurrentPhase } from '../config/types';
+import GameUser from '../models/GameUser';
 
 export default class PhaseManager {
   phaseDurations_sec = {
@@ -9,6 +10,7 @@ export default class PhaseManager {
     finished: 10 * 60,
   };
 
+  public gameId: string;
   public currentDay: number = 0;
   public currentPhase: CurrentPhase = 'pre';
   public changedAt: Date;
@@ -16,18 +18,19 @@ export default class PhaseManager {
   public eventEmitter: EventEmitter;
   public timerId: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(eventEmitter: EventEmitter, result: IGameResult) {
+  constructor(eventEmitter: EventEmitter, result: IGameResult, gameId: string) {
     this.changedAt = new Date();
     this.result = result;
     this.eventEmitter = eventEmitter;
+    this.gameId = gameId;
     this.registerListner();
     this.startTimer();
   }
 
   registerListner(): void {
     // TODO: エラーハンドリング追加
-    this.eventEmitter.on('processCompleted', () => {
-      this.nextPhase();
+    this.eventEmitter.on('processCompleted', async () => {
+      await this.nextPhase();
       this.eventEmitter.emit('phaseSwitched');
       this.startTimer();
     });
@@ -41,7 +44,7 @@ export default class PhaseManager {
     );
   }
 
-  nextPhase(): void {
+  async nextPhase(): Promise<void> {
     const currentPhase = this.currentPhase;
     this.changedAt = new Date();
 
@@ -49,6 +52,7 @@ export default class PhaseManager {
 
     if (this.result.value !== 'running') {
       this.currentPhase = 'finished';
+      await GameUser.endGame(this.gameId);
       return;
     }
 

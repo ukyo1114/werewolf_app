@@ -463,22 +463,11 @@ describe('test GameManager', () => {
   });
 
   describe('test handleGameEnd', () => {
-    GameUser.endGame = jest.fn();
-
-    /* afterEach(() => {
-      jest.clearAllMocks();
-    }); */
-
-    afterAll(() => {
-      jest.restoreAllMocks();
-    });
-
     it('should call gameModel.findByIdAndUpdate', async () => {
       Game.findByIdAndUpdate = jest.fn();
       await game.handleGameEnd();
       expect(Game.findByIdAndUpdate).toHaveBeenCalled();
       expect(gameManagers[mockGameId]).toBeUndefined();
-      expect(GameUser.endGame).toHaveBeenCalledWith(mockGameId);
     });
 
     it('should throw error if gameModel.findByIdAndUpdate fails', async () => {
@@ -486,7 +475,6 @@ describe('test GameManager', () => {
       await game.handleGameEnd();
       expect(Game.findByIdAndUpdate).toHaveBeenCalled();
       expect(gameManagers[mockGameId]).toBeUndefined();
-      expect(GameUser.endGame).not.toHaveBeenCalled();
     });
   });
 
@@ -817,30 +805,6 @@ describe('test GameManager', () => {
       game.result.value = 'villagersWin';
       const isInGame = GameManager.checkIsUserInGame('villager');
       expect(isInGame).toBe(false);
-    });
-  });
-
-  describe('test isUserPlayingGame', () => {
-    it('should return gameId when user is playing game', () => {
-      const gameId = GameManager.isUserPlayingGame('villager');
-      expect(gameId).toBe(mockGameId);
-    });
-
-    it('should return null when user is not playing game', () => {
-      const gameId = GameManager.isUserPlayingGame('notInGame');
-      expect(gameId).toBeNull();
-    });
-
-    it('should return null when game is finished', () => {
-      game.result.value = 'villagersWin';
-      const gameId = GameManager.isUserPlayingGame('villager');
-      expect(gameId).toBeNull();
-    });
-
-    it('should return null when user is dead', () => {
-      game.playerManager.players.villager.status = 'dead';
-      const gameId = GameManager.isUserPlayingGame('villager');
-      expect(gameId).toBeNull();
     });
   });
 

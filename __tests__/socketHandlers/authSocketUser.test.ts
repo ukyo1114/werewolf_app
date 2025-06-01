@@ -14,14 +14,9 @@ import { authSocketUser } from '../../src/middleware/authSocketUser';
 import User from '../../src/models/User';
 import ChannelUser from '../../src/models/ChannelUser';
 import GameUser from '../../src/models/GameUser';
-import GameManager from '../../src/classes/GameManager';
 import { decodeToken } from '../../src/utils/decodeToken';
 import { ObjectId } from 'mongodb';
 
-jest.mock('../../src/models/User');
-jest.mock('../../src/models/ChannelUser');
-jest.mock('../../src/models/GameUser');
-jest.mock('../../src/classes/GameManager');
 jest.mock('../../src/utils/decodeToken');
 
 describe('authSocketUser', () => {
@@ -50,10 +45,6 @@ describe('authSocketUser', () => {
     mockNext = jest.fn();
 
     // デフォルトのモック実装
-    (User.exists as jest.Mock).mockResolvedValue(true);
-    (ChannelUser.exists as jest.Mock).mockResolvedValue(true);
-    (GameUser.exists as jest.Mock).mockResolvedValue(true);
-    (GameManager.isUserPlayingGame as jest.Mock).mockReturnValue(null);
     (decodeToken as jest.Mock).mockReturnValue({ userId: 'valid-user-id' });
   });
 
@@ -62,7 +53,10 @@ describe('authSocketUser', () => {
   });
 
   it('認証に成功する', async () => {
-    await authSocketUser(mockSocket as Socket, mockNext);
+    GameUser.isUserPlaying = jest.fn().mockResolvedValueOnce(null);
+    User.exists = jest.fn().mockReturnValueOnce(true);
+    ChannelUser.exists = jest.fn().mockReturnValueOnce(true);
+    await authSocketUser('entry')(mockSocket as Socket, mockNext);
 
     expect(mockNext).toHaveBeenCalled();
     expect(mockSocket.emit).not.toHaveBeenCalled();
@@ -74,61 +68,51 @@ describe('authSocketUser', () => {
   it('トークンがない場合、エラーを返す', async () => {
     mockSocket.handshake!.auth.token = undefined;
 
-    await authSocketUser(mockSocket as Socket, mockNext);
+    await authSocketUser('entry')(mockSocket as Socket, mockNext);
 
-    expect(mockNext).not.toHaveBeenCalled();
-    expect(mockSocket.emit).toHaveBeenCalledWith('authError', null);
-    expect(mockSocket.disconnect).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(
+      new Error('token or channelId is required'),
+    );
   });
 
   it('チャンネルIDがない場合、エラーを返す', async () => {
     mockSocket.handshake!.auth.channelId = undefined;
 
-    await authSocketUser(mockSocket as Socket, mockNext);
+    await authSocketUser('entry')(mockSocket as Socket, mockNext);
 
-    expect(mockNext).not.toHaveBeenCalled();
-    expect(mockSocket.emit).toHaveBeenCalledWith('authError', null);
-    expect(mockSocket.disconnect).toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(
+      new Error('token or channelId is required'),
+    );
   });
 
   it('ユーザーが存在しない場合、エラーを返す', async () => {
-    (User.exists as jest.Mock).mockResolvedValue(false);
+    GameUser.isUserPlaying = jest.fn().mockResolvedValueOnce(null);
+    User.exists = jest.fn().mockReturnValueOnce(false);
+    ChannelUser.exists = jest.fn().mockReturnValueOnce(true);
 
-    await authSocketUser(mockSocket as Socket, mockNext);
-
-    expect(mockNext).not.toHaveBeenCalled();
-    expect(mockSocket.emit).toHaveBeenCalledWith('authError', null);
-    expect(mockSocket.disconnect).toHaveBeenCalled();
+    await authSocketUser('entry')(mockSocket as Socket, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(
+      new Error('user is not in channel or game'),
+    );
   });
 
   it('チャンネルに参加していない場合、エラーを返す', async () => {
-    (ChannelUser.exists as jest.Mock).mockResolvedValue(false);
+    User.exists = jest.fn().mockReturnValueOnce(true);
+    ChannelUser.exists = jest.fn().mockReturnValueOnce(false);
 
-    await authSocketUser(mockSocket as Socket, mockNext);
-
-    expect(mockNext).not.toHaveBeenCalled();
-    expect(mockSocket.emit).toHaveBeenCalledWith('authError', null);
-    expect(mockSocket.disconnect).toHaveBeenCalled();
-  });
-
-  it('ゲームに参加していない場合、エラーを返す', async () => {
-    (GameUser.exists as jest.Mock).mockResolvedValue(false);
-
-    await authSocketUser(mockSocket as Socket, mockNext);
-
-    expect(mockNext).not.toHaveBeenCalled();
-    expect(mockSocket.emit).toHaveBeenCalledWith('authError', null);
-    expect(mockSocket.disconnect).toHaveBeenCalled();
+    await authSocketUser('entry')(mockSocket as Socket, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(
+      new Error('user is not in channel or game'),
+    );
   });
 
   it('別のゲームでプレイ中の場合、エラーを返す', async () => {
     const otherGameId = new ObjectId().toString();
-    (GameManager.isUserPlayingGame as jest.Mock).mockReturnValue(otherGameId);
+    (GameUser.isUserPlaying as jest.Mock).mockResolvedValue(otherGameId);
 
-    await authSocketUser(mockSocket as Socket, mockNext);
-
-    expect(mockNext).not.toHaveBeenCalled();
-    expect(mockSocket.emit).toHaveBeenCalledWith('authError', otherGameId);
-    expect(mockSocket.disconnect).toHaveBeenCalled();
+    await authSocketUser('entry')(mockSocket as Socket, mockNext);
+    expect(mockNext).toHaveBeenCalledWith(
+      expect.objectContaining({ gameId: otherGameId }),
+    );
   });
 });

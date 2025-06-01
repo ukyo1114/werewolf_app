@@ -1,7 +1,11 @@
 import { EventEmitter } from 'events';
 import PhaseManager from '../../src/classes/PhaseManager';
+import { ObjectId } from 'mongodb';
+import GameUser from '../../src/models/GameUser';
 
 describe('test PhaseManager', () => {
+  GameUser.endGame = jest.fn();
+  const testGameId = new ObjectId().toString();
   const registerListnerSpy = jest.spyOn(
     PhaseManager.prototype,
     'registerListner',
@@ -12,7 +16,11 @@ describe('test PhaseManager', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-    phaseManager = new PhaseManager(new EventEmitter(), { value: 'running' });
+    phaseManager = new PhaseManager(
+      new EventEmitter(),
+      { value: 'running' },
+      testGameId,
+    );
     startTimerSpy.mockClear();
     nextPhaseSpy.mockClear();
   });
@@ -25,7 +33,11 @@ describe('test PhaseManager', () => {
   });
 
   it('should initialize correctly', () => {
-    phaseManager = new PhaseManager(new EventEmitter(), { value: 'running' });
+    phaseManager = new PhaseManager(
+      new EventEmitter(),
+      { value: 'running' },
+      testGameId,
+    );
 
     expect(phaseManager).toBeInstanceOf(PhaseManager);
     expect(phaseManager.currentDay).toBe(0);
@@ -36,7 +48,7 @@ describe('test PhaseManager', () => {
     expect(startTimerSpy).toHaveBeenCalled();
   });
 
-  it('should register event listener for process completion', () => {
+  it('should register event listener for process completion', async () => {
     const mockOn = jest.spyOn(phaseManager.eventEmitter, 'on');
     const mockEmit = jest.spyOn(phaseManager.eventEmitter, 'emit');
     phaseManager.registerListner();
@@ -46,7 +58,13 @@ describe('test PhaseManager', () => {
       expect.any(Function),
     );
 
-    phaseManager.eventEmitter.emit('processCompleted');
+    await new Promise<void>((resolve) => {
+      nextPhaseSpy.mockImplementationOnce(() => {
+        resolve();
+        return Promise.resolve();
+      });
+      phaseManager.eventEmitter.emit('processCompleted');
+    });
 
     expect(nextPhaseSpy).toHaveBeenCalled();
     expect(mockEmit).toHaveBeenCalledWith('phaseSwitched');
@@ -67,28 +85,28 @@ describe('test PhaseManager', () => {
     mockEmit.mockRestore();
   });
 
-  it('should transition through phases correctly', () => {
+  it('should transition through phases correctly', async () => {
     // From preparation to day
-    phaseManager.nextPhase();
+    await phaseManager.nextPhase();
     expect(phaseManager.currentDay).toBe(1);
     expect(phaseManager.currentPhase).toBe('day');
 
     // From day to night
-    phaseManager.nextPhase();
+    await phaseManager.nextPhase();
     expect(phaseManager.currentDay).toBe(1);
     expect(phaseManager.currentPhase).toBe('night');
 
     // From night to next day
-    phaseManager.nextPhase();
+    await phaseManager.nextPhase();
     expect(phaseManager.currentDay).toBe(2);
     expect(phaseManager.currentPhase).toBe('day');
 
     // Game ends
     phaseManager.result.value = 'villagersWin';
-    phaseManager.nextPhase();
+    await phaseManager.nextPhase();
     expect(phaseManager.currentDay).toBe(2);
     expect(phaseManager.currentPhase).toBe('finished');
 
-    expect(() => phaseManager.nextPhase()).toThrow();
+    await expect(phaseManager.nextPhase()).rejects.toThrow();
   });
 });
