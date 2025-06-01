@@ -40,6 +40,7 @@ describe('GameUser Model Test', () => {
       expect(gameUser.gameId.toString()).toEqual(gameId1.toString());
       expect(gameUser.userId.toString()).toEqual(userId1.toString());
       expect(gameUser.role).toBe('spectator');
+      expect(gameUser.isPlaying).toBe(false);
       expect(gameUser.createdAt).toBeDefined();
       expect(gameUser.updatedAt).toBeDefined();
     });
@@ -188,6 +189,41 @@ describe('GameUser Model Test', () => {
     it('should return empty array for game with no users', async () => {
       const gameUsers = await GameUser.getGameUsers(gameId1);
       expect(gameUsers).toEqual([]);
+    });
+  });
+
+  describe('test isUserPlaying', () => {
+    it('should return gameId when user is playing', async () => {
+      await GameUser.create({
+        gameId: gameId1,
+        userId: userId1,
+        role: 'villager',
+        isPlaying: true,
+      });
+      const gameId = await GameUser.isUserPlaying(userId1);
+      expect(gameId).toBe(gameId1);
+    });
+
+    it('should return null when user is not playing', async () => {
+      const gameId = await GameUser.isUserPlaying(userId1);
+      expect(gameId).toBeNull();
+    });
+  });
+
+  describe('test endGame', () => {
+    it('should end a game', async () => {
+      await GameUser.create({
+        gameId: gameId1,
+        userId: userId1,
+        role: 'villager',
+        isPlaying: true,
+      });
+      await GameUser.endGame(gameId1);
+      const gameUser = await GameUser.findOne({
+        gameId: gameId1,
+        userId: userId1,
+      });
+      expect(gameUser?.isPlaying).toBe(false);
     });
   });
 });

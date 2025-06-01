@@ -15,6 +15,7 @@ interface IGameUser extends Document {
     | 'fox'
     | 'immoralist'
     | 'spectator';
+  isPlaying: Boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,6 +23,8 @@ interface IGameUser extends Document {
 interface IGameUserModel extends mongoose.Model<IGameUser> {
   joinGame(gameId: string, userId: string): Promise<void>;
   getGameUsers(gameId: string): Promise<IGameUser[]>;
+  isUserPlaying(userId: string): Promise<string | null>;
+  endGame(gameId: string): Promise<void>;
 }
 
 const GameUserSchema = new Schema<IGameUser>(
@@ -33,6 +36,7 @@ const GameUserSchema = new Schema<IGameUser>(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
+      index: true,
       ref: 'User',
     },
     role: {
@@ -51,6 +55,10 @@ const GameUserSchema = new Schema<IGameUser>(
         'spectator',
       ],
       default: 'spectator',
+    },
+    isPlaying: {
+      type: Boolean,
+      default: false,
     },
   },
   {
@@ -83,6 +91,19 @@ GameUserSchema.statics.getGameUsers = async function (
       userId: { _id: Types.ObjectId; userName: string; pic: string | null };
     }) => user.userId,
   );
+};
+
+GameUserSchema.statics.isUserPlaying = async function (
+  userId: string,
+): Promise<string | null> {
+  const gameUser = await this.findOne({ userId, isPlaying: true });
+  return gameUser?.gameId.toString() || null;
+};
+
+GameUserSchema.statics.endGame = async function (
+  gameId: string,
+): Promise<void> {
+  await this.updateMany({ gameId }, { $set: { isPlaying: false } });
 };
 
 const GameUser = mongoose.model<IGameUser, IGameUserModel>(

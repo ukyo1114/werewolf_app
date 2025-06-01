@@ -98,6 +98,6 @@ server.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
 
-socketHandler(server);
+export const io = socketHandler(server);
 
 export default server;

@@ -4,6 +4,7 @@ import { appState, Events } from '../app';
 import EntryManager from '../classes/EntryManager';
 import Channel from '../models/Channel';
 import ChannelUser from '../models/ChannelUser';
+import { authSocketUser } from '../middleware/authSocketUser';
 
 const { entryManagers } = appState;
 const { entryEvents } = Events;
@@ -14,22 +15,28 @@ interface CustomSocket extends Socket {
 }
 
 export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
+  entryNameSpace.use(authSocketUser('entry'));
+
   entryNameSpace.on('connection', async (socket: CustomSocket) => {
     const userId = socket.userId as string;
     const channelId = socket.channelId as string;
     const socketId = socket.id;
 
     try {
-      const [channel, channelUserExists] = await Promise.all([
-        Channel.findById(channelId).select('numberOfPlayers').lean(),
-        ChannelUser.exists({ channelId, userId }),
-      ]);
-      if (!channel || !channelUserExists) throw new Error();
+      const channel = await Channel.findById(channelId)
+        .select('numberOfPlayers')
+        .lean();
+      if (!channel) throw new Error();
 
-      EntryManager.createEntryManager(channelId, channel.numberOfPlayers);
+      const entryManager = EntryManager.createEntryManager(
+        channelId,
+        channel.numberOfPlayers,
+      );
+      const users = entryManager.getUserList();
+      socket.emit('connect_response', users);
     } catch (error) {
       console.error(error);
-      socket.emit('connect_error', errors.CHANNEL_ACCESS_FORBIDDEN);
+      socket.emit('authError', { message: errors.CHANNEL_ACCESS_FORBIDDEN });
       socket.disconnect();
       return;
     }
@@ -79,7 +86,11 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
       const { users, gameId } = data;
 
       users.forEach((socketId: string) => {
-        entryNameSpace.to(socketId).emit('gameStart', gameId);
+        const socket = entryNameSpace.sockets.get(socketId);
+        if (socket) {
+          socket.emit('gameStart', gameId);
+          socket.leave(channelId);
+        }
       });
     });
 

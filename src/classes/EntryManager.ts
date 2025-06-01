@@ -15,9 +15,13 @@ export default class EntryManager {
     this.MAX_USERS = max_users;
   }
 
-  static createEntryManager(channelId: string, max_users: number = 10): void {
-    if (entryManagers[channelId]) return;
+  static createEntryManager(
+    channelId: string,
+    max_users: number = 10,
+  ): EntryManager {
+    if (entryManagers[channelId]) return entryManagers[channelId];
     entryManagers[channelId] = new EntryManager(channelId, max_users);
+    return entryManagers[channelId];
   }
 
   async register(userId: string, socketId: string): Promise<void> {
