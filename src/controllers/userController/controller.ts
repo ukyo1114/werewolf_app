@@ -18,8 +18,6 @@ import {
 import GameManager from '../../classes/GameManager';
 import { Events } from '../../app';
 
-const { channelEvents } = Events;
-
 export const registerUser = asyncHandler(
   async (req: CustomRequest<IRegisterUser>, res: Response): Promise<void> => {
     const { userName, password, token } = req.body;
@@ -87,7 +85,6 @@ export const updateProfile = asyncHandler(
         { userName },
         { runValidators: true },
       );
-      channelEvents.emit('userUpdated', { userId, userName });
     }
 
     res.status(200).send();

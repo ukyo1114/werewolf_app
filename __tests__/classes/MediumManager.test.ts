@@ -12,9 +12,11 @@ import { gamePlayers } from '../../__mocks__/mockdata';
 import { EventEmitter } from 'events';
 
 describe('test MediumManager', () => {
-  const phaseManager = new PhaseManager(new EventEmitter(), {
-    value: 'running',
-  });
+  const phaseManager = new PhaseManager(
+    new EventEmitter(),
+    { value: 'running' },
+    mockGameId,
+  );
   const playerManager = new PlayerManager(mockGameId, mockUsers);
   const mediumManager = new MediumManager(phaseManager, playerManager);
 

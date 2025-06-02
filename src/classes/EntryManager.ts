@@ -1,5 +1,6 @@
 import GameManager from './GameManager';
 import { appState, Events } from '../app';
+import { errors } from '../config/messages';
 
 const { entryManagers } = appState;
 const { entryEvents } = Events;
@@ -25,8 +26,7 @@ export default class EntryManager {
   }
 
   async register(userId: string, socketId: string): Promise<void> {
-    if (this.isProcessing)
-      throw new Error('ゲームの開始処理中です。しばらくお待ちください。');
+    if (this.isProcessing) throw new Error(errors.GAME_START_PROCESSING);
 
     this.users[socketId] = { userId };
 
@@ -39,8 +39,7 @@ export default class EntryManager {
   }
 
   cancel(socketId: string): void {
-    if (this.isProcessing)
-      throw new Error('ゲームの開始処理中です。キャンセルできません。');
+    if (this.isProcessing) throw new Error(errors.GAME_START_PROCESSING);
 
     delete this.users[socketId];
     this.entryUpdate();
@@ -68,8 +67,8 @@ export default class EntryManager {
       );
       this.emitGameStart(gameId);
     } catch (error) {
-      console.error('error:', error);
       entryEvents.emit('gameCreationFailed', this.channelId);
+      throw error;
     } finally {
       // ゲームの開始処理が終了したら、ユーザーリストと処理フラグをリセット
       this.users = {};

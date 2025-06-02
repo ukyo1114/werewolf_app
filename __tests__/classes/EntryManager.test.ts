@@ -146,7 +146,6 @@ describe('EntryManager', () => {
   describe('startGame', () => {
     let emitGameStartSpy: jest.SpyInstance;
     let getUserListSpy: jest.SpyInstance;
-    let createGameSpy = jest.spyOn(GameManager, 'createGameManager');
 
     beforeEach(() => {
       entryManager.users = { testSocketId: { userId: mockUserId } };
@@ -162,22 +161,24 @@ describe('EntryManager', () => {
     afterAll(() => {
       emitGameStartSpy.mockRestore();
       getUserListSpy.mockRestore();
-      createGameSpy.mockRestore();
     });
 
     it('should create a game and emit game start event', async () => {
-      createGameSpy.mockResolvedValue(mockGameId);
+      GameManager.createGameManager = jest.fn().mockResolvedValue(mockGameId);
       await entryManager.startGame();
 
-      expect(createGameSpy).toHaveBeenCalledWith(mockChannelId, [mockUserId]);
+      expect(GameManager.createGameManager).toHaveBeenCalledWith(
+        mockChannelId,
+        [mockUserId],
+      );
       expect(emitGameStartSpy).toHaveBeenCalledWith(mockGameId);
       expect(entryManager.users).toEqual({});
       expect(entryManager.isProcessing).toBe(false);
     });
 
     it('should emit game creation failed event if game creation fails', async () => {
-      createGameSpy.mockRejectedValue(new Error());
-      await entryManager.startGame();
+      GameManager.createGameManager = jest.fn().mockRejectedValue(new Error());
+      await expect(entryManager.startGame()).rejects.toThrow();
 
       expect(entryEvents.emit).toHaveBeenCalledWith(
         'gameCreationFailed',

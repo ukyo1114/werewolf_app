@@ -3,7 +3,6 @@ import { errors } from '../config/messages';
 import { appState, Events } from '../app';
 import EntryManager from '../classes/EntryManager';
 import Channel from '../models/Channel';
-import ChannelUser from '../models/ChannelUser';
 import { authSocketUser } from '../middleware/authSocketUser';
 
 const { entryManagers } = appState;
@@ -35,10 +34,7 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
       const users = entryManager.getUserList();
       socket.emit('connect_response', users);
     } catch (error) {
-      console.error(error);
-      socket.emit('authError', { message: errors.CHANNEL_ACCESS_FORBIDDEN });
-      socket.disconnect();
-      return;
+      socket.conn.close();
     }
 
     socket.on('registerEntry', async (callback) => {
@@ -70,11 +66,7 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
     });
 
     socket.on('disconnect', () => {
-      try {
-        entryManagers[channelId]?.cancel(socketId);
-      } catch (error) {
-        entryNameSpace.to(channelId).emit('userLeave', userId);
-      }
+      entryManagers[channelId]?.cancel(socketId);
     });
 
     entryEvents.on('entryUpdate', (data) => {
@@ -95,9 +87,7 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
     });
 
     entryEvents.on('gameCreationFailed', (channelId: string) => {
-      entryNameSpace.to(channelId).emit('gameCreationFailed', {
-        message: errors.GAME_CREATION_FAILED,
-      });
+      entryNameSpace.to(channelId).emit('gameCreationFailed');
     });
   });
 };

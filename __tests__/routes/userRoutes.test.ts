@@ -49,6 +49,7 @@ describe('test userRoutes', () => {
         isGuest: true,
       }),
     ]);
+    await User.createIndexes();
   });
 
   afterEach(async () => {

@@ -37,6 +37,8 @@ export const errors = {
   PLAYING_GAME: 'ゲームをプレイ中です。',
   IMAGE_UPLOAD_FAILED: '画像のアップロードに失敗しました',
   USER_IN_GAME: 'ゲーム中のユーザーは編集できません。',
+  GAME_START_PROCESSING: 'ゲームの開始処理中です',
+  AUTH_ERROR: '認証エラーが発生しました',
 };
 
 export const validation = {

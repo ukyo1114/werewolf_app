@@ -12,9 +12,11 @@ import DevineManager from '../../src/classes/DevineManager';
 import EventEmitter from 'events';
 
 describe('test DevineManager', () => {
-  const phaseManager = new PhaseManager(new EventEmitter(), {
-    value: 'running',
-  });
+  const phaseManager = new PhaseManager(
+    new EventEmitter(),
+    { value: 'running' },
+    mockGameId,
+  );
   const playerManager = new PlayerManager(mockGameId, mockUsers);
   const devineManager = new DevineManager(phaseManager, playerManager);
 

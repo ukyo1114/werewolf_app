@@ -11,9 +11,11 @@ import { mockGameId, mockUsers, gamePlayers } from '../../__mocks__/mockdata';
 import { EventEmitter } from 'events';
 
 describe('test VoteManager', () => {
-  const phaseManager = new PhaseManager(new EventEmitter(), {
-    value: 'running',
-  });
+  const phaseManager = new PhaseManager(
+    new EventEmitter(),
+    { value: 'running' },
+    mockGameId,
+  );
   const playerManager = new PlayerManager(mockGameId, mockUsers);
   const voteManager = new VoteManager(phaseManager, playerManager);
 

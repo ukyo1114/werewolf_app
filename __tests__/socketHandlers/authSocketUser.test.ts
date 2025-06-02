@@ -10,12 +10,16 @@ jest.mock('../../src/app', () => ({
 }));
 
 import { Socket } from 'socket.io';
-import { authSocketUser } from '../../src/middleware/authSocketUser';
+import {
+  authSocketUser,
+  CustomError,
+} from '../../src/middleware/authSocketUser';
 import User from '../../src/models/User';
 import ChannelUser from '../../src/models/ChannelUser';
 import GameUser from '../../src/models/GameUser';
 import { decodeToken } from '../../src/utils/decodeToken';
 import { ObjectId } from 'mongodb';
+import { errors } from '../../src/config/messages';
 
 jest.mock('../../src/utils/decodeToken');
 
@@ -70,9 +74,7 @@ describe('authSocketUser', () => {
 
     await authSocketUser('entry')(mockSocket as Socket, mockNext);
 
-    expect(mockNext).toHaveBeenCalledWith(
-      new Error('token or channelId is required'),
-    );
+    expect(mockNext).toHaveBeenCalledWith(new Error(errors.AUTH_ERROR));
   });
 
   it('チャンネルIDがない場合、エラーを返す', async () => {
@@ -80,9 +82,7 @@ describe('authSocketUser', () => {
 
     await authSocketUser('entry')(mockSocket as Socket, mockNext);
 
-    expect(mockNext).toHaveBeenCalledWith(
-      new Error('token or channelId is required'),
-    );
+    expect(mockNext).toHaveBeenCalledWith(new Error(errors.AUTH_ERROR));
   });
 
   it('ユーザーが存在しない場合、エラーを返す', async () => {
@@ -91,9 +91,7 @@ describe('authSocketUser', () => {
     ChannelUser.exists = jest.fn().mockReturnValueOnce(true);
 
     await authSocketUser('entry')(mockSocket as Socket, mockNext);
-    expect(mockNext).toHaveBeenCalledWith(
-      new Error('user is not in channel or game'),
-    );
+    expect(mockNext).toHaveBeenCalledWith(new Error(errors.AUTH_ERROR));
   });
 
   it('チャンネルに参加していない場合、エラーを返す', async () => {
@@ -101,9 +99,7 @@ describe('authSocketUser', () => {
     ChannelUser.exists = jest.fn().mockReturnValueOnce(false);
 
     await authSocketUser('entry')(mockSocket as Socket, mockNext);
-    expect(mockNext).toHaveBeenCalledWith(
-      new Error('user is not in channel or game'),
-    );
+    expect(mockNext).toHaveBeenCalledWith(new Error(errors.AUTH_ERROR));
   });
 
   it('別のゲームでプレイ中の場合、エラーを返す', async () => {
@@ -111,8 +107,6 @@ describe('authSocketUser', () => {
     (GameUser.isUserPlaying as jest.Mock).mockResolvedValue(otherGameId);
 
     await authSocketUser('entry')(mockSocket as Socket, mockNext);
-    expect(mockNext).toHaveBeenCalledWith(
-      expect.objectContaining({ gameId: otherGameId }),
-    );
+    expect(mockNext).toHaveBeenCalledWith(new CustomError(otherGameId));
   });
 });

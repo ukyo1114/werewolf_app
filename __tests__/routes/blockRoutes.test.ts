@@ -157,7 +157,7 @@ describe('test blockRoutes', () => {
       expect(createdBlockUser).not.toBeNull();
       expect(emitSpy).toHaveBeenCalledWith('registerBlockUser', {
         channelId: testChannelId,
-        selectedUser: badUserId,
+        userId: badUserId,
       });
     });
 
@@ -265,7 +265,7 @@ describe('test blockRoutes', () => {
       expect(deletedBlockUser).toBeNull();
       expect(emitSpy).toHaveBeenCalledWith('cancelBlockUser', {
         channelId: testChannelId,
-        selectedUser: blockUserId,
+        userId: blockUserId,
       });
     });
 

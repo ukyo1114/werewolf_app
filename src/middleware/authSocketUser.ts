@@ -2,15 +2,16 @@ import { Socket } from 'socket.io';
 import User from '../models/User';
 import ChannelUser from '../models/ChannelUser';
 import GameUser from '../models/GameUser';
-import GameManager from '../classes/GameManager';
 import { decodeToken } from '../utils/decodeToken';
+import { errors } from '../config/messages';
 
-class CustomError extends Error {
-  gameId: string;
+export class CustomError extends Error {
+  data: { gameId: string };
 
   constructor(gameId: string) {
     super();
-    this.gameId = gameId;
+    this.message = errors.AUTH_ERROR;
+    this.data = { gameId };
   }
 }
 
@@ -19,16 +20,17 @@ export const authSocketUser =
   async (socket: Socket, next: (err?: Error) => void): Promise<void> => {
     try {
       const { token, channelId } = socket.handshake.auth;
-      if (!token || !channelId)
-        throw new Error('token or channelId is required');
-
+      if (!token || !channelId) throw new Error(errors.AUTH_ERROR);
       const decoded = decodeToken(token);
       const { userId } = decoded;
-      if (!userId) throw new Error('userId is required');
+      if (!userId) throw new Error(errors.AUTH_ERROR);
 
       // プレイ中のゲームがあるかどうかチェック
       const currentGameId = await GameUser.isUserPlaying(userId);
-      if (currentGameId && currentGameId !== channelId)
+      if (
+        currentGameId &&
+        (nameSpace === 'entry' || currentGameId !== channelId)
+      )
         throw new CustomError(currentGameId);
 
       // DBチェック（namespaceに応じて必要なチェックのみ実行）
@@ -52,7 +54,7 @@ export const authSocketUser =
       }
 
       if (!userExists || !(inChannel || inGame))
-        throw new Error('user is not in channel or game');
+        throw new Error(errors.AUTH_ERROR);
 
       (socket as any).userId = userId;
       (socket as any).channelId = channelId;

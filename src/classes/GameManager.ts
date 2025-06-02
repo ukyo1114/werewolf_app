@@ -78,7 +78,7 @@ export default class GameManager {
         .select('_id userName')
         .lean();
       if (dbUsers.length !== users.length) {
-        throw new Error('Some users were not found');
+        throw new Error();
       }
 
       const usersDetail = dbUsers.map((user) => ({
@@ -257,7 +257,7 @@ export default class GameManager {
       messageType: 'system',
     });
 
-    channelEvents.emit('newMessage', newMessage);
+    channelEvents.emit('newMessage', this.gameId, newMessage, null);
   }
 
   handlePhaseSwitched(): void {

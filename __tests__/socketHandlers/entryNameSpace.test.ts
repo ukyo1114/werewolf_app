@@ -18,16 +18,16 @@ import EntryManager from '../../src/classes/EntryManager';
 import { ObjectId } from 'mongodb';
 import GameUser from '../../src/models/GameUser';
 import Game from '../../src/models/Game';
+import { decodeToken } from '../../src/utils/decodeToken';
 
 describe('test entryNameSpace', () => {
-  const { gameManagers, entryManagers } = appState;
-
+  const { entryManagers } = appState;
   let baseUrl: string;
   const testUserId = new ObjectId().toString();
   const testUser2Id = new ObjectId().toString();
   const testChannelId = new ObjectId().toString();
   const testChannel2Id = new ObjectId().toString();
-  let socketEmitSpy: jest.SpyInstance;
+  const socketEmitSpy = jest.spyOn(Socket.prototype, 'emit');
 
   beforeAll(async () => {
     await Promise.all([
@@ -74,14 +74,9 @@ describe('test entryNameSpace', () => {
     baseUrl = `http://localhost:${port}`;
   });
 
-  beforeEach(() => {
-    // Create a spy for socket.emit
-    socketEmitSpy = jest.spyOn(Socket.prototype, 'emit');
-  });
-
   afterEach(() => {
     appState.entryManagers = {};
-    socketEmitSpy.mockRestore();
+    socketEmitSpy.mockClear();
   });
 
   afterAll(async () => {
@@ -95,16 +90,29 @@ describe('test entryNameSpace', () => {
   ) => Client(`${baseUrl}/entry`, { auth: { token, channelId } });
 
   describe('test auth', () => {
-    const result = async (token: string | undefined, gameId: string | null) => {
-      const clientSocket = createClientSocket(token, testChannelId);
+    const result = async ({
+      token,
+      channelId,
+      errorMessage,
+      gameId,
+    }: {
+      token?: string;
+      channelId?: string;
+      errorMessage?: string;
+      gameId?: string;
+    }) => {
+      const clientSocket = createClientSocket(token, channelId);
 
       await new Promise<void>((resolve) => {
-        clientSocket.on('connect', resolve);
-
-        clientSocket.on('authError', (receivedGameId: string | null) => {
-          expect(receivedGameId).toBe(gameId);
-          resolve();
-        });
+        if (errorMessage) {
+          clientSocket.on('connect_error', (error: any) => {
+            if (errorMessage) expect(error.message).toBe(errorMessage);
+            if (gameId) expect(error.data.gameId).toBe(gameId);
+            resolve();
+          });
+        } else {
+          clientSocket.on('connect', resolve);
+        }
 
         clientSocket.connect();
       });
@@ -112,63 +120,143 @@ describe('test entryNameSpace', () => {
       clientSocket.close();
     };
 
-    let game: GameManager;
-
-    beforeAll(async () => {
-      gameManagers[mockChannelId] = new GameManager(
-        mockChannelId,
-        mockGameId,
-        mockUsers,
-      );
-      game = gameManagers[mockChannelId];
-      game.playerManager.players = {
-        [testUserId]: {
-          userId: testUserId,
-          userName: 'testUser',
-          status: 'alive',
-          role: 'villager',
-          teammates: null,
-        },
-      };
+    it('should throw error when token is undefined', async () => {
+      await result({
+        channelId: testChannelId,
+        errorMessage: errors.AUTH_ERROR,
+      });
     });
 
-    afterAll(async () => {
-      const timerId = game.phaseManager.timerId;
-      if (timerId) clearTimeout(timerId);
-      delete gameManagers[mockChannelId];
+    it('should throw error when channelId is undefined', async () => {
+      await result({
+        token: genUserToken(testUserId),
+        errorMessage: errors.AUTH_ERROR,
+      });
     });
 
-    it('ユーザーがゲームに参加しているとき', async () => {
-      const token = genUserToken(testUserId);
-      await result(token, mockGameId);
-      // expect(socketEmitSpy).toHaveBeenCalledWith('authError', mockGameId);
+    it('should throw error when user is playing game', async () => {
+      GameUser.isUserPlaying = jest.fn().mockResolvedValueOnce(mockGameId);
+      await result({
+        token: genUserToken(testUserId),
+        channelId: testChannelId,
+        errorMessage: errors.AUTH_ERROR,
+        gameId: mockGameId,
+      });
     });
 
-    /*     it('ユーザーがゲームに参加していないとき', async () => {
-      const token = genUserToken(testUserId);
-      await result(token, null);
+    it('should throw error when user is not registered', async () => {
+      User.exists = jest.fn().mockReturnValueOnce(false);
+      ChannelUser.exists = jest.fn().mockReturnValueOnce(true);
+      await result({
+        token: genUserToken(testUserId),
+        channelId: testChannelId,
+        errorMessage: errors.AUTH_ERROR,
+      });
     });
 
-    it('ユーザーがゲームに参加しているとき', async () => {
-      const game = new GameManager(mockChannelId, mockGameId, mockUsers);
-      game.playerManager.players = {
-        [testUserId]: {
-          userId: testUserId,
-          userName: 'testUser',
-          status: 'alive',
-          role: 'villager',
-          teammates: null,
-        },
-      };
+    it('should throw error when user is not in Channel', async () => {
+      User.exists = jest.fn().mockReturnValueOnce(true);
+      ChannelUser.exists = jest.fn().mockReturnValueOnce(false);
+      await result({
+        token: genUserToken(testUserId),
+        channelId: testChannelId,
+        errorMessage: errors.AUTH_ERROR,
+      });
+    });
 
-      const token = genUserToken(testUserId);
-      await result(token, mockGameId);
-
-      const timerId = game.phaseManager.timerId;
-      if (timerId) clearTimeout(timerId);
-    }); */
+    it('should connect when user is registered and in Channel', async () => {
+      User.exists = jest.fn().mockReturnValueOnce(true);
+      ChannelUser.exists = jest.fn().mockReturnValueOnce(true);
+      await result({
+        token: genUserToken(testUserId),
+        channelId: testChannelId,
+      });
+    });
   });
 
+  describe('test connection', () => {
+    const result = async (errorOccured: boolean, channelId: string) => {
+      User.exists = jest.fn().mockReturnValueOnce(true);
+      ChannelUser.exists = jest.fn().mockReturnValueOnce(true);
+      const clientSocket = createClientSocket(
+        genUserToken(testUserId),
+        channelId,
+      );
+
+      await new Promise<void>((resolve) => {
+        if (errorOccured) {
+          clientSocket.on('connect_error', () => resolve());
+        } else {
+          clientSocket.on('connect_response', (users: string[]) => {
+            expect(users).toEqual([]);
+            resolve();
+          });
+        }
+
+        clientSocket.connect();
+      });
+
+      clientSocket.close();
+    };
+
+    it('should connect when user is registered and in Channel', async () => {
+      await result(false, testChannelId);
+    });
+
+    it('should connect when user is registered and in Channel', async () => {
+      await result(true, mockChannelId);
+    });
+  });
+
+  describe('test registerEntry', () => {
+    const result = async ({
+      success,
+      errorMessage,
+    }: {
+      success: boolean;
+      errorMessage?: string;
+    }) => {
+      User.exists = jest.fn().mockReturnValueOnce(true);
+      ChannelUser.exists = jest.fn().mockReturnValueOnce(true);
+      const clientSocket = createClientSocket(
+        genUserToken(testUserId),
+        testChannelId,
+      );
+
+      await new Promise<void>((resolve) => {
+        clientSocket.on('connect_response', (users: string[]) => {
+          expect(users).toEqual([]);
+          resolve();
+        });
+
+        clientSocket.connect();
+      });
+
+      if (!success) delete entryManagers[testChannelId];
+
+      const response = await clientSocket.emitWithAck('registerEntry');
+      expect(response.success).toBe(success);
+      if (errorMessage) expect(response.message).toBe(errorMessage);
+
+      clientSocket.close();
+    };
+
+    it('should register entry when user is registered and in Channel', async () => {
+      await result({ success: true });
+      expect(
+        Object.values(entryManagers[testChannelId].users).some(
+          (user) => user.userId === testUserId,
+        ),
+      ).toBe(true);
+    });
+
+    it('should throw error when user is not registered', async () => {
+      await result({
+        success: false,
+        errorMessage: errors.CHANNEL_ACCESS_FORBIDDEN,
+      });
+    });
+  });
   /*   describe('join channel', () => {
     const result = async (errorMessage?: string) => {
       const token = genUserToken(testUserId);

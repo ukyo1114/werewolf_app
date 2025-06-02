@@ -755,7 +755,7 @@ describe('test GameManager', () => {
 
       await expect(
         GameManager.createGameManager(mockChannelId, usersWithInvalid),
-      ).rejects.toThrow('Some users were not found');
+      ).rejects.toThrow();
 
       const games = await Game.find({ channelId: mockChannelId });
       expect(games).toHaveLength(0);

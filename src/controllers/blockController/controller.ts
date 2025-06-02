@@ -38,7 +38,10 @@ export const registerBlockUser = asyncHandler(
     if (!isAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
     await ChannelBlockUser.addBlockUser(channelId, selectedUser);
 
-    channelEvents.emit('registerBlockUser', { channelId, selectedUser });
+    channelEvents.emit('registerBlockUser', {
+      channelId,
+      userId: selectedUser,
+    });
     res.status(200).send();
   },
 );
@@ -56,7 +59,7 @@ export const cancelBlock = asyncHandler(
     const result = await ChannelBlockUser.unblockUser(channelId, selectedUser);
     if (!result) throw new AppError(404, errors.USER_NOT_BLOCKED);
 
-    channelEvents.emit('cancelBlockUser', { channelId, selectedUser });
+    channelEvents.emit('cancelBlockUser', { channelId, userId: selectedUser });
     res.status(200).send();
   },
 );

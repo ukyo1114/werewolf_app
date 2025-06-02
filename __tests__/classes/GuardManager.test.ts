@@ -12,9 +12,11 @@ import { gamePlayers } from '../../__mocks__/mockdata';
 import { EventEmitter } from 'events';
 
 describe('test GuardManager', () => {
-  const phaseManager = new PhaseManager(new EventEmitter(), {
-    value: 'running',
-  });
+  const phaseManager = new PhaseManager(
+    new EventEmitter(),
+    { value: 'running' },
+    mockGameId,
+  );
   const playerManager = new PlayerManager(mockGameId, mockUsers);
   const guardManager = new GuardManager(phaseManager, playerManager);
 

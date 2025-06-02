@@ -1,7 +1,8 @@
 import { Namespace, Socket } from 'socket.io';
 import { appState, Events } from '../app';
-import { createChannelInstance } from '../utils/createChannelInstance';
-import { IMessage } from '../models/messageModel';
+import ChannelManager from '../classes/ChannelManager';
+import { IMessage } from '../models/Message';
+import { authSocketUser } from '../middleware/authSocketUser';
 
 const { channelManagers } = appState;
 const { channelEvents } = Events;
@@ -12,22 +13,25 @@ interface CustomSocket extends Socket {
 }
 
 export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
-  chatNameSpace.on('connection', async (socket: CustomSocket) => {
+  chatNameSpace.use(authSocketUser('chat'));
+
+  chatNameSpace.use(async (socket: CustomSocket, next) => {
     const userId = socket.userId as string;
     const channelId = socket.channelId as string;
     const socketId = socket.id;
 
-    try {
-      const channelManager =
-        channelManagers[channelId] || (await createChannelInstance(channelId));
+    const channelManager =
+      channelManagers[channelId] ||
+      (await ChannelManager.createChannelInstance(channelId));
 
-      await channelManager.userJoined(userId, socketId);
-      socket.join(channelId);
-    } catch (error) {
-      socket.emit('connect_error');
-      socket.disconnect();
-      return;
-    }
+    await channelManager.userJoined(userId, socketId);
+    socket.join(channelId);
+    next();
+  });
+
+  chatNameSpace.on('connection', async (socket: CustomSocket) => {
+    const userId = socket.userId as string;
+    const channelId = socket.channelId as string;
 
     socket.on('disconnect', async () => {
       channelManagers[channelId]?.userLeft(userId);
@@ -36,10 +40,10 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
 
   channelEvents.on(
     'newMessage',
-    (channelId: string, message: IMessage, users: string[] | null) => {
+    (channelId: string, message: IMessage, users: string[] | null = null) => {
       const { messageType } = message;
 
-      if (messageType == 'normal') {
+      if (messageType == 'normal' || messageType == 'system') {
         chatNameSpace.to(channelId).emit('newMessage', message);
       } else {
         users?.forEach((user) => {
@@ -53,14 +57,20 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
     'channelSettingsUpdated',
     ({
       channelId,
-      updatedChannel,
+      channelName,
+      channelDescription,
+      numberOfPlayers,
     }: {
       channelId: string;
-      updatedChannel: { channelName: string; channelDescription: string };
+      channelName: string;
+      channelDescription: string;
+      numberOfPlayers: number;
     }) => {
-      chatNameSpace
-        .to(channelId)
-        .emit('channelSettingsUpdated', updatedChannel);
+      chatNameSpace.to(channelId).emit('channelSettingsUpdated', {
+        channelName,
+        channelDescription,
+        numberOfPlayers,
+      });
     },
   );
 

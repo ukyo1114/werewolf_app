@@ -15,9 +15,13 @@ import { EventEmitter } from 'events';
 
 describe('test AttackManager', () => {
   GameUser.updateOne = jest.fn();
-  const phaseManager = new PhaseManager(new EventEmitter(), {
-    value: 'running',
-  });
+  const phaseManager = new PhaseManager(
+    new EventEmitter(),
+    {
+      value: 'running',
+    },
+    mockGameId,
+  );
   const playerManager = new PlayerManager(mockGameId, mockUsers);
   const guardManager = new GuardManager(phaseManager, playerManager);
   const attackManager = new AttackManager(
