@@ -134,4 +134,45 @@ describe('ChannelBlockUser Model Test', () => {
       expect(unblocked).toBe(false);
     });
   });
+
+  describe('Get Blocked Channels', () => {
+    it('should get all channels where user is blocked', async () => {
+      const blockedChannels = await ChannelBlockUser.getBlockedChannels(
+        testUser._id,
+      );
+      expect(blockedChannels).toHaveLength(1);
+      expect(blockedChannels[0]).toBe(testChannelId);
+    });
+
+    it('should return empty array for user not blocked in any channels', async () => {
+      const blockedChannels =
+        await ChannelBlockUser.getBlockedChannels(nonBlockedUserId);
+      expect(blockedChannels).toHaveLength(0);
+    });
+
+    it('should get multiple channels when user is blocked in multiple channels', async () => {
+      const secondChannelId = new ObjectId().toString();
+      const thirdChannelId = new ObjectId().toString();
+
+      // 追加のチャンネルでユーザーをブロック
+      await Promise.all([
+        ChannelBlockUser.create({
+          channelId: secondChannelId,
+          userId: testUser._id,
+        }),
+        ChannelBlockUser.create({
+          channelId: thirdChannelId,
+          userId: testUser._id,
+        }),
+      ]);
+
+      const blockedChannels = await ChannelBlockUser.getBlockedChannels(
+        testUser._id,
+      );
+      expect(blockedChannels).toHaveLength(3);
+      expect(blockedChannels).toContain(testChannelId);
+      expect(blockedChannels).toContain(secondChannelId);
+      expect(blockedChannels).toContain(thirdChannelId);
+    });
+  });
 });

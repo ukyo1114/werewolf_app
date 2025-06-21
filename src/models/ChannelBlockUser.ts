@@ -21,6 +21,7 @@ interface IChannelBlockUserModel extends mongoose.Model<IChannelBlockUser> {
   isUserBlocked(channelId: string, userId: string): Promise<boolean>;
   addBlockUser(channelId: string, userId: string): Promise<boolean>;
   unblockUser(channelId: string, userId: string): Promise<boolean>;
+  getBlockedChannels(userId: string): Promise<string[]>;
 }
 
 const ChannelBlockUserSchema = new Schema<IChannelBlockUser>(
@@ -93,6 +94,16 @@ ChannelBlockUserSchema.statics.unblockUser = async function (
 ): Promise<boolean> {
   const result = await this.deleteOne({ channelId, userId });
   return result.deletedCount > 0;
+};
+
+// ユーザーがブロックされているチャンネル一覧を取得
+ChannelBlockUserSchema.statics.getBlockedChannels = async function (
+  userId: string,
+): Promise<string[]> {
+  const channels = await this.find({ userId }).select('-_id channelId').lean();
+  return channels.map((channel: { channelId: Types.ObjectId }) =>
+    channel.channelId.toString(),
+  );
 };
 
 const ChannelBlockUser = mongoose.model<
