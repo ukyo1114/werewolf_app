@@ -95,10 +95,7 @@ export const updateProfile = asyncHandler(
     }
 
     // プロフィール更新を通知
-    const channels = await ChannelUser.find({ userId })
-      .select('-_id channelId')
-      .lean();
-    const channelIds = channels.map((channel) => channel.channelId.toString());
+    const channelIds = await ChannelUser.getParticipantingChannels(userId);
     const data = { userId, userName, pic };
     channelEvents.emit('updateProfile', channelIds, data);
 
