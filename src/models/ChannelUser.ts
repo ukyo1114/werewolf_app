@@ -19,6 +19,7 @@ interface IChannelUser extends mongoose.Model<IChannelUserModel> {
   >;
   isUserInChannel(channelId: string, userId: string): Promise<boolean>;
   leaveChannel(channelId: string, userId: string): Promise<boolean>;
+  getParticipantingChannels(userId: string): Promise<string[]>;
 }
 
 const ChannelUserSchema = new Schema<IChannelUserModel>(
@@ -80,6 +81,16 @@ ChannelUserSchema.statics.leaveChannel = async function (
 ): Promise<boolean> {
   const result = await this.deleteOne({ channelId, userId });
   return result.deletedCount > 0;
+};
+
+// ユーザーが参加しているチャンネル一覧を取得
+ChannelUserSchema.statics.getParticipantingChannels = async function (
+  userId: string,
+): Promise<string[]> {
+  const channels = await this.find({ userId }).select('-_id channelId').lean();
+  return channels.map((channel: { channelId: Types.ObjectId }) =>
+    channel.channelId.toString(),
+  );
 };
 
 const ChannelUser = mongoose.model<IChannelUserModel, IChannelUser>(

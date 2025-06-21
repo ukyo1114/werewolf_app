@@ -118,4 +118,45 @@ describe('ChannelUser Model Test', () => {
       expect(removed).toBe(false);
     });
   });
+
+  describe('Get Participating Channels', () => {
+    it('should get all channels that user is participating in', async () => {
+      const participatingChannels = await ChannelUser.getParticipantingChannels(
+        testUser._id,
+      );
+      expect(participatingChannels).toHaveLength(1);
+      expect(participatingChannels[0]).toBe(testChannelId);
+    });
+
+    it('should return empty array for user not participating in any channels', async () => {
+      const participatingChannels =
+        await ChannelUser.getParticipantingChannels(nonDuplicateUser);
+      expect(participatingChannels).toHaveLength(0);
+    });
+
+    it('should get multiple channels when user is participating in multiple channels', async () => {
+      const secondChannelId = new ObjectId().toString();
+      const thirdChannelId = new ObjectId().toString();
+
+      // 追加のチャンネルにユーザーを参加させる
+      await Promise.all([
+        ChannelUser.create({
+          channelId: secondChannelId,
+          userId: testUser._id,
+        }),
+        ChannelUser.create({
+          channelId: thirdChannelId,
+          userId: testUser._id,
+        }),
+      ]);
+
+      const participatingChannels = await ChannelUser.getParticipantingChannels(
+        testUser._id,
+      );
+      expect(participatingChannels).toHaveLength(3);
+      expect(participatingChannels).toContain(testChannelId);
+      expect(participatingChannels).toContain(secondChannelId);
+      expect(participatingChannels).toContain(thirdChannelId);
+    });
+  });
 });

@@ -17,6 +17,9 @@ import {
 } from '../../config/types';
 import GameManager from '../../classes/GameManager';
 import { Events } from '../../app';
+import ChannelUser from '../../models/ChannelUser';
+
+const { channelEvents } = Events;
 
 export const registerUser = asyncHandler(
   async (req: CustomRequest<IRegisterUser>, res: Response): Promise<void> => {
@@ -90,6 +93,14 @@ export const updateProfile = asyncHandler(
         { runValidators: true },
       );
     }
+
+    // プロフィール更新を通知
+    const channels = await ChannelUser.find({ userId })
+      .select('-_id channelId')
+      .lean();
+    const channelIds = channels.map((channel) => channel.channelId.toString());
+    const data = { userId, userName, pic };
+    channelEvents.emit('updateProfile', channelIds, data);
 
     res.status(200).json({ pic: picUrl });
   },

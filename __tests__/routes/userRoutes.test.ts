@@ -4,7 +4,7 @@ jest.mock('../../src/controllers/userController/utils', () => ({
   uploadPicture: mockUploadPicture,
 }));
 
-import app from '../../src/app';
+import app, { Events } from '../../src/app';
 import request from 'supertest';
 import User from '../../src/models/User';
 import { errors, validation } from '../../src/config/messages';
@@ -16,10 +16,14 @@ import {
   actionType,
 } from '../../src/utils/generateToken';
 import mongoose from 'mongoose';
+import ChannelUser from '../../src/models/ChannelUser';
 
 describe('test userRoutes', () => {
+  const { channelEvents } = Events;
+  const channelEventsSpy = jest.spyOn(channelEvents, 'emit');
   const testUserId = new ObjectId().toString();
   const guestUserId = new ObjectId().toString();
+  const testChannelId = new ObjectId().toString();
 
   beforeAll(async () => {
     if (mongoose.connection.db) {
@@ -48,6 +52,14 @@ describe('test userRoutes', () => {
         _id: guestUserId,
         isGuest: true,
       }),
+      ChannelUser.create({
+        channelId: testChannelId,
+        userId: testUserId,
+      }),
+      ChannelUser.create({
+        channelId: testChannelId,
+        userId: guestUserId,
+      }),
     ]);
     await User.createIndexes();
   });
@@ -55,6 +67,8 @@ describe('test userRoutes', () => {
   afterEach(async () => {
     // jest.clearAllMocks();
     await User.deleteMany({});
+    await ChannelUser.deleteMany({});
+    channelEventsSpy.mockClear();
     mockUploadPicture.mockClear();
   });
 
@@ -323,10 +337,28 @@ describe('test userRoutes', () => {
 
     it('ユーザー名の更新に成功する', async () => {
       await customRequest(testUserId, 'newUserName', null, 200);
+      expect(channelEventsSpy).toHaveBeenCalledWith(
+        'updateProfile',
+        [testChannelId],
+        {
+          userId: testUserId,
+          userName: 'newUserName',
+          pic: null,
+        },
+      );
     });
 
     it('ゲストユーザーのユーザー名の更新に成功する', async () => {
       await customRequest(guestUserId, 'newUsername', null, 200);
+      expect(channelEventsSpy).toHaveBeenCalledWith(
+        'updateProfile',
+        [testChannelId],
+        {
+          userId: guestUserId,
+          userName: 'newUsername',
+          pic: null,
+        },
+      );
     });
 
     it('ユーザー名と画像が送信されなかったとき', async () => {
@@ -429,6 +461,15 @@ describe('test userRoutes', () => {
         userId: testUserId,
         pic: validJpegBase64,
       });
+      expect(channelEventsSpy).toHaveBeenCalledWith(
+        'updateProfile',
+        [testChannelId],
+        {
+          userId: testUserId,
+          userName: 'newUserName',
+          pic: validJpegBase64,
+        },
+      );
     });
   });
 

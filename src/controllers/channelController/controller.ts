@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
 import AppError from '../../utils/AppError';
-import { errors, validation } from '../../config/messages';
+import { errors } from '../../config/messages';
 import User from '../../models/User';
 import Channel from '../../models/Channel';
 import ChannelUser from '../../models/ChannelUser';
