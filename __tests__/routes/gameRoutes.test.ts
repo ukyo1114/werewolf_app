@@ -132,6 +132,7 @@ describe('test gameRoutes', () => {
           _id: testUserId,
           userName: 'testUser',
           pic: null,
+          isGuest: false,
         },
       ]);
       expect(emitSpy).toHaveBeenCalledWith('userJoined', {
@@ -140,6 +141,7 @@ describe('test gameRoutes', () => {
           _id: new ObjectId(testUserId),
           userName: 'testUser',
           pic: null,
+          isGuest: false,
         },
       });
     });

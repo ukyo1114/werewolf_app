@@ -177,11 +177,13 @@ describe('GameUser Model Test', () => {
           _id: new ObjectId(userId1),
           userName: 'testuser',
           pic: null,
+          isGuest: false,
         },
         {
           _id: new ObjectId(userId2),
           userName: 'testuser2',
           pic: null,
+          isGuest: false,
         },
       ]);
     });

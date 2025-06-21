@@ -22,7 +22,14 @@ interface IGameUser extends Document {
 
 interface IGameUserModel extends mongoose.Model<IGameUser> {
   joinGame(gameId: string, userId: string): Promise<void>;
-  getGameUsers(gameId: string): Promise<IGameUser[]>;
+  getGameUsers(gameId: string): Promise<
+    {
+      _id: Types.ObjectId;
+      userName: string;
+      pic: string | null;
+      isGuest: boolean;
+    }[]
+  >;
   isUserPlaying(userId: string): Promise<string | null>;
   endGame(gameId: string): Promise<void>;
 }
@@ -83,12 +90,17 @@ GameUserSchema.statics.getGameUsers = async function (
 ): Promise<IGameUser[]> {
   const users = await this.find({ gameId })
     .select('-_id userId')
-    .populate('userId', '_id userName pic')
+    .populate('userId', '_id userName pic isGuest')
     .lean();
 
   return users.map(
     (user: {
-      userId: { _id: Types.ObjectId; userName: string; pic: string | null };
+      userId: {
+        _id: Types.ObjectId;
+        userName: string;
+        pic: string | null;
+        isGuest: boolean;
+      };
     }) => user.userId,
   );
 };
