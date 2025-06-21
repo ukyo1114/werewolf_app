@@ -10,7 +10,14 @@ interface IChannelBlockUser extends Document {
 }
 
 interface IChannelBlockUserModel extends mongoose.Model<IChannelBlockUser> {
-  getBlockedUsers(channelId: string): Promise<IChannelBlockUser[]>;
+  getBlockedUsers(channelId: string): Promise<
+    {
+      _id: Types.ObjectId;
+      userName: string;
+      pic: string | null;
+      isGuest: boolean;
+    }[]
+  >;
   isUserBlocked(channelId: string, userId: string): Promise<boolean>;
   addBlockUser(channelId: string, userId: string): Promise<boolean>;
   unblockUser(channelId: string, userId: string): Promise<boolean>;
@@ -42,12 +49,17 @@ ChannelBlockUserSchema.statics.getBlockedUsers = async function (
 ): Promise<IChannelBlockUser[]> {
   const blockedUsers = await this.find({ channelId })
     .select('-_id userId')
-    .populate('userId', '_id userName pic')
+    .populate('userId', '_id userName pic isGuest')
     .lean();
 
   return blockedUsers.map(
     (user: {
-      userId: { _id: Types.ObjectId; userName: string; pic: string | null };
+      userId: {
+        _id: Types.ObjectId;
+        userName: string;
+        pic: string | null;
+        isGuest: boolean;
+      };
     }) => user.userId,
   );
 };
