@@ -90,6 +90,7 @@ describe('test blockRoutes', () => {
           _id: blockUserId,
           userName: 'blockUser',
           pic: null,
+          isGuest: false,
         },
       ]);
     });
