@@ -21,13 +21,13 @@ export const getChannelList = asyncHandler(
     const [channelList, joinedChannels, blockedChannels] = await Promise.all([
       Channel.getChannelList(),
       ChannelUser.getParticipantingChannels(userId),
-      ChannelBlockUser.find({ userId }).select('channelId').lean(),
+      ChannelBlockUser.getBlockedChannels(userId),
     ]);
 
     res.status(200).json({
       channelList,
       joinedChannels,
-      blockedChannels: blockedChannels.map((channel) => channel.channelId),
+      blockedChannels,
     });
   },
 );
