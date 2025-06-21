@@ -66,6 +66,7 @@ describe('ChannelUser Model Test', () => {
         _id: testUser._id,
         userName: 'testuser',
         pic: null,
+        isGuest: false,
       });
     });
 

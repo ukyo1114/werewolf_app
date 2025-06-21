@@ -71,7 +71,7 @@ app.use('/api/message', messageRoutes);
 app.use('/api/spectate', spectateRoutes);
 
 app.get('*', (req: Request, res: Response) => {
-  res.status(200).send();
+  res.status(200).send('');
 });
 
 // HTTPサーバーの作成

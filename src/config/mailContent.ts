@@ -17,7 +17,7 @@ export const mailContent = {
   },
   changeEmail: (verificationToken: string): IEmailContent => {
     // TODO: メールアドレス変更完了用リンクを設定
-    const link = `${process.env.SERVER_URL}/api/verify-email/complete-change/${verificationToken}`;
+    const link = `${process.env.SERVER_URL}/api/user/email/${verificationToken}`;
 
     return {
       subject: 'メールアドレス変更',

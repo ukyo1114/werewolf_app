@@ -9,9 +9,14 @@ interface IChannelUserModel extends Document {
 }
 
 interface IChannelUser extends mongoose.Model<IChannelUserModel> {
-  getChannelUsers(
-    channelId: string,
-  ): Promise<{ _id: Types.ObjectId; userName: string; pic: string | null }[]>;
+  getChannelUsers(channelId: string): Promise<
+    {
+      _id: Types.ObjectId;
+      userName: string;
+      pic: string | null;
+      isGuest: Boolean;
+    }[]
+  >;
   isUserInChannel(channelId: string, userId: string): Promise<boolean>;
   leaveChannel(channelId: string, userId: string): Promise<boolean>;
 }
@@ -44,12 +49,17 @@ ChannelUserSchema.statics.getChannelUsers = async function (
 ): Promise<IChannelUserModel[]> {
   const users = await this.find({ channelId })
     .select('-_id userId')
-    .populate('userId', '_id userName pic')
+    .populate('userId', '_id userName pic isGuest')
     .lean();
 
   return users.map(
     (user: {
-      userId: { _id: Types.ObjectId; userName: string; pic: string | null };
+      userId: {
+        _id: Types.ObjectId;
+        userName: string;
+        pic: string | null;
+        isGuest: boolean;
+      };
     }) => user.userId,
   );
 };

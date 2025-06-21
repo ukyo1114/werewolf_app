@@ -81,7 +81,12 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
       user,
     }: {
       channelId: string;
-      user: { _id: string; userName: string; pic: string | null };
+      user: {
+        _id: string;
+        userName: string;
+        pic: string;
+        isGuest: Boolean | null;
+      };
     }) => {
       chatNameSpace.to(channelId).emit('userJoined', user);
     },

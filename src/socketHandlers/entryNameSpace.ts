@@ -32,12 +32,14 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
         channel.numberOfPlayers,
       );
       const users = entryManager.getUserList();
+      socket.join(channelId);
       socket.emit('connect_response', users);
     } catch (error) {
       socket.conn.close();
     }
 
     socket.on('registerEntry', async (callback) => {
+      if (typeof callback !== 'function') return;
       try {
         const entryManager = entryManagers[channelId];
         if (!entryManager) throw new Error();
@@ -52,6 +54,7 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
     });
 
     socket.on('cancelEntry', (callback) => {
+      if (typeof callback !== 'function') return;
       try {
         const entryManager = entryManagers[channelId];
         if (!entryManager) throw new Error();

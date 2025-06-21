@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
+import User from '../../models/User';
 
 interface IUploadPicture {
   userId: string;
@@ -34,7 +35,9 @@ export const uploadPicture = async ({
   try {
     const command = new PutObjectCommand(params);
     await s3.send(command);
-    return `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+    const url = `https://${params.Bucket}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+    await User.findByIdAndUpdate(userId, { pic: url });
+    return url;
   } catch (error: any) {
     console.error('S3 upload error:', error);
     throw new AppError(500, errors.IMAGE_UPLOAD_FAILED);

@@ -36,7 +36,7 @@ export const joinGame = asyncHandler(
 
     const [gameUsers, user] = await Promise.all([
       GameUser.getGameUsers(gameId),
-      User.findById(userId).select('_id userName pic').lean(),
+      User.findById(userId).select('_id userName pic isGuest').lean(),
     ]);
 
     channelEvents.emit('userJoined', { channelId: gameId, user });

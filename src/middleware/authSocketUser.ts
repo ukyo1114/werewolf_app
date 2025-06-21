@@ -3,14 +3,14 @@ import User from '../models/User';
 import ChannelUser from '../models/ChannelUser';
 import GameUser from '../models/GameUser';
 import { decodeToken } from '../utils/decodeToken';
-import { errors } from '../config/messages';
+import { socketError } from '../config/messages';
 
 export class CustomError extends Error {
   data: { gameId: string };
 
   constructor(gameId: string) {
     super();
-    this.message = errors.AUTH_ERROR;
+    this.message = socketError.AUTH_ERROR;
     this.data = { gameId };
   }
 }
@@ -20,10 +20,10 @@ export const authSocketUser =
   async (socket: Socket, next: (err?: Error) => void): Promise<void> => {
     try {
       const { token, channelId } = socket.handshake.auth;
-      if (!token || !channelId) throw new Error(errors.AUTH_ERROR);
+      if (!token || !channelId) throw new Error(socketError.AUTH_ERROR);
       const decoded = decodeToken(token);
       const { userId } = decoded;
-      if (!userId) throw new Error(errors.AUTH_ERROR);
+      if (!userId) throw new Error(socketError.AUTH_ERROR);
 
       // プレイ中のゲームがあるかどうかチェック
       const currentGameId = await GameUser.isUserPlaying(userId);
@@ -45,7 +45,7 @@ export const authSocketUser =
           !!User.exists({ _id: userId }),
           !!GameUser.exists({ gameId: channelId, userId }),
         ]);
-      } else if (nameSpace === 'channel') {
+      } else if (nameSpace === 'chat') {
         [userExists, inChannel, inGame] = await Promise.all([
           !!User.exists({ _id: userId }),
           !!ChannelUser.exists({ channelId, userId }),
@@ -53,8 +53,8 @@ export const authSocketUser =
         ]);
       }
 
-      if (!userExists || !(inChannel || inGame))
-        throw new Error(errors.AUTH_ERROR);
+      if (!userExists) throw new Error(socketError.AUTH_USER_NOT_FOUND);
+      if (!inChannel && !inGame) throw new Error(socketError.AUTH_FAILED);
 
       (socket as any).userId = userId;
       (socket as any).channelId = channelId;

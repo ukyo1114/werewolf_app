@@ -10,19 +10,24 @@ export const sendMail = async (
 ): Promise<void> => {
   const config = mailContent[action](verificationToken);
 
-  const transporter = nodemailer.createTransport({
-    service: 'Gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'Gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
 
-  const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: email,
-    ...config,
-  };
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      ...config,
+    };
 
-  await transporter.sendMail(mailOptions);
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Mail Error:', error);
+    throw new AppError(500, errors.EMAIL_SEND_FAILED);
+  }
 };

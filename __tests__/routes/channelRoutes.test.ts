@@ -1022,8 +1022,8 @@ describe('test channelRoutes', () => {
         expect(response.body.channelDescription).toBe('testDescription');
         expect(response.body.channelAdmin).toBe(testUserId);
         expect(response.body.channelUsers).toEqual([
-          { _id: testUserId, userName: 'testUser', pic: null },
-          { _id: guestUserId, userName: 'guestUser', pic: null },
+          { _id: testUserId, userName: 'testUser', pic: null, isGuest: false },
+          { _id: guestUserId, userName: 'guestUser', pic: null, isGuest: true },
         ]);
         expect(emitSpy).toHaveBeenCalledWith('userJoined', {
           channelId: testChannelId,
@@ -1031,6 +1031,7 @@ describe('test channelRoutes', () => {
             _id: new ObjectId(guestUserId),
             userName: 'guestUser',
             pic: null,
+            isGuest: true,
           },
         });
       });
@@ -1047,7 +1048,12 @@ describe('test channelRoutes', () => {
         expect(response.body.channelDescription).toBe('testDescription');
         expect(response.body.channelAdmin).toBe(testUserId);
         expect(response.body.channelUsers).toEqual([
-          { _id: guestUserId.toString(), userName: 'guestUser', pic: null },
+          {
+            _id: guestUserId.toString(),
+            userName: 'guestUser',
+            pic: null,
+            isGuest: true,
+          },
         ]);
         expect(emitSpy).toHaveBeenCalledWith('userJoined', {
           channelId: passwordChannelId,
@@ -1055,6 +1061,7 @@ describe('test channelRoutes', () => {
             _id: new ObjectId(guestUserId),
             userName: 'guestUser',
             pic: null,
+            isGuest: true,
           },
         });
       });
@@ -1110,16 +1117,9 @@ describe('test channelRoutes', () => {
         expect(response.body.channelDescription).toBe('testDescription');
         expect(response.body.channelAdmin).toBe(testUserId);
         expect(response.body.channelUsers).toEqual([
-          { _id: testUserId, userName: 'testUser', pic: null },
+          { _id: testUserId, userName: 'testUser', pic: null, isGuest: false },
         ]);
-        expect(emitSpy).toHaveBeenCalledWith('userJoined', {
-          channelId: testChannelId,
-          user: {
-            _id: new ObjectId(testUserId),
-            userName: 'testUser',
-            pic: null,
-          },
-        });
+        expect(emitSpy).not.toHaveBeenCalled();
       });
 
       it('ゲスト禁止のチャンネルにゲストアカウントで参加しようとしたときエラーを返す', async () => {

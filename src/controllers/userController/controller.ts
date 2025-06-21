@@ -30,7 +30,7 @@ export const registerUser = asyncHandler(
     const emailExists = await User.exists({ email });
     if (emailExists) throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
 
-    await User.create({
+    const newUser = await User.create({
       userName,
       email,
       password,
@@ -38,7 +38,10 @@ export const registerUser = asyncHandler(
       isGuest: false,
     });
 
-    res.status(201).send();
+    res.status(201).json({
+      userId: newUser._id.toString(),
+      token: genUserToken(newUser._id.toString()),
+    });
   },
 );
 
@@ -78,7 +81,8 @@ export const updateProfile = asyncHandler(
     const result = GameManager.checkIsUserInGame(userId);
     if (result) throw new AppError(400, errors.USER_IN_GAME);
 
-    if (pic) await uploadPicture({ userId, pic });
+    let picUrl = null;
+    if (pic) picUrl = await uploadPicture({ userId, pic });
     if (userName) {
       await User.findByIdAndUpdate(
         userId,
@@ -87,7 +91,7 @@ export const updateProfile = asyncHandler(
       );
     }
 
-    res.status(200).send();
+    res.status(200).json({ pic: picUrl });
   },
 );
 

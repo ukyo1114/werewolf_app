@@ -95,3 +95,11 @@ export const gameMaster = {
     '投票者がいなかった為、この村は廃村になってしまいました。また遊んでくださいね。',
   TIME_REDUCTION: '時短', // 時短実装後に変更
 };
+
+export const socketError = {
+  AUTH_ERROR: '認証エラーが発生しました',
+  AUTH_INFO_INVALID: '認証情報が無効です',
+  AUTH_TOKEN_INVALID: '認証トークンが無効です',
+  AUTH_USER_NOT_FOUND: 'ユーザーが見つかりません',
+  AUTH_FAILED: '認証に失敗しました',
+};

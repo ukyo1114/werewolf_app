@@ -154,15 +154,19 @@ export const joinChannel = asyncHandler(
 
     const [channelUsers, user] = await Promise.all([
       ChannelUser.getChannelUsers(channelId),
-      User.findById(userId).select('_id userName pic').lean(),
+      User.findById(userId).select('_id userName pic isGuest').lean(),
     ]);
-    channelEvents.emit('userJoined', { channelId, user });
+
+    if (!isUserInChannel) {
+      channelEvents.emit('userJoined', { channelId, user });
+    }
 
     res.status(200).json({
       channelName: channel.channelName,
       channelDescription: channel.channelDescription,
       channelAdmin: channel.channelAdmin.toString(),
       channelUsers,
+      numberOfPlayers: channel.numberOfPlayers,
     });
   },
 );
