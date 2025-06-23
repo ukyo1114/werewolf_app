@@ -256,7 +256,7 @@ describe('test AttackManager', () => {
       attackManager.attackRequest = 'villager';
 
       const attackTarget = await attackManager.attack();
-      expect(attackTarget).toBe(null);
+      expect(attackTarget).toBe(undefined);
       expect(playerManager.players.villager.status).toBe('alive');
       expect(attackManager.attackRequest).toBeNull();
       expect(attackManager.attackHistory).toEqual({ 0: 'villager' });
@@ -269,9 +269,9 @@ describe('test AttackManager', () => {
       attackManager.attackRequest = 'fox';
 
       const attackTarget = await attackManager.attack();
-      expect(attackTarget).toBe(null);
+      expect(attackTarget).toBe(undefined);
       expect(playerManager.players.fox.status).toBe('alive');
-      expect(attackManager.attackRequest).toBe(null);
+      expect(attackManager.attackRequest).toBeNull();
       expect(attackManager.attackHistory).toEqual({ 0: 'fox' });
       expect(guardSpy).not.toHaveBeenCalled();
     });

@@ -39,6 +39,7 @@ export const errors = {
   USER_IN_GAME: 'ゲーム中のユーザーは編集できません。',
   GAME_START_PROCESSING: 'ゲームの開始処理中です',
   AUTH_ERROR: '認証エラーが発生しました',
+  CHANNEL_CREATION_FAILED: 'チャンネルの作成に失敗しました',
 };
 
 export const validation = {

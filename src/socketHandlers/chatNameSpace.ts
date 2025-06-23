@@ -40,13 +40,13 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
 
   channelEvents.on(
     'newMessage',
-    (channelId: string, message: IMessage, users: string[] | null = null) => {
+    (channelId: string, message: IMessage, users: string[]) => {
       const { messageType } = message;
 
       if (messageType == 'normal' || messageType == 'system') {
         chatNameSpace.to(channelId).emit('newMessage', message);
       } else {
-        users?.forEach((user) => {
+        users.forEach((user) => {
           chatNameSpace.to(user).emit('newMessage', message);
         });
       }

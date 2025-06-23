@@ -221,10 +221,10 @@ describe('test ChannelManager', () => {
   });
 
   describe('test getMessageReceivers', () => {
-    it('should return null for normal message type', () => {
+    it('should return empty array for normal message type', () => {
       const channel = new ChannelManager(mockChannelId);
       const messageReceivers = channel.getMessageReceivers('normal');
-      expect(messageReceivers).toBe(null);
+      expect(messageReceivers).toEqual([]);
     });
 
     it('should return spectators for spectator message type', () => {
@@ -252,12 +252,12 @@ describe('test ChannelManager', () => {
       channel.users = channelUsers();
     });
 
-    it('should return null for normal channel', () => {
+    it('should return undefined for normal channel', () => {
       const normalChanel = new ChannelManager(mockChannelId);
       normalChanel.users = channelUsers();
 
       const receiveMessageType = normalChanel.getReceiveMessageType('normal');
-      expect(receiveMessageType).toBe(null);
+      expect(receiveMessageType).toBeUndefined();
     });
 
     it('should throw error when user is not found', () => {
@@ -265,9 +265,9 @@ describe('test ChannelManager', () => {
       expect(() => normalChanel.getReceiveMessageType('notExist')).toThrow();
     });
 
-    it('should return null for spectator users', () => {
+    it('should return undefined for spectator users', () => {
       const receiveMessageType = channel.getReceiveMessageType('spectator');
-      expect(receiveMessageType).toBe(null);
+      expect(receiveMessageType).toBeUndefined();
     });
 
     it('should return normal for normal users', () => {
@@ -280,10 +280,10 @@ describe('test ChannelManager', () => {
       expect(receiveMessageType).toEqual(['normal', 'werewolf']);
     });
 
-    it('should return null when game is finished', () => {
+    it('should return undefined when game is finished', () => {
       game.phaseManager.currentPhase = 'finished';
       const receiveMessageType = channel.getReceiveMessageType('normal');
-      expect(receiveMessageType).toBe(null);
+      expect(receiveMessageType).toBeUndefined();
     });
   });
 

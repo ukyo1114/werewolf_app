@@ -13,9 +13,9 @@ const { channelManagers, gameManagers } = appState;
 export default class ChannelManager {
   public channelId: string;
   public users: Record<string, ChannelUserManager>;
-  public game: GameManager | null = null;
+  public game: GameManager | undefined = undefined;
 
-  constructor(channelId: string, game: GameManager | null = null) {
+  constructor(channelId: string, game: GameManager | undefined = undefined) {
     this.channelId = channelId;
     this.users = {};
     this.game = game;
@@ -24,20 +24,25 @@ export default class ChannelManager {
   static async createChannelInstance(
     channelId: string,
   ): Promise<ChannelManager> {
-    const [isChannel, isGame] = await Promise.all([
-      Channel.exists({ _id: channelId }),
-      Game.exists({ _id: channelId }),
-    ]);
-    if (!isChannel && !isGame) throw new Error(errors.CHANNEL_NOT_FOUND);
-
-    if (isChannel) {
-      return (channelManagers[channelId] = new ChannelManager(channelId));
+    try {
+      const [isChannel, isGame] = await Promise.all([
+        Channel.exists({ _id: channelId }),
+        Game.exists({ _id: channelId }),
+      ]);
+      if (!isChannel && !isGame) throw new Error();
+      if (isChannel) {
+        return (channelManagers[channelId] = new ChannelManager(channelId));
+      } else {
+        const game = gameManagers[channelId];
+        if (!game) throw new Error();
+        return (channelManagers[channelId] = new ChannelManager(
+          channelId,
+          game,
+        ));
+      }
+    } catch (error) {
+      throw new Error(errors.CHANNEL_CREATION_FAILED);
     }
-
-    const game = gameManagers[channelId];
-    if (!game) throw new Error(errors.GAME_NOT_FOUND);
-
-    return (channelManagers[channelId] = new ChannelManager(channelId, game));
   }
 
   async userJoined(userId: string, socketId: string): Promise<void> {
@@ -47,7 +52,6 @@ export default class ChannelManager {
     if (game) {
       const player = game.playerManager.players[userId];
       const isSpectator = !player || player.status !== 'alive';
-
       if (isSpectator) {
         user.status = 'spectator';
       } else if (player.role === 'werewolf') {
@@ -67,32 +71,34 @@ export default class ChannelManager {
   }
 
   getSendMessageType(userId: string) {
-    this.checkCanUserAccessChannel(userId);
-    const user = this.users[userId];
+    try {
+      this.checkCanUserAccessChannel(userId);
+      const user = this.users[userId];
 
-    const game = this.game;
-    if (!game) return 'normal';
-    const { currentPhase } = game.phaseManager;
+      const game = this.game;
+      if (!game) return 'normal';
+      const { currentPhase } = game.phaseManager;
 
-    if (currentPhase === 'finished') return 'normal';
-    if (user.status === 'spectator') return 'spectator';
-    if (currentPhase !== 'night') {
-      return 'normal';
-    } else if (user.status === 'werewolf') {
-      return 'werewolf';
-    } else if (user.status === 'freemason') {
-      return 'freemason';
+      if (currentPhase === 'finished') return 'normal';
+      if (user.status === 'spectator') return 'spectator';
+      if (currentPhase !== 'night') {
+        return 'normal';
+      } else if (user.status === 'werewolf') {
+        return 'werewolf';
+      } else if (user.status === 'freemason') {
+        return 'freemason';
+      }
+
+      throw new Error();
+    } catch {
+      throw new AppError(403, errors.MESSAGE_SENDING_FORBIDDEN);
     }
-
-    throw new AppError(403, errors.MESSAGE_SENDING_FORBIDDEN);
   }
 
-  getMessageReceivers(messageType: MessageType): string[] | null {
-    if (messageType === 'normal' || messageType === 'system') return null;
-
+  getMessageReceivers(messageType: MessageType): string[] {
+    if (messageType === 'normal' || messageType === 'system') return [];
     const spectators = this.getUsersByStatus('spectator');
     if (messageType === 'spectator') return spectators;
-
     if (messageType === 'freemason') {
       const freemasons = this.getUsersByStatus('freemason');
       return _.union(spectators, freemasons);
@@ -108,22 +114,21 @@ export default class ChannelManager {
       .map((user) => user.socketId);
   }
 
-  getReceiveMessageType(userId: string): MessageType[] | null {
+  getReceiveMessageType(userId: string): MessageType[] | undefined {
     this.checkCanUserAccessChannel(userId);
     const user = this.users[userId];
 
     const game = this.game;
-    if (!game) return null;
+    if (!game) return;
     const { currentPhase } = game.phaseManager;
 
-    if (currentPhase === 'finished' || user.status === 'spectator') return null;
+    if (currentPhase === 'finished' || user.status === 'spectator') return;
     if (user.status === 'normal') return ['normal'];
     if (user.status === 'freemason') return ['normal', 'freemason'];
     return ['normal', 'werewolf'];
   }
 
   checkCanUserAccessChannel(userId: string) {
-    if (!this.users[userId])
-      throw new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN);
+    if (!this.users[userId]) throw new Error();
   }
 }
