@@ -54,7 +54,6 @@ export default class GameManager {
     this.attackManager = new AttackManager(
       this.phaseManager,
       this.playerManager,
-      this.guardManager,
     );
     this.registerListners();
     // this.sendMessage();
@@ -161,7 +160,8 @@ export default class GameManager {
 
     const curseOccurred = this.devineManager.devine();
 
-    const attackTarget = await this.attackManager.attack();
+    const guardTargetId = this.guardManager.guard();
+    const attackTarget = await this.attackManager.attack(guardTargetId);
     if (attackTarget) deadPlayers.push(attackTarget);
 
     if (curseOccurred) {

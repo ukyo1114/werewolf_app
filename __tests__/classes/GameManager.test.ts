@@ -283,6 +283,7 @@ describe('test GameManager', () => {
   });
 
   describe('test handleNightPhaseEnd', () => {
+    let guardMock: any;
     let devineMock: any;
     let attackMock: any;
     let curseMock: any;
@@ -290,6 +291,9 @@ describe('test GameManager', () => {
     let judgementMock: any;
 
     beforeEach(() => {
+      guardMock = jest
+        .spyOn(game.guardManager, 'guard')
+        .mockReturnValue(undefined);
       devineMock = jest
         .spyOn(game.devineManager, 'devine')
         .mockReturnValue(false);
@@ -307,6 +311,7 @@ describe('test GameManager', () => {
 
     it('should call devine, attack, curse, sendMessage, judgement', async () => {
       await game.handleNightPhaseEnd();
+      expect(guardMock).toHaveBeenCalled();
       expect(devineMock).toHaveBeenCalled();
       expect(attackMock).toHaveBeenCalled();
       expect(curseMock).not.toHaveBeenCalled();
@@ -321,6 +326,7 @@ describe('test GameManager', () => {
       attackMock.mockReturnValue(null);
 
       await game.handleNightPhaseEnd();
+      expect(guardMock).toHaveBeenCalled();
       expect(devineMock).toHaveBeenCalled();
       expect(attackMock).toHaveBeenCalled();
       expect(curseMock).not.toHaveBeenCalled();
@@ -333,6 +339,7 @@ describe('test GameManager', () => {
       devineMock.mockReturnValue(true);
 
       await game.handleNightPhaseEnd();
+      expect(guardMock).toHaveBeenCalled();
       expect(devineMock).toHaveBeenCalled();
       expect(attackMock).toHaveBeenCalled();
       expect(curseMock).toHaveBeenCalled();
@@ -348,6 +355,7 @@ describe('test GameManager', () => {
       attackMock.mockReturnValue(null);
 
       await game.handleNightPhaseEnd();
+      expect(guardMock).toHaveBeenCalled();
       expect(devineMock).toHaveBeenCalled();
       expect(attackMock).toHaveBeenCalled();
       expect(curseMock).toHaveBeenCalled();
@@ -362,6 +370,7 @@ describe('test GameManager', () => {
       });
 
       await game.handleNightPhaseEnd();
+      expect(guardMock).toHaveBeenCalled();
       expect(devineMock).toHaveBeenCalled();
       expect(attackMock).toHaveBeenCalled();
       expect(curseMock).not.toHaveBeenCalled();
