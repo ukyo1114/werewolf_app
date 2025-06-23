@@ -65,11 +65,7 @@ GameSchema.statics.endGame = async function (
   gameId: string,
   result: IGame['result'],
 ): Promise<void> {
-  try {
-    await this.findByIdAndUpdate(gameId, { result });
-  } catch (error) {
-    console.error(`Failed to end game ${gameId}:`, error);
-  }
+  await this.findByIdAndUpdate(gameId, { result });
 };
 
 const Game = mongoose.model<IGame, IGameModel>('Game', GameSchema);

@@ -93,22 +93,5 @@ describe('Game Model Test', () => {
         Game.endGame(nonExistentGameId, 'villagersWin'),
       ).resolves.toBeUndefined();
     });
-
-    it('should not throw error when database operation fails', async () => {
-      const game = await Game.create({ channelId: testChannelId });
-
-      // 無効なObjectIdを渡してエラーを発生させる
-      const invalidGameId = 'invalid-game-id';
-
-      await expect(
-        Game.endGame(invalidGameId, 'villagersWin'),
-      ).resolves.toBeUndefined();
-    });
-
-    it('should handle null game id gracefully', async () => {
-      await expect(
-        Game.endGame(null as any, 'villagersWin'),
-      ).resolves.toBeUndefined();
-    });
   });
 });

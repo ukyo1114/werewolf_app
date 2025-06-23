@@ -231,19 +231,15 @@ export default class GameManager {
     const isWerewolvesExtinct = werewolves === 0;
     const isFoxAlive = livingPlayers.some((user) => user.role === 'fox');
 
-    if (isWerewolvesExtinct || isWerewolvesMajority) {
-      if (isFoxAlive) {
-        this.result.value = 'foxesWin';
-        await this.sendMessage(gameMaster.FOXES_WIN);
-      } else if (isWerewolvesExtinct) {
-        this.result.value = 'villagersWin';
-        await this.sendMessage(gameMaster.VILLAGERS_WIN);
-      } else if (isWerewolvesMajority) {
-        this.result.value = 'werewolvesWin';
-        await this.sendMessage(gameMaster.WEREWOLVES_WIN);
-      }
-
-      await Game.endGame(this.gameId, this.result.value);
+    if (isFoxAlive) {
+      this.result.value = 'foxesWin';
+      await this.sendMessage(gameMaster.FOXES_WIN);
+    } else if (isWerewolvesExtinct) {
+      this.result.value = 'villagersWin';
+      await this.sendMessage(gameMaster.VILLAGERS_WIN);
+    } else if (isWerewolvesMajority) {
+      this.result.value = 'werewolvesWin';
+      await this.sendMessage(gameMaster.WEREWOLVES_WIN);
     }
   }
 
@@ -264,7 +260,7 @@ export default class GameManager {
 
   async handleGameEnd(): Promise<void> {
     try {
-      await Game.findByIdAndUpdate(this.gameId, { result: this.result.value });
+      await Game.endGame(this.gameId, this.result.value);
     } catch (error) {
       console.error(`Failed to end game ${this.gameId}:`, error);
     } finally {
