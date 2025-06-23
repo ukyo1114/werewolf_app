@@ -98,7 +98,7 @@ export default class PlayerManager {
     return players;
   }
 
-  getRandomTarget(excludedRole: Role | undefined): string {
+  getRandomTarget(excludedRole: Role | undefined): string | undefined {
     const players = this.players;
     const randomTargets = Object.values(players)
       .filter(
@@ -109,7 +109,7 @@ export default class PlayerManager {
       .map((player) => player.userId);
 
     const target = _.sample(randomTargets);
-    if (!target) throw new Error();
+    if (!target) return;
 
     return target;
   }

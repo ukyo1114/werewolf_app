@@ -4,9 +4,9 @@ import { GuardHistory } from '../config/types';
 
 export default class GuardManager {
   public guardRequest: string | null = null;
+  public guardHistory: GuardHistory = {};
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
-  public guardHistory: GuardHistory = {};
 
   constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
     this.phaseManager = phaseManager;

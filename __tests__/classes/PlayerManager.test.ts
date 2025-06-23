@@ -332,7 +332,9 @@ describe('test PlayserManager', () => {
       const selectedTargets = new Set();
 
       for (let i = 0; i < iterations; i++) {
-        const randomTarget = playerManager.getRandomTarget(targetRole);
+        const randomTarget = playerManager.getRandomTarget(
+          targetRole,
+        ) as string;
         expect(playerManager.players[randomTarget].role).not.toBe(targetRole);
         selectedTargets.add(randomTarget);
       }
@@ -342,7 +344,7 @@ describe('test PlayserManager', () => {
 
     it('should throw error when no players exist', () => {
       playerManager.players = {};
-      expect(() => playerManager.getRandomTarget('seer')).toThrow();
+      expect(playerManager.getRandomTarget('seer')).toBeUndefined();
     });
 
     it('should throw error when all players have specified role', () => {
@@ -350,11 +352,11 @@ describe('test PlayserManager', () => {
         player.role = 'seer';
       });
 
-      expect(() => playerManager.getRandomTarget('seer')).toThrow();
+      expect(playerManager.getRandomTarget('seer')).toBeUndefined();
     });
 
     it('should return valid player ID', () => {
-      const randomTarget = playerManager.getRandomTarget('seer');
+      const randomTarget = playerManager.getRandomTarget('seer') as string;
       expect(playerManager.players[randomTarget]).toBeDefined();
       expect(typeof randomTarget).toBe('string');
     });
@@ -365,7 +367,7 @@ describe('test PlayserManager', () => {
 
       const iterations = 1000;
       for (let i = 0; i < iterations; i++) {
-        const randomTarget = playerManager.getRandomTarget('seer');
+        const randomTarget = playerManager.getRandomTarget('seer') as string;
         expect(playerManager.players[randomTarget].status).toBe('alive');
       }
     });
@@ -376,7 +378,9 @@ describe('test PlayserManager', () => {
       const selectionCount: { [key: string]: number } = {};
 
       for (let i = 0; i < iterations; i++) {
-        const randomTarget = playerManager.getRandomTarget(targetRole);
+        const randomTarget = playerManager.getRandomTarget(
+          targetRole,
+        ) as string;
         selectionCount[randomTarget] = (selectionCount[randomTarget] || 0) + 1;
       }
 
