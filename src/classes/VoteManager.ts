@@ -30,7 +30,7 @@ export default class VoteManager {
     this.votes[voterId] = voteeId;
   }
 
-  getExecutionTarget(): string {
+  getExecutionTarget(): string | undefined {
     const voteCount = this.voteCounter();
 
     // 最多得票者の配列を作成
@@ -40,7 +40,7 @@ export default class VoteManager {
       .map(([votee]) => votee);
 
     const target = _.sample(executionTargets);
-    if (!target) throw new Error();
+    if (!target) return;
 
     this.genVoteHistory();
 
@@ -58,7 +58,6 @@ export default class VoteManager {
   genVoteHistory(): void {
     const { currentDay } = this.phaseManager;
     const votesByVotee: VotesByVotee = {};
-
     // 投票を得票者 -> 投票者リストに変換
     for (const [voter, votee] of Object.entries(this.votes)) {
       if (!votesByVotee[votee]) {
@@ -66,9 +65,7 @@ export default class VoteManager {
       }
       votesByVotee[votee].push(voter);
     }
-
     this.voteHistory[currentDay] = votesByVotee;
-
     // 投票をリセット
     this.votes = {};
   }

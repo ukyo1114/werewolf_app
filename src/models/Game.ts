@@ -17,6 +17,7 @@ interface IGame extends Document {
 
 interface IGameModel extends Model<IGame> {
   getRunningGame(channelId: string): Promise<IGame | null>;
+  endGame(gameId: string, result: IGame['result']): Promise<void>;
 }
 
 const GameSchema = new Schema<IGame>(
@@ -59,12 +60,16 @@ GameSchema.statics.getRunningGame = async function (
   return this.find({ channelId, result: 'running' });
 };
 
-// ゲームを終了するインスタンスメソッド
-GameSchema.methods.endGame = async function (
-  result: Exclude<IGame['result'], 'running'>,
-) {
-  this.result = result;
-  return this.save();
+// ゲームを終了する静的メソッド
+GameSchema.statics.endGame = async function (
+  gameId: string,
+  result: IGame['result'],
+): Promise<void> {
+  try {
+    await this.findByIdAndUpdate(gameId, { result });
+  } catch (error) {
+    console.error(`Failed to end game ${gameId}:`, error);
+  }
 };
 
 const Game = mongoose.model<IGame, IGameModel>('Game', GameSchema);

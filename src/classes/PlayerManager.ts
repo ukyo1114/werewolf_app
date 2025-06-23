@@ -51,11 +51,15 @@ export default class PlayerManager {
   async kill(userId: string): Promise<void> {
     const player = this.players[userId];
     player.status = 'dead';
-    await GameUser.updateOne(
-      { gameId: this.gameId, userId },
-      { isPlaying: false },
-    );
     channelManagers[this.gameId]?.users[userId]?.kill();
+    try {
+      await GameUser.updateOne(
+        { gameId: this.gameId, userId },
+        { isPlaying: false },
+      );
+    } catch (error) {
+      console.error(`Failed to update game user ${userId}:`, error);
+    }
   }
 
   getPlayerState(userId: string): {

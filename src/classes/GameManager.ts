@@ -1,4 +1,5 @@
 import EventEmitter from 'events';
+
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 import VoteManager from './VoteManager';
@@ -18,10 +19,11 @@ const { gameManagers } = appState;
 const { channelEvents, gameEvents } = Events;
 
 export default class GameManager {
-  public eventEmitter: EventEmitter = new EventEmitter();
   public channelId: string;
   public gameId: string;
   public result: { value: GameResult } = { value: 'running' };
+  public isProcessing: boolean = false;
+  public eventEmitter: EventEmitter = new EventEmitter();
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
   public voteManager: VoteManager;
@@ -29,7 +31,6 @@ export default class GameManager {
   public mediumManager: MediumManager;
   public guardManager: GuardManager;
   public attackManager: AttackManager;
-  public isProcessing: boolean = false;
 
   constructor(channelId: string, gameId: string, users: IUser[]) {
     this.channelId = channelId;
@@ -155,9 +156,33 @@ export default class GameManager {
     }
   }
 
+  async handleNightPhaseEnd(): Promise<void> {
+    const deadPlayers: string[] = [];
+
+    const curseOccurred = this.devineManager.devine();
+
+    const attackTarget = await this.attackManager.attack();
+    if (attackTarget) deadPlayers.push(attackTarget);
+
+    if (curseOccurred) {
+      const curseResult = await this.curse();
+      if (curseResult) deadPlayers.push(curseResult);
+    }
+
+    await this.sendMessage(gameMaster.ATTACK(deadPlayers));
+
+    await this.judgement();
+    if (this.result.value === 'running') {
+      await this.sendMessage(gameMaster.MORNING);
+    }
+  }
+
   async execution(): Promise<void> {
     const executionTargetId = this.voteManager.getExecutionTarget();
-    if (!executionTargetId) return await this.villageAbandoned();
+    if (!executionTargetId) {
+      await this.villageAbandoned();
+      return;
+    }
 
     // 処刑を行いメッセージを送信
     const executionTarget = this.playerManager.players[executionTargetId];
@@ -169,27 +194,9 @@ export default class GameManager {
     this.mediumManager.medium(executionTargetId);
   }
 
-  async handleNightPhaseEnd(): Promise<void> {
-    const deadPlayers: string[] = [];
-
-    const curseOccurred = this.devineManager.devine();
-
-    const attackTarget = await this.attackManager.attack();
-    if (attackTarget) deadPlayers.push(attackTarget);
-
-    if (curseOccurred) deadPlayers.push(await this.curse());
-
-    await this.sendMessage(gameMaster.ATTACK(deadPlayers));
-
-    await this.judgement();
-    if (this.result.value === 'running') {
-      await this.sendMessage(gameMaster.MORNING);
-    }
-  }
-
-  async curse(): Promise<string> {
+  async curse(): Promise<string | undefined> {
     const fox = this.playerManager.getLivingPlayers('fox')[0];
-    if (!fox) throw new Error();
+    if (!fox) return;
     await this.playerManager.kill(fox.userId);
 
     await this.suicide();
@@ -209,19 +216,6 @@ export default class GameManager {
     }
   }
 
-  async handleGameEnd(): Promise<void> {
-    try {
-      await Game.findByIdAndUpdate(this.gameId, { result: this.result.value });
-    } catch (error) {
-      console.error(`Failed to end game ${this.gameId}:`, error);
-    } finally {
-      this.eventEmitter.removeAllListeners();
-      const timerId = this.phaseManager.timerId;
-      if (timerId) clearTimeout(timerId);
-      delete gameManagers[this.gameId];
-    }
-  }
-
   async villageAbandoned(): Promise<void> {
     this.result.value = 'villageAbandoned';
     await this.sendMessage(gameMaster.VILLAGE_ABANDONED);
@@ -234,30 +228,51 @@ export default class GameManager {
     ).length;
 
     const isWerewolvesMajority = werewolves * 2 >= livingPlayers.length;
+    const isWerewolvesExtinct = werewolves === 0;
     const isFoxAlive = livingPlayers.some((user) => user.role === 'fox');
 
-    // 勝利条件の判定
-    if (isFoxAlive && (werewolves === 0 || isWerewolvesMajority)) {
-      this.result.value = 'foxesWin';
-      await this.sendMessage(gameMaster.FOXES_WIN);
-    } else if (werewolves === 0) {
-      this.result.value = 'villagersWin';
-      await this.sendMessage(gameMaster.VILLAGERS_WIN);
-    } else if (isWerewolvesMajority) {
-      this.result.value = 'werewolvesWin';
-      await this.sendMessage(gameMaster.WEREWOLVES_WIN);
+    if (isWerewolvesExtinct || isWerewolvesMajority) {
+      if (isFoxAlive) {
+        this.result.value = 'foxesWin';
+        await this.sendMessage(gameMaster.FOXES_WIN);
+      } else if (isWerewolvesExtinct) {
+        this.result.value = 'villagersWin';
+        await this.sendMessage(gameMaster.VILLAGERS_WIN);
+      } else if (isWerewolvesMajority) {
+        this.result.value = 'werewolvesWin';
+        await this.sendMessage(gameMaster.WEREWOLVES_WIN);
+      }
+
+      await Game.endGame(this.gameId, this.result.value);
     }
   }
 
   async sendMessage(message: string): Promise<void> {
-    const newMessage = await Message.create({
-      channelId: this.gameId,
-      userId: '672626acf66b851cf141bd0f', // GMのid
-      message,
-      messageType: 'system',
-    });
+    try {
+      const newMessage = await Message.create({
+        channelId: this.gameId,
+        userId: '672626acf66b851cf141bd0f', // GMのid
+        message,
+        messageType: 'system',
+      });
 
-    channelEvents.emit('newMessage', this.gameId, newMessage, null);
+      channelEvents.emit('newMessage', this.gameId, newMessage, null);
+    } catch (error) {
+      console.error(`Failed to send message ${this.gameId}:`, error);
+    }
+  }
+
+  async handleGameEnd(): Promise<void> {
+    try {
+      await Game.findByIdAndUpdate(this.gameId, { result: this.result.value });
+    } catch (error) {
+      console.error(`Failed to end game ${this.gameId}:`, error);
+    } finally {
+      this.eventEmitter.removeAllListeners();
+      const timerId = this.phaseManager.timerId;
+      if (timerId) clearTimeout(timerId);
+      delete gameManagers[this.gameId];
+    }
   }
 
   handlePhaseSwitched(): void {
