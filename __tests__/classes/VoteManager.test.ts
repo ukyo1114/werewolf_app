@@ -131,9 +131,9 @@ describe('test VoteManager', () => {
       expect(genVoteHistorySpy).toHaveBeenCalled();
     });
 
-    it('should throw error when no votes exist', () => {
+    it('should return undefined when no votes exist', () => {
       voteCounterMock.mockReturnValue({});
-      expect(() => voteManager.getExecutionTarget()).toThrow();
+      expect(voteManager.getExecutionTarget()).toBeUndefined();
       expect(genVoteHistorySpy).not.toHaveBeenCalled();
     });
 
@@ -199,10 +199,10 @@ describe('test VoteManager', () => {
       });
     });
 
-    it('should throw error when no votes exist', () => {
+    it('should return empty object when no votes exist', () => {
       voteManager.votes = {};
 
-      expect(() => voteManager.voteCounter()).toThrow();
+      expect(voteManager.voteCounter()).toEqual({});
     });
 
     it('should handle single vote correctly', () => {

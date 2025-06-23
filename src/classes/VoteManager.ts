@@ -32,6 +32,7 @@ export default class VoteManager {
 
   getExecutionTarget(): string | undefined {
     const voteCount = this.voteCounter();
+    if (Object.keys(voteCount).length === 0) return;
 
     // 最多得票者の配列を作成
     const maxVotes = _.max(Object.values(voteCount));
@@ -49,7 +50,7 @@ export default class VoteManager {
 
   voteCounter(): Record<string, number> {
     const votes = this.votes;
-    if (Object.keys(votes).length === 0) throw new Error();
+    if (Object.keys(votes).length === 0) return {};
 
     const voteeArray = Object.values(votes);
     return _.countBy(voteeArray);
