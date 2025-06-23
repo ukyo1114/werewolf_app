@@ -119,6 +119,16 @@ describe('test DevineManager', () => {
       expect(devineTarget).toBeDefined();
       expect(getRandomTargetSpy).toHaveBeenCalled();
     });
+
+    it('リクエストが存在せず、getRandomTargetがundefinedを返す場合、undefinedを返す', () => {
+      devineManager.devineRequest = null;
+      getRandomTargetSpy.mockReturnValue(undefined);
+
+      const devineTarget = devineManager.decideDevineTarget();
+      expect(devineTarget).toBeUndefined();
+      expect(devineManager.devineRequest).toBeNull();
+      expect(getRandomTargetSpy).toHaveBeenCalledWith('seer');
+    });
   });
 
   describe('devine', () => {
@@ -167,6 +177,27 @@ describe('test DevineManager', () => {
       expect(devineManager.devineResult).not.toHaveProperty('0');
       expect(getLivingPlayersSpy).toHaveBeenCalledWith('seer');
       expect(decideDevineTargetSpy).not.toHaveBeenCalled();
+    });
+
+    it('decideDevineTargetがundefinedを返す場合、falseを返す', () => {
+      devineManager.devineResult = {};
+      getLivingPlayersSpy.mockReturnValue([
+        {
+          userId: 'seer',
+          userName: 'seer',
+          role: 'seer',
+          status: 'alive',
+          teammates: [],
+        },
+      ]);
+      decideDevineTargetSpy.mockReturnValue(undefined);
+
+      const result = devineManager.devine();
+      expect(result).toBe(false);
+      expect(devineManager.devineRequest).toBeNull();
+      expect(devineManager.devineResult).not.toHaveProperty('0');
+      expect(getLivingPlayersSpy).toHaveBeenCalledWith('seer');
+      expect(decideDevineTargetSpy).toHaveBeenCalled();
     });
   });
 

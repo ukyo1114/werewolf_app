@@ -29,10 +29,11 @@ export default class DevineManager {
     this.devineRequest = targetId;
   }
 
-  decideDevineTarget(): string {
+  decideDevineTarget(): string | undefined {
     const devineTarget =
       this.devineRequest || this.playerManager.getRandomTarget('seer');
     this.devineRequest = null;
+    if (!devineTarget) return;
     return devineTarget;
   }
 
@@ -42,9 +43,9 @@ export default class DevineManager {
       this.devineRequest = null;
       return false;
     }
-
     // 占いの対象を決める
     const devineTargetId = this.decideDevineTarget();
+    if (!devineTargetId) return false;
     const devineTarget = this.playerManager.players[devineTargetId];
 
     // 占いの結果を記録する
