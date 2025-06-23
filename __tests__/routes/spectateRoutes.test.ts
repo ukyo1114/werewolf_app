@@ -66,7 +66,7 @@ describe('test spectateRoutes', () => {
         userName: 'testUser',
         status: 'alive',
         role: 'villager',
-        teammates: null,
+        teammates: [],
       },
     };
     gameManagers[mockGameId].sendMessage = jest.fn();

@@ -30,7 +30,7 @@ export default class PlayerManager {
         userName,
         status: 'alive',
         role,
-        teammates: null,
+        teammates: [],
       };
     });
   }
@@ -65,11 +65,11 @@ export default class PlayerManager {
   getPlayerState(userId: string): {
     status: Status;
     role: Role;
-    teammates: string[] | null;
+    teammates: string[];
   } {
     const player = this.players[userId];
     if (!player)
-      return { status: 'spectator', role: 'spectator', teammates: null };
+      return { status: 'spectator', role: 'spectator', teammates: [] };
 
     const playerState = {
       status: player.status,

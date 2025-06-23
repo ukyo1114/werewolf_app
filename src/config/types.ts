@@ -52,13 +52,13 @@ export interface IPlayer {
   userName: string;
   status: Status;
   role: Role;
-  teammates: string[] | null;
+  teammates: string[];
 }
 
 export interface IPlayerState {
   status: Status;
   role?: Role;
-  teammates?: string[] | null;
+  teammates?: string[];
 }
 
 export type Status = 'alive' | 'dead' | 'spectator';

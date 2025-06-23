@@ -48,7 +48,7 @@ describe('test PlayserManager', () => {
       player.role === 'immoralist' ||
       player.role === 'fanatic'
         ? expect(player.teammates).not.toBeNull()
-        : expect(player.teammates).toBeNull();
+        : expect(player.teammates).toEqual([]);
     });
   });
 
@@ -68,7 +68,7 @@ describe('test PlayserManager', () => {
       } else if (role === 'fanatic') {
         expect(player.teammates).toEqual(['werewolf', 'werewolf2']);
       } else {
-        expect(player.teammates).toBeNull();
+        expect(player.teammates).toEqual([]);
       }
     });
   });
@@ -83,7 +83,7 @@ describe('test PlayserManager', () => {
         userName: 'villager',
         status: 'alive',
         role: 'villager',
-        teammates: null,
+        teammates: [],
       },
     };
 
@@ -111,7 +111,7 @@ describe('test PlayserManager', () => {
       expect(playerState).toEqual({
         status: 'spectator',
         role: 'spectator',
-        teammates: null,
+        teammates: [],
       });
     });
 
@@ -125,7 +125,7 @@ describe('test PlayserManager', () => {
 
         expect(playerState.status).toBe('alive');
         expect(playerState.role).toBe(role);
-        expect(playerState.teammates).toEqual(teammates ? [teammates] : null);
+        expect(playerState.teammates).toEqual([teammates]);
       });
     });
   });

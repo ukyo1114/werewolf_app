@@ -50,7 +50,7 @@ describe('test createGameList', () => {
         userName: 'testUser',
         status: 'alive',
         role: 'villager',
-        teammates: null,
+        teammates: [],
       },
     };
   });
