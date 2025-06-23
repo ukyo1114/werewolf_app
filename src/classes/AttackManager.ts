@@ -1,6 +1,5 @@
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-import GuardManager from './GuardManager';
 import { AttackHistory } from '../config/types';
 
 export default class AttackManager {
@@ -8,16 +7,10 @@ export default class AttackManager {
   public attackHistory: AttackHistory = {};
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
-  public guardManager: GuardManager;
 
-  constructor(
-    phaseManager: PhaseManager,
-    playerManager: PlayerManager,
-    guardManager: GuardManager,
-  ) {
+  constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
     this.phaseManager = phaseManager;
     this.playerManager = playerManager;
-    this.guardManager = guardManager;
   }
 
   receiveAttackRequest(playerId: string, targetId: string): void {
@@ -43,18 +36,15 @@ export default class AttackManager {
     return attackTargetId;
   }
 
-  async attack(): Promise<string | undefined> {
+  async attack(
+    guardTargetId: string | undefined = undefined,
+  ): Promise<string | undefined> {
     const attackTargetId = this.decideAttackTarget();
-    if (!attackTargetId) return;
+    const guardSucceeded = attackTargetId === guardTargetId;
+    if (!attackTargetId || guardSucceeded) return;
     // 狐を襲撃した場合失敗する
     const { userName, role } = this.playerManager.players[attackTargetId];
     if (role === 'fox') return;
-    // 護衛判定
-    const hunter = this.playerManager.getLivingPlayers('hunter');
-    if (hunter.length > 0) {
-      const guardResult = this.guardManager.guard(attackTargetId);
-      if (guardResult) return;
-    }
     await this.playerManager.kill(attackTargetId);
     return userName;
   }
