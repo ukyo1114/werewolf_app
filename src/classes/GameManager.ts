@@ -227,19 +227,21 @@ export default class GameManager {
       (user) => user.role === 'werewolf',
     ).length;
 
-    const isWerewolvesMajority = werewolves * 2 >= livingPlayers.length;
     const isWerewolvesExtinct = werewolves === 0;
+    const isWerewolvesMajority = werewolves * 2 >= livingPlayers.length;
     const isFoxAlive = livingPlayers.some((user) => user.role === 'fox');
 
-    if (isFoxAlive) {
-      this.result.value = 'foxesWin';
-      await this.sendMessage(gameMaster.FOXES_WIN);
-    } else if (isWerewolvesExtinct) {
-      this.result.value = 'villagersWin';
-      await this.sendMessage(gameMaster.VILLAGERS_WIN);
-    } else if (isWerewolvesMajority) {
-      this.result.value = 'werewolvesWin';
-      await this.sendMessage(gameMaster.WEREWOLVES_WIN);
+    if (isWerewolvesExtinct || isWerewolvesMajority) {
+      if (isFoxAlive) {
+        this.result.value = 'foxesWin';
+        await this.sendMessage(gameMaster.FOXES_WIN);
+      } else if (isWerewolvesExtinct) {
+        this.result.value = 'villagersWin';
+        await this.sendMessage(gameMaster.VILLAGERS_WIN);
+      } else if (isWerewolvesMajority) {
+        this.result.value = 'werewolvesWin';
+        await this.sendMessage(gameMaster.WEREWOLVES_WIN);
+      }
     }
   }
 

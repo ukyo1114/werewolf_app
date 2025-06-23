@@ -411,7 +411,7 @@ describe('test GameManager', () => {
         .spyOn(game.playerManager, 'getLivingPlayers')
         .mockReturnValue([]);
 
-      await expect(game.curse()).rejects.toThrow();
+      await expect(game.curse()).resolves.toBeUndefined();
       expect(killMock).not.toHaveBeenCalled();
       expect(suicideMock).not.toHaveBeenCalled();
     });
