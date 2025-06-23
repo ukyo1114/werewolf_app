@@ -5,10 +5,10 @@ import { AttackHistory } from '../config/types';
 
 export default class AttackManager {
   public attackRequest: string | null = null;
+  public attackHistory: AttackHistory = {};
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
   public guardManager: GuardManager;
-  public attackHistory: AttackHistory = {};
 
   constructor(
     phaseManager: PhaseManager,
@@ -24,45 +24,36 @@ export default class AttackManager {
     const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[playerId];
     const target = this.playerManager.players[targetId];
-
     const isNightPhase = currentPhase === 'night';
     const isPlayerValid =
       player && player.status === 'alive' && player.role === 'werewolf';
     const isTargetValid =
       target && target.status === 'alive' && target.role !== 'werewolf';
-
     if (!isNightPhase || !isPlayerValid || !isTargetValid) throw new Error();
-
     this.attackRequest = targetId;
   }
 
   decideAttackTarget(): string {
+    const { currentDay } = this.phaseManager;
     const attackTargetId =
       this.attackRequest || this.playerManager.getRandomTarget('werewolf');
-
-    const { currentDay } = this.phaseManager;
     this.attackHistory[currentDay] = attackTargetId;
     this.attackRequest = null;
-
     return attackTargetId;
   }
 
-  async attack(): Promise<string | null> {
+  async attack(): Promise<string | undefined> {
     const attackTargetId = this.decideAttackTarget();
-
     // 狐を襲撃した場合失敗する
     const { userName, role } = this.playerManager.players[attackTargetId];
-    if (role === 'fox') return null;
-
+    if (role === 'fox') return;
     // 護衛判定
     const hunter = this.playerManager.getLivingPlayers('hunter');
     if (hunter.length > 0) {
       const guardResult = this.guardManager.guard(attackTargetId);
-      if (guardResult) return null;
+      if (guardResult) return;
     }
-
     await this.playerManager.kill(attackTargetId);
-
     return userName;
   }
 

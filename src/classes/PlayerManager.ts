@@ -76,7 +76,7 @@ export default class PlayerManager {
     return playerState;
   }
 
-  getLivingPlayers(filterRole: Role | null = null): IPlayer[] {
+  getLivingPlayers(filterRole: Role | undefined = undefined): IPlayer[] {
     return Object.values(this.players).filter((user) =>
       filterRole
         ? user.role === filterRole && user.status === 'alive'

@@ -112,4 +112,20 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
       chatNameSpace.to(channelId).emit('cancelBlockUser', userId);
     },
   );
+
+  channelEvents.on(
+    'updateProfile',
+    (
+      channelIds: string[],
+      data: {
+        userId: string;
+        userName: string | null;
+        pic: string | null;
+      },
+    ) => {
+      channelIds.forEach((channelId) => {
+        chatNameSpace.to(channelId).emit('updateProfile', data);
+      });
+    },
+  );
 };
