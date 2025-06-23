@@ -46,10 +46,9 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
         await entryManager.register(userId, socketId);
         callback({ success: true });
       } catch (error: any) {
-        callback({
-          success: false,
-          message: error?.message || errors.CHANNEL_ACCESS_FORBIDDEN,
-        });
+        if (error.status === 500)
+          entryNameSpace.to(channelId).emit('gameCreationFailed');
+        callback({ success: false });
       }
     });
 
@@ -61,10 +60,7 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
         entryManager.cancel(socketId);
         callback({ success: true });
       } catch (error: any) {
-        callback({
-          success: false,
-          message: error?.message || errors.CHANNEL_ACCESS_FORBIDDEN,
-        });
+        callback({ success: false });
       }
     });
 
@@ -87,10 +83,6 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
           socket.leave(channelId);
         }
       });
-    });
-
-    entryEvents.on('gameCreationFailed', (channelId: string) => {
-      entryNameSpace.to(channelId).emit('gameCreationFailed');
     });
   });
 };

@@ -178,12 +178,10 @@ describe('EntryManager', () => {
 
     it('should emit game creation failed event if game creation fails', async () => {
       GameManager.createGameManager = jest.fn().mockRejectedValue(new Error());
-      await expect(entryManager.startGame()).rejects.toThrow();
+      const error: any = new Error();
+      error.status = 500;
+      await expect(entryManager.startGame()).rejects.toThrow(error);
 
-      expect(entryEvents.emit).toHaveBeenCalledWith(
-        'gameCreationFailed',
-        mockChannelId,
-      );
       expect(emitGameStartSpy).not.toHaveBeenCalled();
       expect(entryManager.users).toEqual({});
       expect(entryManager.isProcessing).toBe(false);

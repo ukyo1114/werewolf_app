@@ -4,9 +4,9 @@ import { DevineResult } from '../config/types';
 
 export default class DevineManager {
   public devineRequest: string | null = null;
+  public devineResult: DevineResult = {};
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
-  public devineResult: DevineResult = {};
 
   constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
     this.phaseManager = phaseManager;
@@ -37,7 +37,6 @@ export default class DevineManager {
   }
 
   devine(): boolean {
-    // 占い師が死亡しているときは占いを行わない
     const seer = this.playerManager.getLivingPlayers('seer');
     if (seer.length === 0) {
       this.devineRequest = null;
