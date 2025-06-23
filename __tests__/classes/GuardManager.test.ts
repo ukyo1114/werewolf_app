@@ -22,6 +22,8 @@ describe('test GuardManager', () => {
 
   beforeEach(() => {
     playerManager.players = gamePlayers();
+    guardManager.guardHistory = {};
+    jest.clearAllMocks();
   });
 
   afterAll(() => {
@@ -122,6 +124,17 @@ describe('test GuardManager', () => {
       expect(guardManager.guardHistory[0]).toBeDefined;
       expect(getRandomTargetSpy).toHaveBeenCalled();
     });
+
+    it('護衛リクエストが存在せず、getRandomTargetがundefinedを返す場合、undefinedを返す', () => {
+      guardManager.guardRequest = null;
+      getRandomTargetSpy.mockReturnValue(undefined);
+
+      const guardTarget = guardManager.decideGuardTarget();
+      expect(guardTarget).toBeUndefined();
+      expect(guardManager.guardRequest).toBeNull();
+      expect(guardManager.guardHistory[0]).toBeUndefined();
+      expect(getRandomTargetSpy).toHaveBeenCalledWith('hunter');
+    });
   });
 
   describe('guard', () => {
@@ -130,9 +143,39 @@ describe('test GuardManager', () => {
     it('護衛対象が正しい場合、護衛は成功する', () => {
       guardManager.guardRequest = 'villager';
 
-      expect(guardManager.guard('villager')).toBe(true);
+      expect(guardManager.guard()).toBe('villager');
       expect(guardManager.guardRequest).toBeNull;
       expect(guardManager.guardHistory[0]).toBe('villager');
+      expect(decideGuardTargetSpy).toHaveBeenCalled();
+    });
+
+    it('狩人が生存していない場合、undefinedを返す', () => {
+      const getLivingPlayersSpy = jest.spyOn(playerManager, 'getLivingPlayers');
+      getLivingPlayersSpy.mockReturnValue([]);
+
+      const result = guardManager.guard();
+      expect(result).toBeUndefined();
+      expect(guardManager.guardRequest).toBeNull();
+      expect(getLivingPlayersSpy).toHaveBeenCalledWith('hunter');
+      expect(decideGuardTargetSpy).not.toHaveBeenCalled();
+    });
+
+    it('decideGuardTargetがundefinedを返す場合、undefinedを返す', () => {
+      const getLivingPlayersSpy = jest.spyOn(playerManager, 'getLivingPlayers');
+      getLivingPlayersSpy.mockReturnValue([
+        {
+          userId: 'hunter',
+          userName: 'hunter',
+          role: 'hunter',
+          status: 'alive',
+          teammates: [],
+        },
+      ]);
+      decideGuardTargetSpy.mockReturnValue(undefined);
+
+      const result = guardManager.guard();
+      expect(result).toBeUndefined();
+      expect(getLivingPlayersSpy).toHaveBeenCalledWith('hunter');
       expect(decideGuardTargetSpy).toHaveBeenCalled();
     });
   });

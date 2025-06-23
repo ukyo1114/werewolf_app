@@ -29,9 +29,10 @@ export default class GuardManager {
     this.guardRequest = targetId;
   }
 
-  decideGuardTarget(): string {
+  decideGuardTarget(): string | undefined {
     const guardTargetId =
       this.guardRequest || this.playerManager.getRandomTarget('hunter');
+    if (!guardTargetId) return;
 
     const { currentDay } = this.phaseManager;
     this.guardHistory[currentDay] = guardTargetId;
@@ -40,9 +41,14 @@ export default class GuardManager {
     return guardTargetId;
   }
 
-  guard(attackTargetId: string): boolean {
-    const guardTargetId = this.decideGuardTarget();
-    return attackTargetId === guardTargetId;
+  guard(): string | undefined {
+    const hunter = this.playerManager.getLivingPlayers('hunter');
+    if (hunter.length === 0) {
+      this.guardRequest = null;
+      return;
+    }
+
+    return this.decideGuardTarget();
   }
 
   getGuardHistory(userId: string): GuardHistory {

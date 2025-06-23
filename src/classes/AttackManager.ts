@@ -33,10 +33,11 @@ export default class AttackManager {
     this.attackRequest = targetId;
   }
 
-  decideAttackTarget(): string {
+  decideAttackTarget(): string | undefined {
     const { currentDay } = this.phaseManager;
     const attackTargetId =
       this.attackRequest || this.playerManager.getRandomTarget('werewolf');
+    if (!attackTargetId) return;
     this.attackHistory[currentDay] = attackTargetId;
     this.attackRequest = null;
     return attackTargetId;
@@ -44,6 +45,7 @@ export default class AttackManager {
 
   async attack(): Promise<string | undefined> {
     const attackTargetId = this.decideAttackTarget();
+    if (!attackTargetId) return;
     // 狐を襲撃した場合失敗する
     const { userName, role } = this.playerManager.players[attackTargetId];
     if (role === 'fox') return;
