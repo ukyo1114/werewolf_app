@@ -107,6 +107,6 @@ describe('test PhaseManager', () => {
     expect(phaseManager.currentDay).toBe(2);
     expect(phaseManager.currentPhase).toBe('finished');
 
-    await expect(phaseManager.nextPhase()).rejects.toThrow();
+    await expect(phaseManager.nextPhase()).resolves.toBeUndefined();
   });
 });

@@ -14,9 +14,9 @@ export default class PhaseManager {
   public currentDay: number = 0;
   public currentPhase: CurrentPhase = 'pre';
   public changedAt: Date;
+  public timerId: ReturnType<typeof setTimeout> | null = null;
   public result: IGameResult;
   public eventEmitter: EventEmitter;
-  public timerId: ReturnType<typeof setTimeout> | null = null;
 
   constructor(eventEmitter: EventEmitter, result: IGameResult, gameId: string) {
     this.changedAt = new Date();
@@ -28,7 +28,6 @@ export default class PhaseManager {
   }
 
   registerListner(): void {
-    // TODO: エラーハンドリング追加
     this.eventEmitter.on('processCompleted', async () => {
       await this.nextPhase();
       this.eventEmitter.emit('phaseSwitched');
@@ -48,7 +47,7 @@ export default class PhaseManager {
     const currentPhase = this.currentPhase;
     this.changedAt = new Date();
 
-    if (currentPhase === 'finished') throw new Error();
+    if (currentPhase === 'finished') return;
 
     if (this.result.value !== 'running') {
       this.currentPhase = 'finished';

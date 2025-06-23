@@ -139,7 +139,10 @@ export default class GameManager {
     if (currentPhase === 'pre') await this.sendMessage(gameMaster.MORNING);
     if (currentPhase === 'day') await this.handleDayPhaseEnd();
     if (currentPhase === 'night') await this.handleNightPhaseEnd();
-    if (currentPhase === 'finished') return this.handleGameEnd();
+    if (currentPhase === 'finished') {
+      await this.handleGameEnd();
+      return;
+    }
 
     this.eventEmitter.emit('processCompleted');
   }
