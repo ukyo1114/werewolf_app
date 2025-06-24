@@ -1,10 +1,12 @@
 import { Request, Response } from 'express';
 import asyncHandler from 'express-async-handler';
-import { decodeToken } from '../../utils/decodeToken';
+
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
-import User from '../../models/User';
+import { Events } from '../../app';
+import { decodeToken } from '../../utils/decodeToken';
 import { genUserToken } from '../../utils/generateToken';
+import User from '../../models/User';
 import { uploadPicture } from './utils';
 import {
   CustomRequest,
@@ -16,7 +18,6 @@ import {
   IResetPassword,
 } from '../../config/types';
 import GameManager from '../../classes/GameManager';
-import { Events } from '../../app';
 import ChannelUser from '../../models/ChannelUser';
 
 const { channelEvents } = Events;

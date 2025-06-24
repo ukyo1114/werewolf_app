@@ -13,7 +13,7 @@ export const errors = {
   EMAIL_ALREADY_REGISTERED: 'メールアドレスが既に登録されています。',
   EMAIL_NOT_FOUND: 'メールアドレスが登録されていません。',
   WRONG_PASSWORD: 'パスワードが間違っています。',
-  NO_UPDATE_DATA: '更新するデータがありません。',
+  NO_UPDATE_DATA: '更新データがありません',
   SERVER_ERROR: 'サーバーエラーが発生しました。',
   CHANNEL_ACCESS_FORBIDDEN: 'チャンネルを利用できません。',
   MESSAGE_SENDING_FORBIDDEN: 'メッセージの送信が禁止されています。',
