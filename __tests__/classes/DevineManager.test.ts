@@ -225,12 +225,16 @@ describe('test DevineManager', () => {
     });
 
     it('プレイヤーが占いでないときエラーを返す', () => {
-      expect(() => devineManager.getDevineResult('villager')).toThrow();
+      expect(() => devineManager.getDevineResult('villager')).toThrow(
+        new AppError(400, errors.AUTH_FAILED),
+      );
       expect(validatePlayerByRoleSpy).toHaveBeenCalledWith('villager', 'seer');
     });
 
     it('プレイヤーが存在しないときエラーを返す', () => {
-      expect(() => devineManager.getDevineResult('notExist')).toThrow();
+      expect(() => devineManager.getDevineResult('notExist')).toThrow(
+        new AppError(400, errors.AUTH_FAILED),
+      );
       expect(validatePlayerByRoleSpy).toHaveBeenCalledWith('notExist', 'seer');
     });
   });

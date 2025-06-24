@@ -4,12 +4,14 @@ jest.mock('../../src/app', () => ({
   },
 }));
 
+import { EventEmitter } from 'events';
+
+import AppError from '../../src/utils/AppError';
+import { errors } from '../../src/config/messages';
+import { mockGameId, mockUsers, gamePlayers } from '../../__mocks__/mockdata';
 import PlayerManager from '../../src/classes/PlayerManager';
 import PhaseManager from '../../src/classes/PhaseManager';
 import MediumManager from '../../src/classes/MediumManager';
-import { mockGameId, mockUsers } from '../../__mocks__/mockdata';
-import { gamePlayers } from '../../__mocks__/mockdata';
-import { EventEmitter } from 'events';
 
 describe('test MediumManager', () => {
   const phaseManager = new PhaseManager(
@@ -75,7 +77,9 @@ describe('test MediumManager', () => {
     });
 
     it('プレイヤーが霊能でないときエラーを返す', () => {
-      expect(() => mediumManager.getMediumResult('villager')).toThrow();
+      expect(() => mediumManager.getMediumResult('villager')).toThrow(
+        new AppError(400, errors.AUTH_FAILED),
+      );
       expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
         'villager',
         'medium',
@@ -83,7 +87,9 @@ describe('test MediumManager', () => {
     });
 
     it('プレイヤーが存在しないときエラーを返す', () => {
-      expect(() => mediumManager.getMediumResult('notExist')).toThrow();
+      expect(() => mediumManager.getMediumResult('notExist')).toThrow(
+        new AppError(400, errors.AUTH_FAILED),
+      );
       expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
         'notExist',
         'medium',

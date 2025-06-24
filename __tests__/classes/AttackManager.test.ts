@@ -298,7 +298,9 @@ describe('test AttackManager', () => {
 
     it('人狼以外の役職は襲撃履歴を取得できない', () => {
       expect(playerManager.players.villager).toBeDefined();
-      expect(() => attackManager.getAttackHistory('villager')).toThrow();
+      expect(() => attackManager.getAttackHistory('villager')).toThrow(
+        new AppError(400, errors.AUTH_FAILED),
+      );
       expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
         'villager',
         'werewolf',
@@ -306,7 +308,9 @@ describe('test AttackManager', () => {
     });
 
     it('存在しないプレイヤーは襲撃履歴を取得できない', () => {
-      expect(() => attackManager.getAttackHistory('notExist')).toThrow();
+      expect(() => attackManager.getAttackHistory('notExist')).toThrow(
+        new AppError(400, errors.AUTH_FAILED),
+      );
       expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
         'notExist',
         'werewolf',

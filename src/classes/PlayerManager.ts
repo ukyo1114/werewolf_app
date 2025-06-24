@@ -1,7 +1,10 @@
 import _ from 'lodash';
+
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
+import { appState } from '../app';
 import { roleConfig, teammateMapping } from '../config/roles';
 import { Role, Status, IUser, IPlayer, IPlayerState } from '../config/types';
-import { appState } from '../app';
 import GameUser from '../models/GameUser';
 
 const { channelManagers } = appState;
@@ -116,6 +119,7 @@ export default class PlayerManager {
 
   validatePlayerByRole(userId: string, role: Role): void {
     const player = this.players[userId];
-    if (!player || player.role !== role) throw new Error();
+    if (!player || player.role !== role)
+      throw new AppError(400, errors.AUTH_FAILED);
   }
 }

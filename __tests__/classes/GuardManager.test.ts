@@ -201,7 +201,9 @@ describe('test GuardManager', () => {
     });
 
     it('狩人以外の役職は護衛履歴を取得できない', () => {
-      expect(() => guardManager.getGuardHistory('villager')).toThrow();
+      expect(() => guardManager.getGuardHistory('villager')).toThrow(
+        new AppError(400, errors.AUTH_FAILED),
+      );
       expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
         'villager',
         'hunter',
@@ -209,7 +211,9 @@ describe('test GuardManager', () => {
     });
 
     it('存在しないプレイヤーは護衛履歴を取得できない', () => {
-      expect(() => guardManager.getGuardHistory('notExist')).toThrow();
+      expect(() => guardManager.getGuardHistory('notExist')).toThrow(
+        new AppError(400, errors.AUTH_FAILED),
+      );
       expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
         'notExist',
         'hunter',

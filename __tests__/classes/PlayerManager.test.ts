@@ -4,15 +4,17 @@ jest.mock('../../src/app', () => ({
   },
 }));
 
+import AppError from '../../src/utils/AppError';
 import { appState } from '../../src/app';
+import { errors } from '../../src/config/messages';
 import ChannelManager from '../../src/classes/ChannelManager';
 import ChannelUserManager from '../../src/classes/ChannelUserManager';
 import GameUser from '../../src/models/GameUser';
-import { roleConfig, teammateMapping } from '../../src/config/roles';
 import { mockGameId, mockUserId, mockUsers } from '../../__mocks__/mockdata';
-import PlayerManager from '../../src/classes/PlayerManager';
 import { gamePlayers, mockChannelUser } from '../../__mocks__/mockdata';
 import { Role } from '../../src/config/types';
+import { roleConfig, teammateMapping } from '../../src/config/roles';
+import PlayerManager from '../../src/classes/PlayerManager';
 
 describe('test PlayserManager', () => {
   GameUser.updateOne = jest.fn();
@@ -408,13 +410,13 @@ describe('test PlayserManager', () => {
     it('should throw error for non-existent player', () => {
       expect(() => {
         playerManager.validatePlayerByRole('notExist', 'villager');
-      }).toThrow();
+      }).toThrow(new AppError(400, errors.AUTH_FAILED));
     });
 
     it('should throw error for mismatched role', () => {
       expect(() => {
         playerManager.validatePlayerByRole('villager', 'werewolf');
-      }).toThrow();
+      }).toThrow(new AppError(400, errors.AUTH_FAILED));
     });
 
     it('should work correctly for all roles', () => {
