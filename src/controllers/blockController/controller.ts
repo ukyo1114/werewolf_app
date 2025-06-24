@@ -1,10 +1,11 @@
 import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
+
 import { errors } from '../../config/messages';
 import AppError from '../../utils/AppError';
+import { Events } from '../../app';
 import Channel from '../../models/Channel';
 import ChannelBlockUser from '../../models/ChannelBlockUser';
-import { Events } from '../../app';
 import { CustomRequest, ISelectedUser } from '../../config/types';
 
 const { channelEvents } = Events;

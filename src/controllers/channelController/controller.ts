@@ -1,7 +1,9 @@
 import { Response } from 'express';
 import asyncHandler from 'express-async-handler';
+
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
+import { Events } from '../../app';
 import User from '../../models/User';
 import Channel from '../../models/Channel';
 import ChannelUser from '../../models/ChannelUser';
@@ -11,7 +13,6 @@ import {
   ICreateChannel,
   IChannelSettings,
 } from '../../config/types';
-import { Events } from '../../app';
 
 const { channelEvents } = Events;
 
@@ -47,7 +48,6 @@ export const createChannel = asyncHandler(
     const isUserGuest = await User.isGuestUser(userId);
     if (isUserGuest)
       throw new AppError(403, errors.GUEST_CREATE_CHANNEL_DENIED);
-
     // チャンネルを作成
     const createdChannel = await Channel.create({
       channelName,
