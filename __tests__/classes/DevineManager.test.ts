@@ -4,12 +4,15 @@ jest.mock('../../src/app', () => ({
   },
 }));
 
+import { EventEmitter } from 'events';
+
+import AppError from '../../src/utils/AppError';
+import { errors } from '../../src/config/messages';
 import { mockGameId, mockUsers } from '../../__mocks__/mockdata';
 import { gamePlayers } from '../../__mocks__/mockdata';
 import PlayerManager from '../../src/classes/PlayerManager';
 import PhaseManager from '../../src/classes/PhaseManager';
 import DevineManager from '../../src/classes/DevineManager';
-import EventEmitter from 'events';
 
 describe('test DevineManager', () => {
   const phaseManager = new PhaseManager(
@@ -43,7 +46,7 @@ describe('test DevineManager', () => {
 
       expect(() =>
         devineManager.receiveDevineRequest('seer', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('リクエストを送信したプレイヤーが死亡しているときエラーを返す', () => {
@@ -52,7 +55,7 @@ describe('test DevineManager', () => {
 
       expect(() =>
         devineManager.receiveDevineRequest('seer', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('リクエストを送信したプレイヤーが占い師でないときエラーを返す', () => {
@@ -60,7 +63,7 @@ describe('test DevineManager', () => {
 
       expect(() =>
         devineManager.receiveDevineRequest('villager', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('ターゲットが死亡しているときエラーを返す', () => {
@@ -70,15 +73,15 @@ describe('test DevineManager', () => {
       expect(playerManager.players.villager.status).not.toBe('alive');
       expect(() =>
         devineManager.receiveDevineRequest('seer', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('ターゲットが占い師のときエラーを返す', () => {
       phaseManager.currentPhase = 'night';
 
-      expect(() =>
-        devineManager.receiveDevineRequest('seer', 'seer'),
-      ).toThrow();
+      expect(() => devineManager.receiveDevineRequest('seer', 'seer')).toThrow(
+        new AppError(400, errors.REQUEST_FAILED),
+      );
     });
 
     it('リクエストを送信したプレイヤーが存在しないときエラーを返す', () => {
@@ -86,7 +89,7 @@ describe('test DevineManager', () => {
 
       expect(() =>
         devineManager.receiveDevineRequest('notExist', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('ターゲットが存在しないときエラーを返す', () => {
@@ -94,7 +97,7 @@ describe('test DevineManager', () => {
 
       expect(() =>
         devineManager.receiveDevineRequest('werewolf', 'notExist'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
   });
 

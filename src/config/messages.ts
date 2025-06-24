@@ -41,6 +41,7 @@ export const errors = {
   AUTH_ERROR: '認証エラーが発生しました',
   CHANNEL_CREATION_FAILED: 'チャンネルの作成に失敗しました',
   VOTE_FAILED: '投票に失敗しました',
+  REQUEST_FAILED: 'リクエストに失敗しました',
 };
 
 export const validation = {

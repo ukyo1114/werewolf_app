@@ -1,6 +1,8 @@
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
+import { DevineResult } from '../config/types';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-import { DevineResult } from '../config/types';
 
 export default class DevineManager {
   public devineRequest: string | null = null;
@@ -24,7 +26,8 @@ export default class DevineManager {
     const isTargetValid =
       target && target.status === 'alive' && target.role !== 'seer';
 
-    if (!isNightPhase || !isPlayerValid || !isTargetValid) throw new Error();
+    if (!isNightPhase || !isPlayerValid || !isTargetValid)
+      throw new AppError(400, errors.REQUEST_FAILED);
 
     this.devineRequest = targetId;
   }
