@@ -1,12 +1,13 @@
 import _ from 'lodash';
+
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
+import { appState } from '../app';
+import { IChannelUser, MessageType } from '../config/types';
 import GameManager from './GameManager';
 import ChannelUserManager from './ChannelUserManager';
-import { IChannelUser, MessageType } from '../config/types';
-import { appState } from '../app';
 import Channel from '../models/Channel';
 import Game from '../models/Game';
-import { errors } from '../config/messages';
-import AppError from '../utils/AppError';
 
 const { channelManagers, gameManagers } = appState;
 
@@ -129,6 +130,7 @@ export default class ChannelManager {
   }
 
   checkCanUserAccessChannel(userId: string) {
-    if (!this.users[userId]) throw new Error();
+    if (!this.users[userId])
+      throw new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN);
   }
 }

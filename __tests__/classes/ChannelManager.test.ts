@@ -11,9 +11,11 @@ jest.mock('../../src/app', () => ({
   },
 }));
 
+import AppError from '../../src/utils/AppError';
+import { errors } from '../../src/config/messages';
+import { appState } from '../../src/app';
 import Channel from '../../src/models/Channel';
 import Game from '../../src/models/Game';
-import { appState } from '../../src/app';
 import GameManager from '../../src/classes/GameManager';
 import ChannelManager from '../../src/classes/ChannelManager';
 import {
@@ -216,7 +218,9 @@ describe('test ChannelManager', () => {
   describe('test checkCanUserAccessChannel', () => {
     it('should throw error when user is not in channel', () => {
       const channel = new ChannelManager(mockChannelId);
-      expect(() => channel.checkCanUserAccessChannel('notExist')).toThrow();
+      expect(() => channel.checkCanUserAccessChannel('notExist')).toThrow(
+        new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN),
+      );
     });
   });
 
