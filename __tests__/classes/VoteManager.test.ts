@@ -4,11 +4,14 @@ jest.mock('../../src/app', () => ({
   },
 }));
 
+import { EventEmitter } from 'events';
+
+import AppError from '../../src/utils/AppError';
+import { errors } from '../../src/config/messages';
 import VoteManager from '../../src/classes/VoteManager';
 import PhaseManager from '../../src/classes/PhaseManager';
 import PlayerManager from '../../src/classes/PlayerManager';
 import { mockGameId, mockUsers, gamePlayers } from '../../__mocks__/mockdata';
-import { EventEmitter } from 'events';
 
 describe('test VoteManager', () => {
   const phaseManager = new PhaseManager(
@@ -39,41 +42,49 @@ describe('test VoteManager', () => {
 
     it('should throw error when trying to vote for oneself', () => {
       phaseManager.currentPhase = 'day';
-      expect(() => voteManager.receiveVote('villager', 'villager')).toThrow();
+      expect(() => voteManager.receiveVote('villager', 'villager')).toThrow(
+        new AppError(400, errors.VOTE_FAILED),
+      );
     });
 
     it('should throw error when voter is dead', () => {
       phaseManager.currentPhase = 'day';
       playerManager.players.villager.status = 'dead';
 
-      expect(() => voteManager.receiveVote('villager', 'werewolf')).toThrow();
+      expect(() => voteManager.receiveVote('villager', 'werewolf')).toThrow(
+        new AppError(400, errors.VOTE_FAILED),
+      );
     });
 
     it('should throw error when voting target is dead', () => {
       phaseManager.currentPhase = 'day';
       playerManager.players.werewolf.status = 'dead';
 
-      expect(() => voteManager.receiveVote('villager', 'werewolf')).toThrow();
+      expect(() => voteManager.receiveVote('villager', 'werewolf')).toThrow(
+        new AppError(400, errors.VOTE_FAILED),
+      );
     });
 
     it('should throw error when trying to vote during night phase', () => {
       phaseManager.currentPhase = 'night';
 
-      expect(() => voteManager.receiveVote('villager', 'werewolf')).toThrow();
+      expect(() => voteManager.receiveVote('villager', 'werewolf')).toThrow(
+        new AppError(400, errors.VOTE_FAILED),
+      );
     });
 
     it('should throw error when voter does not exist', () => {
       phaseManager.currentPhase = 'day';
       expect(() =>
         voteManager.receiveVote('nonExistentPlayer', 'werewolf'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.VOTE_FAILED));
     });
 
     it('should throw error when voting target does not exist', () => {
       phaseManager.currentPhase = 'day';
       expect(() =>
         voteManager.receiveVote('villager', 'nonExistentPlayer'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.VOTE_FAILED));
     });
 
     it('should overwrite previous vote from the same voter', () => {

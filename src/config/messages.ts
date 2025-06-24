@@ -40,6 +40,7 @@ export const errors = {
   GAME_START_PROCESSING: 'ゲームの開始処理中です',
   AUTH_ERROR: '認証エラーが発生しました',
   CHANNEL_CREATION_FAILED: 'チャンネルの作成に失敗しました',
+  VOTE_FAILED: '投票に失敗しました',
 };
 
 export const validation = {

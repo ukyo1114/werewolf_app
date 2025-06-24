@@ -1,4 +1,7 @@
 import _ from 'lodash';
+
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 import { VotesByVotee, VoteHistory } from '../config/types';
@@ -15,7 +18,7 @@ export default class VoteManager {
   }
 
   receiveVote(voterId: string, voteeId: string): void {
-    if (voterId === voteeId) throw new Error();
+    if (voterId === voteeId) throw new AppError(400, errors.VOTE_FAILED);
 
     const { currentPhase } = this.phaseManager;
     const player = this.playerManager.players[voterId];
@@ -25,7 +28,8 @@ export default class VoteManager {
     const isPlayerValid = player && player.status === 'alive';
     const isTargetValid = target && target.status === 'alive';
 
-    if (!isDayPhase || !isPlayerValid || !isTargetValid) throw new Error();
+    if (!isDayPhase || !isPlayerValid || !isTargetValid)
+      throw new AppError(400, errors.VOTE_FAILED);
 
     this.votes[voterId] = voteeId;
   }

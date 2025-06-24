@@ -1,13 +1,14 @@
 import { Response, RequestHandler } from 'express';
 import asyncHandler from 'express-async-handler';
+
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
+import { appState, Events } from '../../app';
 import User from '../../models/User';
 import ChannelUser from '../../models/ChannelUser';
 import Game from '../../models/Game';
 import GameUser from '../../models/GameUser';
 import GameManager from '../../classes/GameManager';
-import { appState, Events } from '../../app';
 import { CustomRequest } from '../../config/types';
 
 const { gameManagers } = appState;

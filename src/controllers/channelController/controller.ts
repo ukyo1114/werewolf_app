@@ -128,7 +128,6 @@ export const joinChannel = asyncHandler(
       userId,
     );
     if (isUserBlocked) throw new AppError(403, errors.USER_BLOCKED);
-
     const channel = await Channel.findById(channelId);
     if (!channel) throw new AppError(404, errors.CHANNEL_NOT_FOUND);
 
