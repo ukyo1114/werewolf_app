@@ -4,12 +4,14 @@ jest.mock('../../src/app', () => ({
   },
 }));
 
+import { EventEmitter } from 'events';
+
+import AppError from '../../src/utils/AppError';
+import { errors } from '../../src/config/messages';
 import PlayerManager from '../../src/classes/PlayerManager';
 import PhaseManager from '../../src/classes/PhaseManager';
 import GuardManager from '../../src/classes/GuardManager';
-import { mockGameId, mockUsers } from '../../__mocks__/mockdata';
-import { gamePlayers } from '../../__mocks__/mockdata';
-import { EventEmitter } from 'events';
+import { mockGameId, mockUsers, gamePlayers } from '../../__mocks__/mockdata';
 
 describe('test GuardManager', () => {
   const phaseManager = new PhaseManager(
@@ -43,7 +45,7 @@ describe('test GuardManager', () => {
       phaseManager.currentPhase = 'day';
       expect(() =>
         guardManager.receiveGuradRequest('hunter', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('死亡した狩人からの護衛リクエストを受け付けない', () => {
@@ -52,7 +54,7 @@ describe('test GuardManager', () => {
 
       expect(() =>
         guardManager.receiveGuradRequest('hunter', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('狩人以外の役職からの護衛リクエストを受け付けない', () => {
@@ -60,7 +62,7 @@ describe('test GuardManager', () => {
 
       expect(() =>
         guardManager.receiveGuradRequest('villager', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('死亡したプレイヤーを護衛対象として指定できない', () => {
@@ -70,7 +72,7 @@ describe('test GuardManager', () => {
       expect(playerManager.players.villager.status).not.toBe('alive');
       expect(() =>
         guardManager.receiveGuradRequest('hunter', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('狩人自身を護衛対象として指定できない', () => {
@@ -78,7 +80,7 @@ describe('test GuardManager', () => {
 
       expect(() =>
         guardManager.receiveGuradRequest('hunter', 'hunter'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('存在しないプレイヤーからの護衛リクエストを受け付けない', () => {
@@ -86,7 +88,7 @@ describe('test GuardManager', () => {
 
       expect(() =>
         guardManager.receiveGuradRequest('notExist', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('存在しないプレイヤーを護衛対象として指定できない', () => {
@@ -94,7 +96,7 @@ describe('test GuardManager', () => {
 
       expect(() =>
         guardManager.receiveGuradRequest('hunter', 'notExist'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
   });
 

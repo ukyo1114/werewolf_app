@@ -1,6 +1,8 @@
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
+import { GuardHistory } from '../config/types';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-import { GuardHistory } from '../config/types';
 
 export default class GuardManager {
   public guardRequest: string | null = null;
@@ -24,7 +26,8 @@ export default class GuardManager {
     const isTargetValid =
       target && target.status === 'alive' && target.role !== 'hunter';
 
-    if (!isNightPhase || !isPlayerValid || !isTargetValid) throw new Error();
+    if (!isNightPhase || !isPlayerValid || !isTargetValid)
+      throw new AppError(400, errors.REQUEST_FAILED);
 
     this.guardRequest = targetId;
   }

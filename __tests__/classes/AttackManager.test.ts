@@ -4,13 +4,15 @@ jest.mock('../../src/app', () => ({
   },
 }));
 
+import { EventEmitter } from 'events';
+
+import AppError from '../../src/utils/AppError';
+import { errors } from '../../src/config/messages';
 import GameUser from '../../src/models/GameUser';
 import PlayerManager from '../../src/classes/PlayerManager';
 import PhaseManager from '../../src/classes/PhaseManager';
 import AttackManager from '../../src/classes/AttackManager';
-import { mockGameId, mockUsers } from '../../__mocks__/mockdata';
-import { gamePlayers } from '../../__mocks__/mockdata';
-import { EventEmitter } from 'events';
+import { mockGameId, mockUsers, gamePlayers } from '../../__mocks__/mockdata';
 
 describe('test AttackManager', () => {
   GameUser.updateOne = jest.fn();
@@ -45,7 +47,7 @@ describe('test AttackManager', () => {
       phaseManager.currentPhase = 'day';
       expect(() =>
         attackManager.receiveAttackRequest('werewolf', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('死亡した人狼からの襲撃リクエストを受け付けない', () => {
@@ -53,14 +55,14 @@ describe('test AttackManager', () => {
       playerManager.players.werewolf.status = 'dead';
       expect(() =>
         attackManager.receiveAttackRequest('werewolf', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('人狼以外の役職からの襲撃リクエストを受け付けない', () => {
       phaseManager.currentPhase = 'night';
       expect(() =>
         attackManager.receiveAttackRequest('seer', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('死亡したプレイヤーを襲撃対象として指定できない', () => {
@@ -68,28 +70,28 @@ describe('test AttackManager', () => {
       playerManager.players.villager.status = 'dead';
       expect(() =>
         attackManager.receiveAttackRequest('werewolf', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('人狼を襲撃対象として指定できない', () => {
       phaseManager.currentPhase = 'night';
       expect(() =>
         attackManager.receiveAttackRequest('werewolf', 'werewolf'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('存在しないプレイヤーからの襲撃リクエストを受け付けない', () => {
       phaseManager.currentPhase = 'night';
       expect(() =>
         attackManager.receiveAttackRequest('notExist', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('存在しないプレイヤーを襲撃対象として指定できない', () => {
       phaseManager.currentPhase = 'night';
       expect(() =>
         attackManager.receiveAttackRequest('werewolf', 'notExist'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('同じ人狼からの複数回のリクエストは最新のリクエストで上書きされる', () => {
@@ -110,14 +112,14 @@ describe('test AttackManager', () => {
       phaseManager.currentPhase = 'pre';
       expect(() =>
         attackManager.receiveAttackRequest('werewolf', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('finishedフェーズでは襲撃リクエストを受け付けない', () => {
       phaseManager.currentPhase = 'finished';
       expect(() =>
         attackManager.receiveAttackRequest('werewolf', 'villager'),
-      ).toThrow();
+      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
     });
 
     it('狐を襲撃対象として指定できる', () => {

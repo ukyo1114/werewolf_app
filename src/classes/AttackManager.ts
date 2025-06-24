@@ -1,6 +1,8 @@
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
+import { AttackHistory } from '../config/types';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-import { AttackHistory } from '../config/types';
 
 export default class AttackManager {
   public attackRequest: string | null = null;
@@ -22,7 +24,8 @@ export default class AttackManager {
       player && player.status === 'alive' && player.role === 'werewolf';
     const isTargetValid =
       target && target.status === 'alive' && target.role !== 'werewolf';
-    if (!isNightPhase || !isPlayerValid || !isTargetValid) throw new Error();
+    if (!isNightPhase || !isPlayerValid || !isTargetValid)
+      throw new AppError(400, errors.REQUEST_FAILED);
     this.attackRequest = targetId;
   }
 
