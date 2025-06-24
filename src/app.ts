@@ -86,7 +86,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
-    message: err.message || 'Internal Server Error',
+    message: err.message || 'サーバーエラーが発生しました',
     stack: process.env.NODE_ENV === 'production' ? null : err.stack,
   });
 });

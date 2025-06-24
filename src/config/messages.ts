@@ -22,7 +22,7 @@ export const errors = {
   PERMISSION_DENIED: '権限がありません。',
   USER_ALREADY_BLOCKED: 'ユーザーが既にブロックされています。',
   USER_NOT_BLOCKED: 'ユーザーはブロックされていません',
-  DENIED_SELF_BLOCK: '自分自身をブロックすることはできません。',
+  DENIED_SELF_BLOCK: '自分自身をブロックすることはできません',
   USER_BLOCKED: 'ブロックされています。',
   GUEST_CREATE_CHANNEL_DENIED:
     'ゲストアカウントではチャンネルを作成できません。',
