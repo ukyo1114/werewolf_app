@@ -22,12 +22,18 @@ export const gameNameSpaceHandler = (gameNameSpace: Namespace) => {
   });
 
   gameNameSpace.on('connection', async (socket: CustomSocket) => {
-    const gameId = socket.channelId as string;
-    const game = gameManagers[gameId];
+    try {
+      const gameId = socket.channelId as string;
+      const game = gameManagers[gameId];
+      if (!game) throw new Error();
 
-    const gameState = game.getGameState();
-    socket.emit('connect_response', gameState);
-    socket.join(gameId);
+      const gameState = game.getGameState();
+      socket.emit('connect_response', { success: true, gameState });
+      socket.join(gameId);
+    } catch (error) {
+      socket.emit('connect_response', { success: false });
+      socket.disconnect();
+    }
   });
 
   gameEvents.on('updateGameState', (gameState) => {
