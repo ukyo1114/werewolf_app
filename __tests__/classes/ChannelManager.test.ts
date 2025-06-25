@@ -69,9 +69,9 @@ describe('test ChannelManager', () => {
   });
 
   describe('test userJoined', () => {
-    it('should allow user to join normal channel', async () => {
+    it('should allow user to join normal channel', () => {
       const channel = new ChannelManager(mockChannelId);
-      await channel.userJoined(mockUserId, mockSocketId);
+      channel.userJoined(mockUserId, mockSocketId);
 
       const user = channel.users[mockUserId];
       expect(user.userId).toBe(mockUserId);
@@ -79,10 +79,10 @@ describe('test ChannelManager', () => {
       expect(user.status).toBe('normal');
     });
 
-    it('should allow user to join game channel', async () => {
+    it('should allow user to join game channel', () => {
       const channel = new ChannelManager(mockGameId, game);
 
-      await channel.userJoined('villager', mockSocketId);
+      channel.userJoined('villager', mockSocketId);
       const user = channel.users.villager;
 
       expect(user.userId).toBe('villager');
@@ -90,10 +90,10 @@ describe('test ChannelManager', () => {
       expect(user.status).toBe('normal');
     });
 
-    it('should set status to werewolf when user is werewolf', async () => {
+    it('should set status to werewolf when user is werewolf', () => {
       const channel = new ChannelManager(mockGameId, game);
 
-      await channel.userJoined('werewolf', mockSocketId);
+      channel.userJoined('werewolf', mockSocketId);
       const user = channel.users.werewolf;
 
       expect(user.userId).toBe('werewolf');
@@ -101,11 +101,11 @@ describe('test ChannelManager', () => {
       expect(user.status).toBe('werewolf');
     });
 
-    it('should set status to spectator when user is dead', async () => {
+    it('should set status to spectator when user is dead', () => {
       const channel = new ChannelManager(mockGameId, game);
       game.playerManager.players.villager.status = 'dead';
 
-      await channel.userJoined('villager', mockSocketId);
+      channel.userJoined('villager', mockSocketId);
       const user = channel.users.villager;
 
       expect(user.userId).toBe('villager');
@@ -113,10 +113,10 @@ describe('test ChannelManager', () => {
       expect(user.status).toBe('spectator');
     });
 
-    it('should set status to spectator when user is not in game', async () => {
+    it('should set status to spectator when user is not in game', () => {
       const channel = new ChannelManager(mockGameId, game);
 
-      await channel.userJoined(mockUserId, mockSocketId);
+      channel.userJoined(mockUserId, mockSocketId);
       const user = channel.users[mockUserId];
 
       expect(user.userId).toBe(mockUserId);
@@ -126,7 +126,7 @@ describe('test ChannelManager', () => {
   });
 
   describe('test userLeft', () => {
-    it('should remove user when they leave', async () => {
+    it('should remove user when they leave', () => {
       channelManagers[mockChannelId] = new ChannelManager(mockChannelId);
       const channel = channelManagers[mockChannelId];
       channel.users = channelUsers();

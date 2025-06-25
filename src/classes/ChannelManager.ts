@@ -1,7 +1,7 @@
 import _ from 'lodash';
 
 import AppError from '../utils/AppError';
-import { errors } from '../config/messages';
+import { errors, socketError } from '../config/messages';
 import { appState } from '../app';
 import { IChannelUser, MessageType } from '../config/types';
 import GameManager from './GameManager';
@@ -42,11 +42,11 @@ export default class ChannelManager {
         ));
       }
     } catch (error) {
-      throw new Error(errors.CHANNEL_CREATION_FAILED);
+      throw new Error(socketError.CHANNEL_CONNECTION_FAILED);
     }
   }
 
-  async userJoined(userId: string, socketId: string): Promise<void> {
+  userJoined(userId: string, socketId: string): void {
     const game = this.game;
     const user: IChannelUser = { userId, socketId, status: 'normal' };
 
