@@ -105,4 +105,5 @@ export const socketError = {
   AUTH_INFO_INVALID: '認証情報が無効です',
   AUTH_TOKEN_INVALID: '認証トークンが無効です',
   AUTH_USER_NOT_FOUND: 'ユーザーが見つかりません',
+  CHANNEL_CONNECTION_FAILED: 'チャンネルに接続できませんでした',
 };

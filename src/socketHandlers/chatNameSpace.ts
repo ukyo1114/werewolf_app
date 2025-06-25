@@ -24,7 +24,7 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
       channelManagers[channelId] ||
       (await ChannelManager.createChannelInstance(channelId));
 
-    await channelManager.userJoined(userId, socketId);
+    channelManager.userJoined(userId, socketId);
     socket.join(channelId);
     next();
   });
