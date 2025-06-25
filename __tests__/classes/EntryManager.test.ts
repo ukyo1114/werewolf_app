@@ -2,6 +2,7 @@ import { EventEmitter } from 'events';
 jest.mock('../../src/app', () => ({
   appState: {
     gameManagers: {},
+    entryManagers: {},
   },
   Events: {
     entryEvents: new EventEmitter(),
@@ -9,9 +10,10 @@ jest.mock('../../src/app', () => ({
   },
 }));
 
-import { Events } from '../../src/app';
+import { Events, appState } from '../../src/app';
 import GameManager from '../../src/classes/GameManager';
 import EntryManager from '../../src/classes/EntryManager';
+import Channel from '../../src/models/Channel';
 import {
   mockUserId,
   mockChannelId,
@@ -198,6 +200,72 @@ describe('EntryManager', () => {
         users: ['testSocketId'],
         gameId: mockGameId,
       });
+    });
+  });
+
+  describe('createEntryManager', () => {
+    beforeEach(() => {
+      if (appState.entryManagers[mockChannelId]) {
+        delete appState.entryManagers[mockChannelId];
+      }
+      jest.clearAllMocks();
+    });
+
+    it('should create a new EntryManager when one does not exist', async () => {
+      const mockChannel = {
+        _id: mockChannelId,
+        numberOfPlayers: 5,
+      };
+
+      Channel.findById = jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(mockChannel),
+        }),
+      });
+
+      const result = await EntryManager.createEntryManager(mockChannelId);
+
+      expect(result).toBeInstanceOf(EntryManager);
+      expect(result.channelId).toBe(mockChannelId);
+      expect(result.MAX_USERS).toBe(5);
+      expect(appState.entryManagers[mockChannelId]).toBe(result);
+      expect(Channel.findById).toHaveBeenCalledWith(mockChannelId);
+    });
+
+    it('should return existing EntryManager when one already exists', async () => {
+      const existingManager = new EntryManager(mockChannelId, 3);
+      appState.entryManagers[mockChannelId] = existingManager;
+
+      const result = await EntryManager.createEntryManager(mockChannelId);
+
+      expect(result).toBe(existingManager);
+      expect(Channel.findById).not.toHaveBeenCalled();
+    });
+
+    it('should throw an error when channel is not found', async () => {
+      Channel.findById = jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockResolvedValue(null),
+        }),
+      });
+
+      await expect(
+        EntryManager.createEntryManager(mockChannelId),
+      ).rejects.toThrow();
+      expect(appState.entryManagers[mockChannelId]).toBeUndefined();
+    });
+
+    it('should throw an error when database query fails', async () => {
+      Channel.findById = jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnValue({
+          lean: jest.fn().mockRejectedValue(new Error('Database error')),
+        }),
+      });
+
+      await expect(
+        EntryManager.createEntryManager(mockChannelId),
+      ).rejects.toThrow('Database error');
+      expect(appState.entryManagers[mockChannelId]).toBeUndefined();
     });
   });
 });

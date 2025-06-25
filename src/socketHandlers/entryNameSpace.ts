@@ -1,5 +1,4 @@
 import { Namespace, Socket } from 'socket.io';
-import { errors } from '../config/messages';
 import { appState, Events } from '../app';
 import EntryManager from '../classes/EntryManager';
 import Channel from '../models/Channel';
@@ -22,20 +21,13 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
     const socketId = socket.id;
 
     try {
-      const channel = await Channel.findById(channelId)
-        .select('numberOfPlayers')
-        .lean();
-      if (!channel) throw new Error();
-
-      const entryManager = EntryManager.createEntryManager(
-        channelId,
-        channel.numberOfPlayers,
-      );
+      const entryManager = await EntryManager.createEntryManager(channelId);
       const users = entryManager.getUserList();
       socket.join(channelId);
-      socket.emit('connect_response', users);
+      socket.emit('connect_response', { success: true, users });
     } catch (error) {
-      socket.conn.close();
+      socket.emit('connect_response', { success: false });
+      socket.disconnect();
     }
 
     socket.on('registerEntry', async (callback) => {
@@ -65,7 +57,11 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
     });
 
     socket.on('disconnect', () => {
-      entryManagers[channelId]?.cancel(socketId);
+      try {
+        entryManagers[channelId]?.cancel(socketId);
+      } catch (error) {
+        console.log(error);
+      }
     });
 
     entryEvents.on('entryUpdate', (data) => {

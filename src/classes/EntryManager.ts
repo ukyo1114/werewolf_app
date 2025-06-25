@@ -1,5 +1,6 @@
 import GameManager from './GameManager';
 import { appState, Events } from '../app';
+import Channel from '../models/Channel';
 
 const { entryManagers } = appState;
 const { entryEvents } = Events;
@@ -15,12 +16,18 @@ export default class EntryManager {
     this.MAX_USERS = max_users;
   }
 
-  static createEntryManager(
-    channelId: string,
-    max_users: number = 10,
-  ): EntryManager {
+  static async createEntryManager(channelId: string): Promise<EntryManager> {
     if (entryManagers[channelId]) return entryManagers[channelId];
-    return (entryManagers[channelId] = new EntryManager(channelId, max_users));
+
+    const channel = await Channel.findById(channelId)
+      .select('numberOfPlayers')
+      .lean();
+    if (!channel) throw new Error();
+
+    return (entryManagers[channelId] = new EntryManager(
+      channelId,
+      channel.numberOfPlayers,
+    ));
   }
 
   async register(userId: string, socketId: string): Promise<void> {
