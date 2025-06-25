@@ -5,16 +5,6 @@ import GameUser from '../models/GameUser';
 import { decodeToken } from '../utils/decodeToken';
 import { socketError } from '../config/messages';
 
-export class CustomError extends Error {
-  data: { gameId: string };
-
-  constructor(gameId: string) {
-    super();
-    this.message = socketError.AUTH_ERROR;
-    this.data = { gameId };
-  }
-}
-
 export const authSocketUser =
   (nameSpace: string) =>
   async (socket: Socket, next: (err?: Error) => void): Promise<void> => {
@@ -30,8 +20,11 @@ export const authSocketUser =
       if (
         currentGameId &&
         (nameSpace === 'entry' || currentGameId !== channelId)
-      )
-        throw new CustomError(currentGameId);
+      ) {
+        const error = new Error(socketError.AUTH_ERROR);
+        (error as any).data = { gameId: currentGameId };
+        throw error;
+      }
 
       // DBチェック（namespaceに応じて必要なチェックのみ実行）
       let [userExists, inChannel, inGame] = [false, false, false];
@@ -54,7 +47,7 @@ export const authSocketUser =
       }
 
       if (!userExists) throw new Error(socketError.AUTH_USER_NOT_FOUND);
-      if (!inChannel && !inGame) throw new Error(socketError.AUTH_FAILED);
+      if (!inChannel && !inGame) throw new Error(socketError.AUTH_ERROR);
 
       (socket as any).userId = userId;
       (socket as any).channelId = channelId;

@@ -101,9 +101,8 @@ export const gameMaster = {
 };
 
 export const socketError = {
-  AUTH_ERROR: '認証エラーが発生しました',
+  AUTH_ERROR: '認証に失敗しました',
   AUTH_INFO_INVALID: '認証情報が無効です',
   AUTH_TOKEN_INVALID: '認証トークンが無効です',
   AUTH_USER_NOT_FOUND: 'ユーザーが見つかりません',
-  AUTH_FAILED: '認証に失敗しました',
 };
