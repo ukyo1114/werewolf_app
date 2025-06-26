@@ -11,16 +11,21 @@ import { CustomRequest } from '../../config/types';
 export const sendVerificationEmail = (action: keyof typeof mailContent) =>
   asyncHandler(
     async (
-      req: CustomRequest<{ email: string }>,
+      req: CustomRequest<{
+        email: string;
+        currentPassword: string | undefined;
+      }>,
       res: Response,
     ): Promise<void> => {
       const userId = req.userId;
-      const { email } = req.body;
+      const { email, currentPassword } = req.body;
 
       // ゲストアカウントによる操作を禁止
       if (action === 'changeEmail' && userId) {
-        const user = await User.findById(userId).select('isGuest').lean();
+        const user = await User.findById(userId);
         if (user?.isGuest) throw new AppError(403, errors.PERMISSION_DENIED);
+        if (!currentPassword || !(await user?.matchPassword(currentPassword)))
+          throw new AppError(401, errors.WRONG_PASSWORD);
       }
 
       const emailExists = await User.exists({ email });

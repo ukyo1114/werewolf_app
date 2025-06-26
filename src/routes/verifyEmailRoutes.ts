@@ -14,6 +14,11 @@ const validateEmail = body('email')
   .trim()
   .normalizeEmail();
 
+const validateCurrentPassword = body('currentPassword')
+  .trim()
+  .isLength({ min: 8, max: 64 })
+  .withMessage(validation.PASSWORD_LENGTH);
+
 router.post(
   '/register-user',
   [validateEmail],
@@ -23,7 +28,7 @@ router.post(
 
 router.post(
   '/change-email',
-  [validateEmail],
+  [validateEmail, validateCurrentPassword],
   validateRequest,
   protect,
   sendVerificationEmail('changeEmail'),
