@@ -90,13 +90,14 @@ describe('test verifyEmailRoutes', () => {
     const customRequest = async (
       userId: string,
       email: string | undefined,
+      currentPassword: string | undefined,
       status: number,
       errorMessage?: string,
     ) => {
       const mockToken = genUserToken(userId);
       const response = await request(app)
         .post('/api/verify-email/change-email')
-        .send({ email })
+        .send({ email, currentPassword })
         .set('authorization', `Bearer ${mockToken}`)
         .expect(status);
 
@@ -107,7 +108,7 @@ describe('test verifyEmailRoutes', () => {
     };
 
     it('メールアドレス変更用メールが送信できる', async () => {
-      await customRequest(testUserId, 'change@example.com', 202);
+      await customRequest(testUserId, 'change@example.com', 'password', 202);
       expect(sendMailMock).toHaveBeenCalledWith(
         'change@example.com',
         expect.any(String),
@@ -119,6 +120,7 @@ describe('test verifyEmailRoutes', () => {
       await customRequest(
         testUserId,
         'already-registered@example.com',
+        'password',
         400,
         errors.EMAIL_ALREADY_REGISTERED,
       );
@@ -128,19 +130,27 @@ describe('test verifyEmailRoutes', () => {
       await customRequest(
         guestUserId,
         'change@example.com',
+        'password',
         403,
         errors.PERMISSION_DENIED,
       );
     });
 
     it('メールアドレスがundefinedのとき', async () => {
-      await customRequest(testUserId, undefined, 400, validation.INVALID_EMAIL);
+      await customRequest(
+        testUserId,
+        undefined,
+        'password',
+        400,
+        validation.INVALID_EMAIL,
+      );
     });
 
     it('メールアドレスの形式が正しくないとき', async () => {
       await customRequest(
         testUserId,
         'invalidEmail',
+        'password',
         400,
         validation.INVALID_EMAIL,
       );
@@ -151,8 +161,29 @@ describe('test verifyEmailRoutes', () => {
       await customRequest(
         testUserId,
         'change@example.com',
+        'password',
         500,
         errors.EMAIL_SEND_FAILED,
+      );
+    });
+
+    it('should throw error if currentPassword is not contained', async () => {
+      await customRequest(
+        testUserId,
+        'change@example.com',
+        undefined,
+        400,
+        validation.PASSWORD_LENGTH,
+      );
+    });
+
+    it('should throw error if currentPassword is incorrect', async () => {
+      await customRequest(
+        testUserId,
+        'change@example.com',
+        'wrongPassword',
+        401,
+        errors.WRONG_PASSWORD,
       );
     });
   });
