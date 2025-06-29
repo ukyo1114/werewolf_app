@@ -390,7 +390,7 @@ describe('test messageRoutes', () => {
         'newMessage',
         testChannelId,
         expect.any(Object),
-        null,
+        [],
       );
     });
 
@@ -410,7 +410,7 @@ describe('test messageRoutes', () => {
         testChannelId,
         'testMessage',
         403,
-        errors.CHANNEL_ACCESS_FORBIDDEN,
+        errors.MESSAGE_SENDING_FORBIDDEN,
       );
     });
 

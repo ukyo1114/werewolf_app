@@ -11,10 +11,17 @@ jest.mock('@aws-sdk/client-s3', () => ({
   })),
 }));
 
+// Userモデルのモック
+jest.mock('../../../src/models/User', () => ({
+  findByIdAndUpdate: jest.fn(),
+}));
+
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { uploadPicture } from '../../../src/controllers/userController/utils';
 import AppError from '../../../src/utils/AppError';
 import { errors } from '../../../src/config/messages';
+import User from '../../../src/models/User';
+import { ObjectId } from 'mongodb';
 
 describe('uploadPicture', () => {
   // テスト用の環境変数
@@ -25,9 +32,9 @@ describe('uploadPicture', () => {
     S3_BUCKET_NAME: 'test-bucket',
   };
 
-  // テスト用のデータ
+  // テスト用のデータ - 有効なObjectIdを使用
   const mockBase64Image = 'data:image/jpeg;base64,dGVzdC1pbWFnZS1kYXRh'; // "test-image-data" をbase64エンコード
-  const mockUserId = 'user123';
+  const mockUserId = new ObjectId().toString();
 
   beforeEach(() => {
     // 環境変数の設定
@@ -41,6 +48,7 @@ describe('uploadPicture', () => {
   it('should successfully upload a file to S3', async () => {
     // 成功時のモック実装
     mockSend.mockResolvedValueOnce({});
+    (User.findByIdAndUpdate as jest.Mock).mockResolvedValueOnce({});
 
     const result = await uploadPicture({
       userId: mockUserId,
@@ -59,6 +67,9 @@ describe('uploadPicture', () => {
       Body: Buffer.from('test-image-data'),
       ContentType: 'image/jpeg',
       CacheControl: 'no-cache',
+    });
+    expect(User.findByIdAndUpdate).toHaveBeenCalledWith(mockUserId, {
+      pic: expectedUrl,
     });
   });
 

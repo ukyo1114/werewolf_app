@@ -12,7 +12,7 @@ import {
 import User from '../../src/models/User';
 import Channel from '../../src/models/Channel';
 import ChannelUser from '../../src/models/ChannelUser';
-import { errors } from '../../src/config/messages';
+import { errors, socketError } from '../../src/config/messages';
 import GameManager from '../../src/classes/GameManager';
 import EntryManager from '../../src/classes/EntryManager';
 import { ObjectId } from 'mongodb';
@@ -123,14 +123,14 @@ describe('test entryNameSpace', () => {
     it('should throw error when token is undefined', async () => {
       await result({
         channelId: testChannelId,
-        errorMessage: errors.AUTH_ERROR,
+        errorMessage: socketError.AUTH_ERROR,
       });
     });
 
     it('should throw error when channelId is undefined', async () => {
       await result({
         token: genUserToken(testUserId),
-        errorMessage: errors.AUTH_ERROR,
+        errorMessage: socketError.AUTH_ERROR,
       });
     });
 
@@ -139,7 +139,7 @@ describe('test entryNameSpace', () => {
       await result({
         token: genUserToken(testUserId),
         channelId: testChannelId,
-        errorMessage: errors.AUTH_ERROR,
+        errorMessage: socketError.AUTH_ERROR,
         gameId: mockGameId,
       });
     });
@@ -150,7 +150,7 @@ describe('test entryNameSpace', () => {
       await result({
         token: genUserToken(testUserId),
         channelId: testChannelId,
-        errorMessage: errors.AUTH_ERROR,
+        errorMessage: socketError.AUTH_USER_NOT_FOUND,
       });
     });
 
@@ -160,7 +160,7 @@ describe('test entryNameSpace', () => {
       await result({
         token: genUserToken(testUserId),
         channelId: testChannelId,
-        errorMessage: errors.AUTH_ERROR,
+        errorMessage: socketError.AUTH_ERROR,
       });
     });
 
@@ -185,12 +185,21 @@ describe('test entryNameSpace', () => {
 
       await new Promise<void>((resolve) => {
         if (errorOccured) {
-          clientSocket.on('connect_error', () => resolve());
+          clientSocket.on(
+            'connect_response',
+            (result: { success: boolean }) => {
+              expect(result).toEqual({ success: false });
+              resolve();
+            },
+          );
         } else {
-          clientSocket.on('connect_response', (users: string[]) => {
-            expect(users).toEqual([]);
-            resolve();
-          });
+          clientSocket.on(
+            'connect_response',
+            (result: { success: boolean; users: string[] }) => {
+              expect(result).toEqual({ success: true, users: [] });
+              resolve();
+            },
+          );
         }
 
         clientSocket.connect();
@@ -210,11 +219,9 @@ describe('test entryNameSpace', () => {
 
   describe('test registerEntry', () => {
     const result = async ({
-      success,
-      errorMessage,
+      connectResponse,
     }: {
-      success: boolean;
-      errorMessage?: string;
+      connectResponse: { success: boolean };
     }) => {
       User.exists = jest.fn().mockReturnValueOnce(true);
       ChannelUser.exists = jest.fn().mockReturnValueOnce(true);
@@ -224,25 +231,27 @@ describe('test entryNameSpace', () => {
       );
 
       await new Promise<void>((resolve) => {
-        clientSocket.on('connect_response', (users: string[]) => {
-          expect(users).toEqual([]);
-          resolve();
-        });
+        clientSocket.on(
+          'connect_response',
+          (result: { success: boolean; users: string[] }) => {
+            expect(result).toEqual({ success: true, users: [] });
+            resolve();
+          },
+        );
 
         clientSocket.connect();
       });
 
-      if (!success) delete entryManagers[testChannelId];
+      if (!connectResponse.success) delete entryManagers[testChannelId];
 
       const response = await clientSocket.emitWithAck('registerEntry');
-      expect(response.success).toBe(success);
-      if (errorMessage) expect(response.message).toBe(errorMessage);
+      expect(response.success).toBe(connectResponse.success);
 
       clientSocket.close();
     };
 
     it('should register entry when user is registered and in Channel', async () => {
-      await result({ success: true });
+      await result({ connectResponse: { success: true } });
       expect(
         Object.values(entryManagers[testChannelId].users).some(
           (user) => user.userId === testUserId,
@@ -252,8 +261,7 @@ describe('test entryNameSpace', () => {
 
     it('should throw error when user is not registered', async () => {
       await result({
-        success: false,
-        errorMessage: errors.CHANNEL_ACCESS_FORBIDDEN,
+        connectResponse: { success: false },
       });
     });
   });
