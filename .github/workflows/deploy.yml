@@ -1,0 +1,85 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build backend
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # アプリケーションディレクトリに移動
+            cd /var/www/werewolf-app
+
+            # 最新のコードを取得
+            git pull origin main
+
+            # 依存関係をインストール
+            npm ci --production
+
+            # 環境変数を設定
+            echo "${{ secrets.ENV_FILE }}" > .env
+
+            # PM2でアプリケーションを再起動
+            pm2 restart werewolf-backend || pm2 start dist/app.js --name werewolf-backend
+
+            # PM2の設定を保存
+            pm2 save
+
+            # nginxの設定をテスト
+            sudo nginx -t
+
+            # nginxを再起動
+            sudo systemctl reload nginx
+
+      - name: Deploy Frontend (if separate repo)
+        if: ${{ secrets.FRONTEND_REPO }}
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # フロントエンドディレクトリに移動
+            cd /var/www/werewolf-app/frontend
+
+            # 最新のコードを取得
+            git pull origin main
+
+            # 依存関係をインストール
+            npm ci
+
+            # ビルド
+            npm run build
+
+            # nginxを再起動
+            sudo systemctl reload nginx

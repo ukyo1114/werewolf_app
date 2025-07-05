@@ -1,0 +1,29 @@
+# バックエンド用Dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# パッケージファイルをコピー
+COPY package*.json ./
+
+# 依存関係をインストール
+RUN npm ci --only=production
+
+# ソースコードをコピー
+COPY . .
+
+# TypeScriptをコンパイル
+RUN npm run build
+
+# ログディレクトリを作成
+RUN mkdir -p /app/logs
+
+# ポートを公開
+EXPOSE 3000
+
+# ヘルスチェック
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+
+# アプリケーションを起動
+CMD ["npm", "start"] 
