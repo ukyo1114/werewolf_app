@@ -1,0 +1,35 @@
+FROM nginx:alpine
+
+# メタデータ
+LABEL maintainer="Werewolf App Team"
+LABEL description="Nginx web server for Werewolf application"
+
+# 必要なパッケージをインストール
+RUN apk add --no-cache \
+    curl \
+    wget \
+    && rm -rf /var/cache/apk/*
+
+# nginx設定ファイルをコピー
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY werewolf-app.conf /etc/nginx/conf.d/werewolf-app.conf
+
+# 必要なディレクトリを作成
+RUN mkdir -p /var/www/werewolf-app/frontend/build \
+    && mkdir -p /var/log/nginx \
+    && mkdir -p /etc/letsencrypt/live/werewolf10.com \
+    && mkdir -p /etc/letsencrypt/archive/werewolf10.com
+
+# nginxユーザーに権限を付与
+RUN chown -R nginx:nginx /var/www/werewolf-app \
+    && chown -R nginx:nginx /var/log/nginx \
+    && chmod -R 755 /var/www/werewolf-app
+
+# ヘルスチェック用のエンドポイントを作成
+RUN echo "server { listen 80; location /health { return 200 'healthy'; } }" > /etc/nginx/conf.d/health.conf
+
+# ポートを公開
+EXPOSE 80 443
+
+# nginxを起動
+CMD ["nginx", "-g", "daemon off;"] 

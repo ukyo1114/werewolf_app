@@ -1,0 +1,18 @@
+.App {
+  min-height: 100dvh;
+  display: flex;
+  background-size: cover;
+  background-position: center;
+}
+.icons:hover {
+  cursor: pointer;
+}
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.281);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

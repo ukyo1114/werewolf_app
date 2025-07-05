@@ -1,0 +1,15 @@
+FROM mongo:6.0
+
+# 環境変数の設定
+ENV MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+ENV MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+ENV MONGO_INITDB_DATABASE=werewolf
+
+# データベースの初期化スクリプトをコピー
+COPY ./mongo-init/ /docker-entrypoint-initdb.d/
+
+# ポートを公開
+EXPOSE 27017
+
+# MongoDBを起動
+CMD ["mongod"] 
