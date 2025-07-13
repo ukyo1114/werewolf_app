@@ -9,12 +9,10 @@ import DisplayUser from "../../../../components/DisplayUser.jsx";
 import { CustomButton } from "../../../../components/CustomComponents.jsx";
 import ModalTemplete from "../../../../components/ModalTemplete.jsx";
 import { TITLE_MAP } from "../../../../constants.js";
-import mockUserList from "../../../../../__tests__/userList.js";
 
 const VoteModal = ({ mode, isOpen, onClose }) => {
   const { user, currentChannel } = useUserState();
-  const { /* users,  */ phase } = currentChannel;
-  const users = mockUserList;
+  const { users, phase } = currentChannel;
   const [button, setButton] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
 

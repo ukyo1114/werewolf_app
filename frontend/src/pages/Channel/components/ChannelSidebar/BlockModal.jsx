@@ -9,7 +9,6 @@ import DisplayUser from "../../../../components/DisplayUser.jsx";
 import { CustomButton } from "../../../../components/CustomComponents.jsx";
 import { messages } from "../../../../messages.js";
 import ModalTemplete from "../../../../components/ModalTemplete.jsx";
-import mockUserList from "../../../../../__tests__/userList.js";
 import { NonExistentUserBadge } from "../../../../components/Badge.jsx";
 
 const BlockModal = ({ isOpen, onClose }) => {
@@ -82,7 +81,7 @@ const BlockModal = ({ isOpen, onClose }) => {
           selectedUser={selectedUser}
           setSelectedUser={setSelectedUser}
           setBlockUserList={setBlockUserList}
-          users={mockUserList}
+          users={currentChannel.users}
         />
       )}
       {activeTabIndex === 1 && (

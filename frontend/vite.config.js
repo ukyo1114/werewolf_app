@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
           }
         : {},
     build: {
-      outDir: "../server/public/build",
+      outDir: "dist",
       emptyOutDir: true,
     },
     test: {

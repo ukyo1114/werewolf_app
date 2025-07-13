@@ -28,7 +28,7 @@
   },
   "scripts": {
     "start": "vite",
-    "build": "vite build --mode development",
+    "build": "vite build --mode dev",
     "build:staging": "vite build --mode staging",
     "build:production": "vite build --mode production",
     "serve": "vite preview",
