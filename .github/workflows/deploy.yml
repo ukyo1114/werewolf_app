@@ -1,0 +1,78 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          npm ci
+          cd ../frontend
+          npm ci
+
+      - name: Run tests
+        run: |
+          cd backend
+          npm test
+          cd ../frontend
+          npm test
+
+      - name: Build applications
+        run: |
+          cd backend
+          npm run build
+          cd ../frontend
+          npm run build:production
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # アプリケーションディレクトリに移動
+            cd /var/www/werewolf-app
+
+            # 最新のコードを取得
+            git pull origin main
+
+            # 環境変数ファイルを確認
+            if [ ! -f deploy/.env ]; then
+              echo "環境変数ファイルが見つかりません。手動で設定してください。"
+              exit 1
+            fi
+
+            # Docker Composeでアプリケーションを起動
+            cd deploy
+            docker-compose -f docker-compose.werewolf.yml down
+            docker-compose -f docker-compose.werewolf.yml up -d --build
+
+            # ヘルスチェック
+            sleep 30
+            docker-compose -f docker-compose.werewolf.yml ps
+
+            # ログを確認
+            docker-compose -f docker-compose.werewolf.yml logs --tail=50
+
+      - name: Health check
+        run: |
+          # アプリケーションの応答確認
+          sleep 60
+          curl -f ${{ secrets.APP_URL }}/health || echo "Health check failed"
