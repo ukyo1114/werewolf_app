@@ -6,8 +6,8 @@ WORKDIR /app
 # パッケージファイルをコピー
 COPY package*.json ./
 
-# 依存関係をインストール
-RUN npm ci --only=production
+# 依存関係をインストール（TypeScriptコンパイルのため開発依存関係も含める）
+RUN npm ci
 
 # ソースコードをコピー
 COPY . .
@@ -15,15 +15,18 @@ COPY . .
 # TypeScriptをコンパイル
 RUN npm run build
 
+# 本番用依存関係のみを再インストール（開発依存関係を削除）
+RUN npm ci --only=production
+
 # ログディレクトリを作成
 RUN mkdir -p /app/logs
 
 # ポートを公開
-EXPOSE 3000
+EXPOSE 5000
 
 # ヘルスチェック
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD node -e "require('http').get('http://localhost:5000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # アプリケーションを起動
 CMD ["npm", "start"] 
