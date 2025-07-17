@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 
 echo "Creating MongoDB user with environment variables..."
 echo "MONGO_APP_USERNAME: ${MONGO_APP_USERNAME:-werewolf_user}"

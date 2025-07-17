@@ -1,5 +1,8 @@
 FROM mongo:6.0
 
+# dos2unixをインストールして改行コードを変換
+RUN apt-get update && apt-get install -y dos2unix && rm -rf /var/lib/apt/lists/*
+
 # 環境変数の設定
 ENV MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
 ENV MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
@@ -7,6 +10,9 @@ ENV MONGO_INITDB_DATABASE=werewolf
 
 # データベースの初期化スクリプトをコピー
 COPY ./mongo-init/ /docker-entrypoint-initdb.d/
+
+# シェルスクリプトの改行コードをLFに変換
+RUN find /docker-entrypoint-initdb.d/ -name "*.sh" -exec dos2unix {} \;
 
 # ポートを公開
 EXPOSE 27017
