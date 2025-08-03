@@ -1,12 +1,50 @@
 FROM mongo:6.0
 
+# ビルド時の引数を定義
+ARG MONGO_ROOT_USERNAME
+ARG MONGO_ROOT_PASSWORD
+ARG MONGO_APP_USERNAME
+ARG MONGO_APP_PASSWORD
+ARG MONGO_INITDB_DATABASE
+
 # 環境変数の設定
 ENV MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
 ENV MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
-ENV MONGO_INITDB_DATABASE=werewolf
+ENV MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE:-werewolf}
+ENV MONGO_APP_USERNAME=${MONGO_APP_USERNAME}
+ENV MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
 
-# データベースの初期化スクリプトをコピー
-COPY ./mongo-init/ /docker-entrypoint-initdb.d/
+# 初期化スクリプトを直接作成
+RUN echo '#!/bin/bash' > /docker-entrypoint-initdb.d/create-user.sh \
+    && echo '' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'echo "Creating MongoDB user with environment variables..."' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'echo "MONGO_APP_USERNAME: $MONGO_APP_USERNAME"' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'echo "MONGO_APP_PASSWORD: $MONGO_APP_PASSWORD"' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo '' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo '# アプリケーションユーザーを作成' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'mongosh <<EOF' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'use werewolf' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'db.createUser({' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo '  user: "$MONGO_APP_USERNAME",' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo '  pwd: "$MONGO_APP_PASSWORD",' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo '  roles: [{ role: "readWrite", db: "werewolf" }]' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo '})' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'EOF' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo '' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo '# 初期コレクションを作成' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'mongosh <<EOF' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'use werewolf' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'db.createCollection("channelblockusers")' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'db.createCollection("channels")' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'db.createCollection("channelusers")' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'db.createCollection("games")' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'db.createCollection("gameusers")' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'db.createCollection("messages")' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'db.createCollection("users")' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'EOF' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo '' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && echo 'echo "MongoDB initialization completed successfully"' >> /docker-entrypoint-initdb.d/create-user.sh \
+    && chmod +x /docker-entrypoint-initdb.d/create-user.sh
 
 # ポートを公開
 EXPOSE 27017

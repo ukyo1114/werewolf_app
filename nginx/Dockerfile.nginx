@@ -2,7 +2,7 @@ FROM nginx:alpine
 
 # メタデータ
 LABEL maintainer="Werewolf App Team"
-LABEL description="Nginx web server for Werewolf application"
+LABEL description="Nginx web server for Werewolf application (Production)"
 
 # 必要なパッケージをインストール
 RUN apk add --no-cache \
@@ -16,9 +16,7 @@ COPY werewolf-app.conf /etc/nginx/conf.d/werewolf-app.conf
 
 # 必要なディレクトリを作成
 RUN mkdir -p /var/www/werewolf-app/frontend/build \
-    && mkdir -p /var/log/nginx \
-    && mkdir -p /etc/letsencrypt/live/werewolf10.com \
-    && mkdir -p /etc/letsencrypt/archive/werewolf10.com
+    && mkdir -p /var/log/nginx
 
 # nginxユーザーに権限を付与
 RUN chown -R nginx:nginx /var/www/werewolf-app \

@@ -41,8 +41,10 @@ const SpectatorModal = ({ isOpen, onClose }) => {
   }, [user.token, channelId, setGameList, showToast]);
 
   useEffect(() => {
-    fetchGameList();
-  }, [fetchGameList]);
+    if (isOpen) {
+      fetchGameList();
+    }
+  }, [isOpen, fetchGameList]);
 
   return (
     <ModalTemplete isOpen={isOpen} onClose={onClose} title={"ゲームリスト"}>

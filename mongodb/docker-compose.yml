@@ -1,0 +1,39 @@
+services:
+  mongodb:
+    build:
+      context: .
+      dockerfile: Dockerfile.mongodb
+      args:
+        - MONGO_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+        - MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+        - MONGO_APP_USERNAME=${MONGO_APP_USERNAME}
+        - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
+        - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+    container_name: werewolf-mongodb
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+      - MONGO_APP_USERNAME=${MONGO_APP_USERNAME}
+      - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - werewolf-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mongodb_data:
+    driver: local
+
+networks:
+  werewolf-network:
+    driver: bridge
