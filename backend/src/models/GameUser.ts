@@ -12,6 +12,7 @@ interface IGameUser extends Document {
     | 'freemason'
     | 'werewolf'
     | 'madman'
+    | 'fanatic'
     | 'fox'
     | 'immoralist'
     | 'spectator';
@@ -57,6 +58,7 @@ const GameUserSchema = new Schema<IGameUser>(
         'freemason',
         'werewolf',
         'madman',
+        'fanatic',
         'fox',
         'immoralist',
         'spectator',

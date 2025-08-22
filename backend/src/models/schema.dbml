@@ -1,0 +1,151 @@
+Project werewolf {
+  database_type: "PostgreSQL"
+  note: "IDはUUID想定。gen_random_uuid()/uuid_generate_v4()など環境に合わせて調整"
+}
+
+Enum role_enum {
+  villager    // 村人
+  seer        // 占い師
+  medium      // 霊媒師
+  hunter      // 狩人
+  freemason   // 共有者
+  werewolf    // 人狼
+  madman      // 狂人
+  fanatic     // 狂信者
+  fox         // 妖狐
+  immoralist  // 背徳者
+  spectator   // 観戦者
+}
+
+Enum message_type_enum {
+  normal     // 通常
+  werewolf   // 人狼
+  spectator  // 観戦
+  freemason  // 共有者
+  system     // システム
+}
+
+Enum game_result_enum {
+  running            // 進行中
+  villagersWin       // 村人勝利
+  werewolvesWin      // 人狼勝利
+  foxesWin           // 妖狐勝利
+  villageAbandoned   // 廃村
+}
+
+Table users {
+  id uuid [pk, not null, default: `gen_random_uuid()`]
+  user_name varchar(20) [not null, default: 'ゲスト']
+  email varchar(255) [unique] // PostgresはNULL重複可
+  password varchar(255) // ハッシュ格納
+  pic varchar(255)
+  is_guest boolean [not null, default: false]
+
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  is_deleted boolean [not null, default: false]
+}
+
+Table user_role_stats {
+  user_id uuid [not null, ref: > users.id]
+  role role_enum [not null]
+  total_games int [not null, default: 0]
+  victories int [not null, default: 0]
+
+  indexes {
+    (user_id, role) [pk]
+  }
+}
+
+Table channels {
+  id uuid [pk, not null, default: `gen_random_uuid()`]
+  channel_name varchar(50) [not null]
+  channel_description varchar(2000) [not null]
+  password_enabled boolean [not null, default: false]
+  password varchar(255) // 有効時のみ設定（アプリ層でバリデーション）
+  channel_admin uuid [not null, ref: > users.id]
+  deny_guests boolean [not null, default: false]
+  number_of_players int [not null, default: 10] // 範囲 5..20 はSQLでCHECK推奨
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  is_deleted boolean [not null, default: false] // note: "ユーザー削除時はDBトリガ(またはアプリ)で当該チャンネルを is_deleted=true に更新"
+
+  indexes {
+    (channel_admin)
+  }
+}
+
+Table messages {
+  id uuid [pk, not null, default: `gen_random_uuid()`]
+  channel_id uuid [not null, ref: > channels.id]
+  user_id uuid [not null, ref: > users.id]
+  reply_to_id uuid [not null, ref: > messages.id]
+  message varchar(400) [not null]
+  message_type message_type_enum [not null, default: 'normal']
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (channel_id, created_at)
+    (reply_to_id)
+  }
+}
+
+Table channel_participants {
+  channel_id uuid [not null, ref: > channels.id]
+  user_id uuid [not null, ref: > users.id]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (channel_id, user_id) [pk]
+  }
+}
+
+Table channel_blocked_users {
+  channel_id uuid [not null, ref: > channels.id]
+  user_id uuid [not null, ref: > users.id]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (channel_id, user_id) [pk]
+    (user_id)
+  }
+}
+
+Table games {
+  id uuid [pk, not null, default: `gen_random_uuid()`]
+  channel_id uuid [not null, ref: > channels.id]
+  result game_result_enum [not null, default: 'running']
+  number_of_players int [not null, default: 10] // 範囲 5..20 はSQLでCHECK推奨
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (channel_id)
+  }
+}
+
+Table game_users {
+  game_id uuid [not null, ref: > games.id]
+  user_id uuid [not null, ref: > users.id]
+  role role_enum [not null, default: 'spectator']
+  is_playing boolean [not null, default: false]
+  created_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [not null, default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (game_id, user_id) [pk]
+    (user_id)
+  }
+}
+
+// 主要リレーション（Refは列内ref指定で定義済みだが明示）
+Ref: channels.channel_admin > users.id
+Ref: messages.channel_id > channels.id
+Ref: messages.user_id > users.id
+Ref: channel_participants.channel_id > channels.id
+Ref: channel_participants.user_id > users.id
+Ref: channel_block_users.channel_id > channels.id
+Ref: channel_block_users.user_id > users.id
+Ref: games.channel_id > channels.id
+Ref: game_users.game_id > games.id
+Ref: game_users.user_id > users.id

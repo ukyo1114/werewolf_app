@@ -1,0 +1,10 @@
+[33m11aac8b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mdevelopment[m[33m)[m 本番環境でコールスタックが呼び出されないように調整
+[33m2b864cc[m[33m ([m[1;31morigin/development[m[33m)[m backend: コンテナのチェック
+[33m5f6dad2[m[33m ([m[1;32mmain[m[33m)[m frontend: dockerコンテナの起動調整
+[33m82ebab3[m mongodb: 起動スクリプトの修正
+[33m4347a1c[m[33m ([m[1;31morigin/main[m[33m)[m readme: プロジェクト説明ドキュメントの作成
+[33m5c1c0f1[m deploy: 準備済み
+[33m66241ff[m deploy: デプロイ用設定の作成（仮）
+[33m839477a[m repair: テスト内容の修正
+[33m2938fa0[m verifyEmailController: パスワード認証のテスト
+[33m6fe544e[m verifyEmailController: パスワード認証を追加

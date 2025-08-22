@@ -1,8 +1,8 @@
-import User from '../../src/models/User';
-import Channel from '../../src/models/Channel';
+import User from '@/models/User';
+import Channel from '@/models/Channel';
 import mongoose from 'mongoose';
-import { errors } from '../../src/config/messages';
-import AppError from '../../src/utils/AppError';
+import { errors } from '@/config/messages';
+import AppError from '@/utils/AppError';
 
 describe('Channel Model Test', () => {
   const adminId = new mongoose.Types.ObjectId().toString();

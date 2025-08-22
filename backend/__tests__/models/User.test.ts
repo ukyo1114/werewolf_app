@@ -1,8 +1,8 @@
-import User from '../../src/models/User';
+import User from '@/models/User';
 import mongoose from 'mongoose';
 import { ObjectId } from 'mongodb';
-import AppError from '../../src/utils/AppError';
-import { errors } from '../../src/config/messages';
+import AppError from '@/utils/AppError';
+import { errors } from '@/config/messages';
 
 describe('User Model Test', () => {
   beforeAll(async () => {

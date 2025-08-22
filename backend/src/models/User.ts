@@ -141,7 +141,7 @@ UserSchema.pre<IUser>('save', async function (next) {
   next();
 });
 
-// ゲストユーザーかどうかを確認
+// 繧ｲ繧ｹ繝医Θ繝ｼ繧ｶ繝ｼ縺九←縺・°繧堤｢ｺ隱・
 UserSchema.statics.isGuestUser = async function (
   userId: string,
 ): Promise<boolean> {
