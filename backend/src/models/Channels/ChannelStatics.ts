@@ -65,6 +65,6 @@ export const ChannelStatics = {
     userId: string,
   ): Promise<void> {
     const channel = await this.getChannelAsAdmin(channelId, userId);
-    await channel.delete();
+    await channel.softDelete();
   },
 };

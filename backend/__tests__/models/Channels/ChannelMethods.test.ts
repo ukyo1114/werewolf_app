@@ -48,10 +48,10 @@ describe('ChannelMethods', () => {
     });
   });
 
-  describe('delete (ソフトデリート)', () => {
+  describe('softDelete (ソフトデリート)', () => {
     it('deletedAtフィールドに現在の日時を設定する', async () => {
       const beforeDelete = new Date();
-      await channel.delete();
+      await channel.softDelete();
       const afterDelete = new Date();
 
       expect(channel.deletedAt).toBeDefined();
@@ -65,7 +65,7 @@ describe('ChannelMethods', () => {
     });
 
     it('チャンネルをデータベースから完全に削除しない', async () => {
-      await channel.delete();
+      await channel.softDelete();
 
       const deletedChannel = await Channels.findById(channelId);
       expect(deletedChannel).toBeDefined();

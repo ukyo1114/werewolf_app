@@ -12,7 +12,7 @@ export interface IChannel extends Document {
   numberOfPlayers: number;
   deletedAt: Date | undefined; // ソフトデリートフラグ（削除日時）
   matchPassword(enteredPassword: string): Promise<boolean>;
-  delete(): Promise<void>;
+  softDelete(): Promise<void>;
   update(data: IUpdateChannelSetingsData): Promise<IChannel>;
   createdAt: Date;
   updatedAt: Date;

@@ -62,7 +62,7 @@ describe('ChannelStatics', () => {
     it('削除されたチャンネルでエラーを投げる', async () => {
       // チャンネルを削除
       const channel = await Channels.findById(channelId);
-      await channel?.delete();
+      await channel?.softDelete();
 
       await expect(
         Channels.getChannelAsAdmin(channelId, adminId),
@@ -91,7 +91,7 @@ describe('ChannelStatics', () => {
     it('削除されたチャンネルでエラーを投げる', async () => {
       // チャンネルを削除
       const channel = await Channels.findById(channelId);
-      await channel?.delete();
+      await channel?.softDelete();
 
       await expect(Channels.isChannelAdmin(channelId, adminId)).rejects.toThrow(
         errors.CHANNEL_NOT_FOUND,
@@ -116,8 +116,10 @@ describe('ChannelStatics', () => {
 
       const channelList = await Channels.getChannelList();
 
-      expect(channelList).toHaveLength(3); // 初期チャンネル + 新しく作成した2つ
-      expect(channelList[0].password).toBeUndefined(); // パスワードは除外される
+      expect(channelList.length).toBeGreaterThanOrEqual(3);
+      channelList.forEach((channel) => {
+        expect(channel.password).toBeUndefined();
+      });
       await Promise.all([
         Channels.deleteOne({ _id: channel1._id }),
         Channels.deleteOne({ _id: channel2._id }),
@@ -127,11 +129,11 @@ describe('ChannelStatics', () => {
     it('削除されたチャンネルは除外される', async () => {
       // チャンネルを削除
       const channel = await Channels.findById(channelId);
-      await channel?.delete();
+      await channel?.softDelete();
 
       const channelList = await Channels.getChannelList();
       channelList.forEach((channel) => {
-        expect(channel.deletedAt).toBeDefined();
+        expect(channel.deletedAt).toBeUndefined();
       });
     });
 

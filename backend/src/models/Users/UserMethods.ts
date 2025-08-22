@@ -1,27 +1,45 @@
 import bcrypt from 'bcryptjs';
 import { IUser } from './UserTypes';
+import { errors } from '../../config/messages';
 
 export const UserMethods = {
-  // パスワード照合
-  async matchPassword(this: IUser, enteredPassword: string): Promise<boolean> {
-    if (!this.password) throw new Error('パスワードが設定されていません');
-    return await bcrypt.compare(enteredPassword, this.password);
+  async matchPassword(this: IUser, enteredPassword: string): Promise<void> {
+    if (!this.password) throw new Error();
+    const isMatch = await bcrypt.compare(enteredPassword, this.password);
+    if (!isMatch) throw new Error(errors.WRONG_PASSWORD);
   },
 
-  // 削除状態確認
-  isDeleted(this: IUser): boolean {
-    return this.deletedAt !== null;
-  },
-
-  // ソフトデリート実行
   async softDelete(this: IUser): Promise<void> {
     this.deletedAt = new Date();
     await this.save();
   },
 
-  // 削除状態から復元
-  async restore(this: IUser): Promise<void> {
-    this.deletedAt = undefined;
+  async changePassword(
+    this: IUser,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    if (this.isGuest) throw new Error(errors.PERMISSION_DENIED);
+    await this.matchPassword(currentPassword);
+    this.password = newPassword;
+    await this.save();
+  },
+
+  async resetPassword(this: IUser, password: string): Promise<void> {
+    this.password = password;
+    await this.save();
+  },
+
+  async updateEmail(this: IUser, email: string): Promise<void> {
+    this.email = email;
+    await this.save();
+  },
+
+  async updateProfile(
+    this: IUser,
+    data: { userName?: string; pic?: string },
+  ): Promise<void> {
+    Object.assign(this, data);
     await this.save();
   },
 };

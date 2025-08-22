@@ -4,17 +4,18 @@ export const UserSchema = new Schema(
   {
     userName: {
       type: String,
-      required: true,
       maxlength: 20,
       default: 'ゲスト',
     },
     email: {
       type: String,
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      unique: true,
+      sparse: true, // null値の重複を許可
     },
     password: { type: String, minlength: 8 },
     pic: { type: String },
-    isGuest: { type: Boolean, default: false, required: true },
+    isGuest: { type: Boolean, default: false },
     deletedAt: { type: Date },
   },
   {

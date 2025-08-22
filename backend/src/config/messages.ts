@@ -43,6 +43,8 @@ export const errors = {
   VOTE_FAILED: '投票に失敗しました',
   REQUEST_FAILED: 'リクエストに失敗しました',
   AUTH_FAILED: '認証に失敗しました',
+  EMAIL_RESENTLY_DELETED:
+    'このメールアドレスは最近削除されたユーザーで使用されていました。24時間後に再登録可能です。',
 };
 
 export const validation = {
