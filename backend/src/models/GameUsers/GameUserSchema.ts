@@ -37,7 +37,8 @@ export const GameUserSchema = new Schema<IGameUser>(
     },
   },
   {
-    timestamps: true,
+    timestamps: { createdAt: true, updatedAt: false },
+    versionKey: false,
   },
 );
 

@@ -29,6 +29,7 @@ export const GameSchema = new Schema<IGame>(
     },
   },
   {
-    timestamps: true,
+    timestamps: { createdAt: true, updatedAt: false },
+    versionKey: false,
   },
 );

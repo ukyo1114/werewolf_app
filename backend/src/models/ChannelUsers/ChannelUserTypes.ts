@@ -1,15 +1,11 @@
 import mongoose, { Document, Types } from 'mongoose';
 
-// ChannelUserドキュメントのインターフェース
 export interface IChannelUser extends Document {
-  _id: Types.ObjectId;
   channelId: Types.ObjectId;
   userId: Types.ObjectId;
   createdAt: Date;
-  updatedAt: Date;
 }
 
-// ChannelUserモデルの静的メソッドのインターフェース
 export interface IChannelUserStatics extends mongoose.Model<IChannelUser> {
   getChannelUsers(channelId: string): Promise<
     {

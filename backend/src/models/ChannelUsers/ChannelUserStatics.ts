@@ -1,9 +1,7 @@
 import { Types } from 'mongoose';
 import { IChannelUser, IChannelUserStatics } from './ChannelUserTypes';
 
-// ChannelUser静的メソッド
 export const ChannelUserStatics = {
-  // チャンネルのユーザー一覧を取得
   async getChannelUsers(
     this: IChannelUserStatics,
     channelId: string,
@@ -11,24 +9,18 @@ export const ChannelUserStatics = {
     {
       _id: Types.ObjectId;
       userName: string;
-      pic: string | null;
+      pic?: string;
       isGuest: boolean;
     }[]
   > {
     const users = await this.find({ channelId })
-      .select('-_id userId')
+      .select('userId')
       .populate('userId', '_id userName pic isGuest')
       .lean();
 
-    return users.map((user: any) => ({
-      _id: user.userId._id,
-      userName: user.userId.userName,
-      pic: user.userId.pic || null,
-      isGuest: user.userId.isGuest,
-    }));
+    return users.map((user: any) => user.userId);
   },
 
-  // ユーザーがチャンネルにいるかどうかを確認
   async isUserInChannel(
     this: IChannelUserStatics,
     channelId: string,
@@ -53,11 +45,7 @@ export const ChannelUserStatics = {
     this: IChannelUserStatics,
     userId: string,
   ): Promise<string[]> {
-    const channels = await this.find({ userId })
-      .select('-_id channelId')
-      .lean();
-    return channels.map((channel: { channelId: Types.ObjectId }) =>
-      channel.channelId.toString(),
-    );
+    const channels = await this.find({ userId }).select('channelId').lean();
+    return channels.map((channel: any) => channel.channelId.toString());
   },
 };

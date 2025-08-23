@@ -27,6 +27,7 @@ export const MessageSchema = new Schema<IMessage>(
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
+    versionKey: false,
   },
 );
 

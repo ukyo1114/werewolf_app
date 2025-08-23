@@ -16,7 +16,8 @@ export const BlockedUserSchema = new Schema<IBlockedUser>(
     },
   },
   {
-    timestamps: true,
+    timestamps: { createdAt: true, updatedAt: false },
+    versionKey: false,
   },
 );
 
