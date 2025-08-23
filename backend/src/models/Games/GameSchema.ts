@@ -7,7 +7,7 @@ export const GameSchema = new Schema<IGame>(
     channelId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      ref: 'Channels', // ChannelからChannelsに変更
+      ref: 'Channels',
       index: true,
     },
     result: {

@@ -6,7 +6,6 @@ export interface IBlockedUser extends Document {
   channelId: Types.ObjectId;
   userId: Types.ObjectId;
   createdAt: Date;
-  updatedAt: Date;
 }
 
 // ChannelBlockUserモデルの静的メソッドのインターフェース

@@ -1,10 +1,7 @@
 import { Types } from 'mongoose';
-import { errors } from '../../config/messages';
 import { IBlockedUserStatics } from './BlockedUserTypes';
 
-// ChannelBlockUser静的メソッド
 export const BlockedUserStatics = {
-  // チャンネルのブロックユーザー一覧を取得
   async getBlockedUsers(
     this: IBlockedUserStatics,
     channelId: string,
@@ -17,19 +14,13 @@ export const BlockedUserStatics = {
     }[]
   > {
     const blockedUsers = await this.find({ channelId })
-      .select('-_id userId')
+      .select('userId')
       .populate('userId', '_id userName pic isGuest')
       .lean();
 
-    return blockedUsers.map((user: any) => ({
-      _id: user.userId._id,
-      userName: user.userId.userName,
-      pic: user.userId.pic || null,
-      isGuest: user.userId.isGuest,
-    }));
+    return blockedUsers.map((user: any) => user.userId);
   },
 
-  // ユーザーがブロックされているかどうかを確認
   async isUserBlocked(
     this: IBlockedUserStatics,
     channelId: string,
@@ -39,21 +30,6 @@ export const BlockedUserStatics = {
     return !!blockedUser;
   },
 
-  // ユーザーをブロック
-  async addBlockUser(
-    this: IBlockedUserStatics,
-    channelId: string,
-    userId: string,
-  ): Promise<void> {
-    try {
-      await this.create({ channelId, userId });
-    } catch (error: any) {
-      if (error.code === 11000) throw new Error(errors.USER_ALREADY_BLOCKED);
-      throw error;
-    }
-  },
-
-  // ユーザーのブロックを解除
   async unblockUser(
     this: IBlockedUserStatics,
     channelId: string,
@@ -63,16 +39,11 @@ export const BlockedUserStatics = {
     return result.deletedCount > 0;
   },
 
-  // ユーザーがブロックされているチャンネル一覧を取得
   async getBlockedChannels(
     this: IBlockedUserStatics,
     userId: string,
   ): Promise<string[]> {
-    const channels = await this.find({ userId })
-      .select('-_id channelId')
-      .lean();
-    return channels.map((channel: { channelId: Types.ObjectId }) =>
-      channel.channelId.toString(),
-    );
+    const channels = await this.find({ userId }).select('channelId').lean();
+    return channels.map((channel: any) => channel.channelId.toString());
   },
 };

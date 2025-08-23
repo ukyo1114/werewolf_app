@@ -1,46 +1,46 @@
 import mongoose from 'mongoose';
-import ChannelUsers from '@/models/ChannelUsers';
+import BlockedUsers from '@/models/BlockedUsers';
 import Users from '@/models/Users';
 
-describe('ChannelUserSchema', () => {
+describe('BlockedUserSchema', () => {
   const channelId = new mongoose.Types.ObjectId();
   const userId = new mongoose.Types.ObjectId();
 
   beforeEach(async () => {
     await Promise.all([
-      ChannelUsers.deleteOne({ channelId, userId }),
+      BlockedUsers.deleteOne({ channelId, userId }),
       Users.deleteOne({ _id: userId }),
     ]);
     await Users.create({
       _id: userId,
       userName: 'TestUser',
-      email: 'ChannelUserSchema@example.com',
+      email: 'BlockedUserSchema@example.com',
       password: 'password123',
     });
   });
 
   describe('バリデーション', () => {
     it('必須フィールドが正しく設定される', async () => {
-      const channelUser = await ChannelUsers.create({
+      const blockedUser = await BlockedUsers.create({
         channelId,
         userId,
       });
 
-      expect(channelUser.channelId).toBe(channelId);
-      expect(channelUser.userId).toBe(userId);
-      expect(channelUser.createdAt).toBeDefined();
+      expect(blockedUser.channelId).toBe(channelId);
+      expect(blockedUser.userId).toBe(userId);
+      expect(blockedUser.createdAt).toBeDefined();
     });
 
     it('channelIdとuserIdの組み合わせの重複を防ぐ', async () => {
       // 最初のチャンネルユーザーを作成
-      await ChannelUsers.create({
+      await BlockedUsers.create({
         channelId,
         userId,
       });
 
       // 同じ組み合わせで2番目のチャンネルユーザーを作成しようとする
       await expect(
-        ChannelUsers.create({
+        BlockedUsers.create({
           channelId,
           userId,
         }),
@@ -51,140 +51,150 @@ describe('ChannelUserSchema', () => {
       const secondChannelId = new mongoose.Types.ObjectId();
 
       // 最初のチャンネルにユーザーを追加
-      await ChannelUsers.create({
+      await BlockedUsers.create({
         channelId,
         userId,
       });
 
       // 2番目のチャンネルに同じユーザーを追加
-      await ChannelUsers.create({
+      await BlockedUsers.create({
         channelId: secondChannelId,
         userId,
       });
 
       // 両方のチャンネルユーザーが存在することを確認
-      const allChannelUsers = await ChannelUsers.find({ userId });
-      expect(allChannelUsers).toHaveLength(2);
-      await ChannelUsers.deleteOne({ channelId: secondChannelId, userId });
+      const allBlockedUsers = await BlockedUsers.find({ userId });
+      expect(allBlockedUsers).toHaveLength(2);
+      await BlockedUsers.deleteOne({ channelId: secondChannelId, userId });
     });
 
     it('同じチャンネルで異なるユーザーを追加できる', async () => {
       const secondUserId = new mongoose.Types.ObjectId();
 
       // 最初のユーザーをチャンネルに追加
-      await ChannelUsers.create({
+      await BlockedUsers.create({
         channelId,
         userId,
       });
 
       // 2番目のユーザーを同じチャンネルに追加
-      await ChannelUsers.create({
+      await BlockedUsers.create({
         channelId,
         userId: secondUserId,
       });
 
       // 両方のチャンネルユーザーが存在することを確認
-      const allChannelUsers = await ChannelUsers.find({ channelId });
-      expect(allChannelUsers).toHaveLength(2);
-      await ChannelUsers.deleteOne({ channelId, userId: secondUserId });
+      const allBlockedUsers = await BlockedUsers.find({ channelId });
+      expect(allBlockedUsers).toHaveLength(2);
+      await BlockedUsers.deleteOne({ channelId, userId: secondUserId });
     });
   });
 
   describe('スキーマ設定', () => {
     it('_idフィールドが存在する', async () => {
-      await ChannelUsers.create({
+      await BlockedUsers.create({
         channelId,
         userId,
       });
 
-      const savedChannelUser = await ChannelUsers.findOne({
+      const savedBlockedUser = await BlockedUsers.findOne({
         channelId,
         userId,
       });
-      expect(savedChannelUser?._id).toBeDefined();
+      expect(savedBlockedUser?._id).toBeDefined();
     });
 
     it('__vフィールドが存在しない', async () => {
-      await ChannelUsers.create({
+      await BlockedUsers.create({
         channelId,
         userId,
       });
 
-      const savedChannelUser = await ChannelUsers.findOne({
+      const savedBlockedUser = await BlockedUsers.findOne({
         channelId,
         userId,
       });
-      expect(savedChannelUser?.__v).toBeUndefined();
+      expect(savedBlockedUser?.__v).toBeUndefined();
     });
-
-    /*     it('updatedAtフィールドが存在しない', async () => {
-      const channelUser = new ChannelUsers({
-        channelId,
-        userId,
-      });
-      await channelUser.save();
-
-      const savedChannelUser = await ChannelUsers.findOne({
-        channelId,
-        userId,
-      });
-      expect(savedChannelUser?.updatedAt).toBeUndefined();
-    }); */
 
     it('createdAtフィールドが自動設定される', async () => {
       const beforeCreation = new Date();
-      await ChannelUsers.create({
+      await BlockedUsers.create({
         channelId,
         userId,
       });
 
-      const savedChannelUser = await ChannelUsers.findOne({
+      const savedBlockedUser = await BlockedUsers.findOne({
         channelId,
         userId,
       });
-      expect(savedChannelUser?.createdAt).toBeDefined();
-      expect(savedChannelUser?.createdAt.getTime()).toBeGreaterThanOrEqual(
+      expect(savedBlockedUser?.createdAt).toBeDefined();
+      expect(savedBlockedUser?.createdAt.getTime()).toBeGreaterThanOrEqual(
         beforeCreation.getTime(),
       );
+    });
+
+    it('timestampsが正しく設定されている（createdAtのみ）', async () => {
+      const blockedUser = await BlockedUsers.create({
+        channelId: new mongoose.Types.ObjectId(),
+        userId: new mongoose.Types.ObjectId(),
+      });
+
+      expect(blockedUser.createdAt).toBeDefined();
+      expect(blockedUser.createdAt).toBeInstanceOf(Date);
+      expect((blockedUser as any).updatedAt).toBeUndefined();
     });
   });
 
   describe('インデックス', () => {
-    it('channelIdとuserIdの複合ユニークインデックスが作成される', async () => {
-      await ChannelUsers.create({
+    it('複合ユニークインデックスが正しく作成される', async () => {
+      await BlockedUsers.create({
         channelId,
         userId,
       });
 
-      // インデックスが作成されていることを確認
-      const indexes = await ChannelUsers.listIndexes();
+      const indexes = await BlockedUsers.listIndexes();
       const compoundIndex = indexes.find(
         (index: any) =>
           index.key && index.key.channelId === 1 && index.key.userId === 1,
       );
 
       expect(compoundIndex).toBeDefined();
-      expect(compoundIndex.unique).toBe(true);
+      expect(compoundIndex?.unique).toBe(true);
+    });
+
+    it('userIdにインデックスが作成される', async () => {
+      await BlockedUsers.create({
+        channelId,
+        userId,
+      });
+
+      const indexes = await BlockedUsers.listIndexes();
+      const userIdIndex = indexes.find(
+        (index: any) => index.key && index.key.userId === 1,
+      );
+
+      expect(userIdIndex).toBeDefined();
     });
   });
 
   describe('参照関係', () => {
     it('userIdがUsersモデルを正しく参照する', async () => {
-      await ChannelUsers.create({
+      await BlockedUsers.create({
         channelId,
         userId,
       });
 
       // populateでユーザー情報を取得
-      const populatedChannelUser = await ChannelUsers.findOne({
+      const populatedBlockedUser = await BlockedUsers.findOne({
         channelId,
         userId,
       }).populate('userId', 'userName email');
 
-      expect(populatedChannelUser?.userId).toBeDefined();
-      expect((populatedChannelUser?.userId as any).userName).toBe('TestUser');
-      expect((populatedChannelUser?.userId as any).email).toBe(
-        'ChannelUserSchema@example.com',
+      expect(populatedBlockedUser?.userId).toBeDefined();
+      expect((populatedBlockedUser?.userId as any).userName).toBe('TestUser');
+      expect((populatedBlockedUser?.userId as any).email).toBe(
+        'BlockedUserSchema@example.com',
       );
     });
   });
@@ -194,7 +204,7 @@ describe('ChannelUserSchema', () => {
       const invalidObjectId = 'invalid-id';
 
       await expect(
-        ChannelUsers.create({
+        BlockedUsers.create({
           channelId: invalidObjectId as any,
           userId,
         }),

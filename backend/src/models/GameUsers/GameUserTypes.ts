@@ -13,7 +13,6 @@ type Role =
   | 'immoralist'
   | 'spectator';
 
-// GameUserドキュメントのインターフェース
 export interface IGameUser extends Document {
   _id: Types.ObjectId;
   gameId: Types.ObjectId;
@@ -21,10 +20,8 @@ export interface IGameUser extends Document {
   role: Role;
   isPlaying: boolean;
   createdAt: Date;
-  updatedAt: Date;
 }
 
-// GameUserモデルの静的メソッドのインターフェース
 export interface IGameUserStatics extends mongoose.Model<IGameUser> {
   joinGame(gameId: string, userId: string): Promise<void>;
   getGameUsers(gameId: string): Promise<

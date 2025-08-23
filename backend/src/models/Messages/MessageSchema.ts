@@ -11,7 +11,7 @@ export const MessageSchema = new Schema<IMessage>(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,
-      ref: 'Users', // UserからUsersに変更
+      ref: 'Users',
     },
     message: {
       type: String,
@@ -23,6 +23,10 @@ export const MessageSchema = new Schema<IMessage>(
       required: true,
       enum: ['normal', 'werewolf', 'spectator', 'freemason', 'system'],
       default: 'normal',
+    },
+    replyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Messages',
     },
   },
   {

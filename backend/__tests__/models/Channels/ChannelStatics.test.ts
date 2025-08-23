@@ -23,7 +23,7 @@ describe('ChannelStatics', () => {
   });
 
   beforeEach(async () => {
-    // テスト用のチャンネルを作成
+    await Channels.deleteOne({ _id: channelId });
     await Channels.create({
       _id: channelId,
       channelName: 'Test Channel',
@@ -31,10 +31,6 @@ describe('ChannelStatics', () => {
       channelAdmin: adminId,
       passwordEnabled: false,
     });
-  });
-
-  afterEach(async () => {
-    await Channels.deleteOne({ _id: channelId });
   });
 
   describe('getChannelAsAdmin', () => {

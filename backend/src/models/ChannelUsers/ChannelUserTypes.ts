@@ -1,6 +1,7 @@
 import mongoose, { Document, Types } from 'mongoose';
 
 export interface IChannelUser extends Document {
+  _id: Types.ObjectId;
   channelId: Types.ObjectId;
   userId: Types.ObjectId;
   createdAt: Date;

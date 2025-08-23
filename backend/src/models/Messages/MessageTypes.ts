@@ -8,6 +8,7 @@ export interface IMessage extends Document {
   userId: Types.ObjectId;
   message: string;
   messageType: MessageType;
+  replyTo?: Types.ObjectId;
   createdAt: Date;
 }
 

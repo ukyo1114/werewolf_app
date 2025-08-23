@@ -1,7 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import { IGameUser } from './GameUserTypes';
 
-// GameUserスキーマの定義
 export const GameUserSchema = new Schema<IGameUser>(
   {
     gameId: {
@@ -12,7 +11,7 @@ export const GameUserSchema = new Schema<IGameUser>(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       index: true,
-      ref: 'Users', // UserからUsersに変更
+      ref: 'Users',
     },
     role: {
       type: String,
@@ -42,5 +41,4 @@ export const GameUserSchema = new Schema<IGameUser>(
   },
 );
 
-// 同じゲームとユーザーの組み合わせは一意である必要がある
 GameUserSchema.index({ gameId: 1, userId: 1 }, { unique: true });

@@ -14,8 +14,6 @@ export interface IGame extends Document {
   result: GameResult;
   numberOfPlayers: number;
   createdAt: Date;
-  updatedAt: Date;
-  endGame(result: Exclude<IGame['result'], 'running'>): Promise<IGame>;
 }
 
 // Gameモデルの静的メソッドのインターフェース
