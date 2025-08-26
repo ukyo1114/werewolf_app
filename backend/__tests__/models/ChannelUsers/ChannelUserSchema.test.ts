@@ -8,7 +8,7 @@ describe('ChannelUserSchema', () => {
 
   beforeEach(async () => {
     await Promise.all([
-      ChannelUsers.deleteOne({ channelId, userId }),
+      ChannelUsers.deleteMany({ channelId }),
       Users.deleteOne({ _id: userId }),
     ]);
     await Users.create({
@@ -37,6 +37,7 @@ describe('ChannelUserSchema', () => {
         channelId,
         userId,
       });
+      await ChannelUsers.createIndexes();
 
       // 同じ組み合わせで2番目のチャンネルユーザーを作成しようとする
       await expect(
@@ -155,6 +156,7 @@ describe('ChannelUserSchema', () => {
         channelId,
         userId,
       });
+      await ChannelUsers.createIndexes();
 
       // インデックスが作成されていることを確認
       const indexes = await ChannelUsers.listIndexes();

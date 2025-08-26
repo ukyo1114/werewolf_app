@@ -5,7 +5,7 @@ describe('ChannelMiddleware', () => {
   const adminId = new mongoose.Types.ObjectId();
   const channelId = new mongoose.Types.ObjectId();
 
-  afterEach(async () => {
+  beforeEach(async () => {
     await Channels.deleteOne({ _id: channelId });
   });
 

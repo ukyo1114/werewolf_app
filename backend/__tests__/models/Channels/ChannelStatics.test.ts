@@ -4,9 +4,9 @@ import Users from '@/models/Users';
 import { errors } from '@/config/messages';
 
 describe('ChannelStatics', () => {
-  const adminId = new mongoose.Types.ObjectId().toString();
-  const nonAdminId = new mongoose.Types.ObjectId().toString();
-  const channelId = new mongoose.Types.ObjectId().toString();
+  const adminId = new mongoose.Types.ObjectId();
+  const nonAdminId = new mongoose.Types.ObjectId();
+  const channelId = new mongoose.Types.ObjectId();
 
   beforeAll(async () => {
     await Users.create({
@@ -33,65 +33,99 @@ describe('ChannelStatics', () => {
     });
   });
 
-  describe('getChannelAsAdmin', () => {
-    it('管理者ユーザーが正しくチャンネルを取得できる', async () => {
-      const channel = await Channels.getChannelAsAdmin(channelId, adminId);
+  describe('findActiveChannelById', () => {
+    it('アクティブなチャンネルを正しく取得できる', async () => {
+      const channel = await Channels.findActiveChannelById(
+        channelId.toString(),
+      );
 
       expect(channel).toBeDefined();
-      expect(channel._id.toString()).toBe(channelId);
-      expect(channel.channelAdmin.toString()).toBe(adminId);
+      expect(channel._id.toString()).toBe(channelId.toString());
+      expect(channel.channelName).toBe('Test Channel');
+    });
+
+    it('存在しないチャンネルIDでエラーを投げる', async () => {
+      const nonExistentId = new mongoose.Types.ObjectId().toString();
+      await expect(
+        Channels.findActiveChannelById(nonExistentId),
+      ).rejects.toThrow(errors.CHANNEL_NOT_FOUND);
+    });
+
+    it('削除されたチャンネルでエラーを投げる', async () => {
+      // チャンネルを削除
+      await Channels.findByIdAndUpdate(channelId, { deletedAt: new Date() });
+
+      await expect(
+        Channels.findActiveChannelById(channelId.toString()),
+      ).rejects.toThrow(errors.CHANNEL_NOT_FOUND);
+    });
+  });
+
+  describe('getChannelAsAdmin', () => {
+    it('管理者ユーザーが正しくチャンネルを取得できる', async () => {
+      const channel = await Channels.getChannelAsAdmin(
+        channelId.toString(),
+        adminId.toString(),
+      );
+
+      expect(channel).toBeDefined();
+      expect(channel._id.toString()).toBe(channelId.toString());
+      expect(channel.channelAdmin.toString()).toBe(adminId.toString());
     });
 
     it('非管理者ユーザーがアクセスするとエラーを投げる', async () => {
       await expect(
-        Channels.getChannelAsAdmin(channelId, nonAdminId),
+        Channels.getChannelAsAdmin(channelId.toString(), nonAdminId.toString()),
       ).rejects.toThrow(errors.PERMISSION_DENIED);
     });
 
     it('存在しないチャンネルIDでエラーを投げる', async () => {
       const nonExistentId = new mongoose.Types.ObjectId().toString();
       await expect(
-        Channels.getChannelAsAdmin(nonExistentId, adminId),
+        Channels.getChannelAsAdmin(nonExistentId, adminId.toString()),
       ).rejects.toThrow(errors.CHANNEL_NOT_FOUND);
     });
 
     it('削除されたチャンネルでエラーを投げる', async () => {
       // チャンネルを削除
-      const channel = await Channels.findById(channelId);
-      await channel?.softDelete();
+      await Channels.findByIdAndUpdate(channelId, { deletedAt: new Date() });
 
       await expect(
-        Channels.getChannelAsAdmin(channelId, adminId),
+        Channels.getChannelAsAdmin(channelId.toString(), adminId.toString()),
       ).rejects.toThrow(errors.CHANNEL_NOT_FOUND);
     });
   });
 
   describe('isChannelAdmin', () => {
     it('管理者ユーザーでtrueを返す', async () => {
-      const result = await Channels.isChannelAdmin(channelId, adminId);
+      const result = await Channels.isChannelAdmin(
+        channelId.toString(),
+        adminId.toString(),
+      );
       expect(result).toBe(true);
     });
 
     it('非管理者ユーザーでfalseを返す', async () => {
-      const result = await Channels.isChannelAdmin(channelId, nonAdminId);
+      const result = await Channels.isChannelAdmin(
+        channelId.toString(),
+        nonAdminId.toString(),
+      );
       expect(result).toBe(false);
     });
 
     it('存在しないチャンネルIDでエラーを投げる', async () => {
       const nonExistentId = new mongoose.Types.ObjectId().toString();
       await expect(
-        Channels.isChannelAdmin(nonExistentId, adminId),
+        Channels.isChannelAdmin(nonExistentId, adminId.toString()),
       ).rejects.toThrow(errors.CHANNEL_NOT_FOUND);
     });
 
     it('削除されたチャンネルでエラーを投げる', async () => {
-      // チャンネルを削除
-      const channel = await Channels.findById(channelId);
-      await channel?.softDelete();
+      await Channels.findByIdAndUpdate(channelId, { deletedAt: new Date() });
 
-      await expect(Channels.isChannelAdmin(channelId, adminId)).rejects.toThrow(
-        errors.CHANNEL_NOT_FOUND,
-      );
+      await expect(
+        Channels.isChannelAdmin(channelId.toString(), adminId.toString()),
+      ).rejects.toThrow(errors.CHANNEL_NOT_FOUND);
     });
   });
 
@@ -124,8 +158,7 @@ describe('ChannelStatics', () => {
 
     it('削除されたチャンネルは除外される', async () => {
       // チャンネルを削除
-      const channel = await Channels.findById(channelId);
-      await channel?.softDelete();
+      await Channels.findByIdAndUpdate(channelId, { deletedAt: new Date() });
 
       const channelList = await Channels.getChannelList();
       channelList.forEach((channel) => {
@@ -135,10 +168,13 @@ describe('ChannelStatics', () => {
 
     it('channelAdminが正しくpopulateされる', async () => {
       const channelList = await Channels.getChannelList();
+      const createdChannel = channelList.find(
+        (channel) => channel._id.toString() === channelId.toString(),
+      );
 
-      expect(channelList[0].channelAdmin).toHaveProperty('_id');
-      expect(channelList[0].channelAdmin).toHaveProperty('userName');
-      expect(channelList[0].channelAdmin).toHaveProperty('pic');
+      expect(createdChannel?.channelAdmin).toHaveProperty('_id');
+      expect(createdChannel?.channelAdmin).toHaveProperty('userName');
+      expect(createdChannel?.channelAdmin).toHaveProperty('pic');
     });
   });
 
@@ -154,8 +190,8 @@ describe('ChannelStatics', () => {
       };
 
       const result = await Channels.updateChannelSettings(
-        adminId,
-        channelId,
+        adminId.toString(),
+        channelId.toString(),
         updateData,
       );
 
@@ -181,7 +217,11 @@ describe('ChannelStatics', () => {
       };
 
       await expect(
-        Channels.updateChannelSettings(nonAdminId, channelId, updateData),
+        Channels.updateChannelSettings(
+          nonAdminId.toString(),
+          channelId.toString(),
+          updateData,
+        ),
       ).rejects.toThrow(errors.PERMISSION_DENIED);
     });
 
@@ -197,14 +237,18 @@ describe('ChannelStatics', () => {
       };
 
       await expect(
-        Channels.updateChannelSettings(adminId, nonExistentId, updateData),
+        Channels.updateChannelSettings(
+          adminId.toString(),
+          nonExistentId,
+          updateData,
+        ),
       ).rejects.toThrow(errors.CHANNEL_NOT_FOUND);
     });
   });
 
   describe('deleteChannel', () => {
     it('管理者がチャンネルを削除できる', async () => {
-      await Channels.deleteChannel(channelId, adminId);
+      await Channels.deleteChannel(channelId.toString(), adminId.toString());
 
       // チャンネルがソフトデリートされていることを確認
       const deletedChannel = await Channels.findById(channelId);
@@ -213,14 +257,14 @@ describe('ChannelStatics', () => {
 
     it('非管理者が削除しようとするとエラーを投げる', async () => {
       await expect(
-        Channels.deleteChannel(channelId, nonAdminId),
+        Channels.deleteChannel(channelId.toString(), nonAdminId.toString()),
       ).rejects.toThrow(errors.PERMISSION_DENIED);
     });
 
     it('存在しないチャンネルIDでエラーを投げる', async () => {
       const nonExistentId = new mongoose.Types.ObjectId().toString();
       await expect(
-        Channels.deleteChannel(nonExistentId, adminId),
+        Channels.deleteChannel(nonExistentId, adminId.toString()),
       ).rejects.toThrow(errors.CHANNEL_NOT_FOUND);
     });
   });

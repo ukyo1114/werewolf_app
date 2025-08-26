@@ -17,6 +17,8 @@ export interface IGameUser extends Document {
   _id: Types.ObjectId;
   gameId: Types.ObjectId;
   userId: Types.ObjectId;
+  userName: string;
+  pic?: string;
   role: Role;
   isPlaying: boolean;
   createdAt: Date;
@@ -26,10 +28,9 @@ export interface IGameUserStatics extends mongoose.Model<IGameUser> {
   joinGame(gameId: string, userId: string): Promise<void>;
   getGameUsers(gameId: string): Promise<
     {
-      _id: Types.ObjectId;
+      userId: Types.ObjectId;
       userName: string;
-      pic: string | null;
-      isGuest: boolean;
+      pic?: string;
     }[]
   >;
   isUserPlaying(userId: string): Promise<string | null>;

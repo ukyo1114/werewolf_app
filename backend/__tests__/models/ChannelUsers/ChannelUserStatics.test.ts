@@ -10,7 +10,7 @@ describe('ChannelUserStatics', () => {
 
   beforeEach(async () => {
     await Promise.all([
-      ChannelUsers.deleteOne({ channelId, userId }),
+      ChannelUsers.deleteMany({ channelId }),
       Users.deleteOne({ _id: userId }),
     ]);
     await Users.create({
@@ -49,34 +49,30 @@ describe('ChannelUserStatics', () => {
         password: 'password123',
       });
 
-      await Promise.all([
-        ChannelUsers.create({
-          channelId,
-          userId,
-        }),
-        ChannelUsers.create({
-          channelId,
-          userId: secondUserId,
-        }),
-      ]);
+      await ChannelUsers.create({
+        channelId,
+        userId,
+      });
+      await ChannelUsers.create({
+        channelId,
+        userId: secondUserId,
+      });
 
       const users = await ChannelUsers.getChannelUsers(channelId.toString());
 
       expect(users).toHaveLength(2);
-      expect(users).toEqual([
-        {
-          _id: userId,
-          userName: 'TestUser',
-          pic: 'pic.jpg',
-          isGuest: false,
-        },
-        {
-          _id: secondUserId,
-          userName: 'secondUser',
-          pic: 'secondPic.jpg',
-          isGuest: false,
-        },
-      ]);
+      expect(users).toContainEqual({
+        _id: userId,
+        userName: 'TestUser',
+        pic: 'pic.jpg',
+        isGuest: false,
+      });
+      expect(users).toContainEqual({
+        _id: secondUserId,
+        userName: 'secondUser',
+        pic: 'secondPic.jpg',
+        isGuest: false,
+      });
 
       await Promise.all([
         ChannelUsers.deleteOne({ channelId, userId: secondUserId }),
@@ -139,57 +135,6 @@ describe('ChannelUserStatics', () => {
       );
 
       expect(isInChannel).toBe(false);
-    });
-  });
-
-  describe('leaveChannel', () => {
-    it('ユーザーをチャンネルから正常に削除できる', async () => {
-      // チャンネルユーザーを作成
-      await ChannelUsers.create({
-        channelId,
-        userId,
-      });
-
-      // ユーザーがチャンネルにいることを確認
-      let isInChannel = await ChannelUsers.isUserInChannel(
-        channelId.toString(),
-        userId.toString(),
-      );
-      expect(isInChannel).toBe(true);
-
-      // チャンネルから退出
-      const removed = await ChannelUsers.leaveChannel(
-        channelId.toString(),
-        userId.toString(),
-      );
-
-      expect(removed).toBe(true);
-
-      // ユーザーがチャンネルから削除されたことを確認
-      isInChannel = await ChannelUsers.isUserInChannel(
-        channelId.toString(),
-        userId.toString(),
-      );
-      expect(isInChannel).toBe(false);
-    });
-
-    it('存在しないユーザーを削除しようとした場合falseを返す', async () => {
-      const removed = await ChannelUsers.leaveChannel(
-        channelId.toString(),
-        userId.toString(),
-      );
-
-      expect(removed).toBe(false);
-    });
-
-    it('存在しないチャンネルから削除しようとした場合falseを返す', async () => {
-      const nonExistentChannelId = new mongoose.Types.ObjectId().toString();
-      const removed = await ChannelUsers.leaveChannel(
-        nonExistentChannelId,
-        userId.toString(),
-      );
-
-      expect(removed).toBe(false);
     });
   });
 
@@ -274,11 +219,7 @@ describe('ChannelUserStatics', () => {
       expect(participatingChannels[0]).toBe(channelId.toString());
 
       // 5. ユーザーがチャンネルから退出
-      const removed = await ChannelUsers.leaveChannel(
-        channelId.toString(),
-        userId.toString(),
-      );
-      expect(removed).toBe(true);
+      await ChannelUsers.deleteOne({ channelId, userId });
 
       // 6. 退出後、ユーザーがチャンネルにいないことを確認
       isInChannel = await ChannelUsers.isUserInChannel(

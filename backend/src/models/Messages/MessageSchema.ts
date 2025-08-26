@@ -1,7 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 import { IMessage } from './MessageTypes';
 
-// Messageスキーマの定義
 export const MessageSchema = new Schema<IMessage>(
   {
     channelId: {
@@ -35,5 +34,4 @@ export const MessageSchema = new Schema<IMessage>(
   },
 );
 
-// チャンネルIDと作成日時のインデックス
 MessageSchema.index({ channelId: 1, createdAt: -1 });

@@ -1,7 +1,12 @@
 import mongoose, { Document, Types } from 'mongoose';
 import { MessageType } from '../../config/types';
 
-// Messageドキュメントのインターフェース
+export interface IMessagesIndex {
+  _id: Types.ObjectId;
+  createdAt: Date;
+  replyTo?: Types.ObjectId;
+}
+
 export interface IMessage extends Document {
   _id: Types.ObjectId;
   channelId: Types.ObjectId;
@@ -12,12 +17,12 @@ export interface IMessage extends Document {
   createdAt: Date;
 }
 
-// Messageモデルの静的メソッドのインターフェース
 export interface IMessageStatics extends mongoose.Model<IMessage> {
   getMessages(params: {
     channelId: string;
     messageId?: string;
     limit?: number;
-    messageType?: MessageType[] | null;
+    messageType?: MessageType[];
   }): Promise<IMessage[]>;
+  getIndex(channelId: string): Promise<IMessagesIndex[]>;
 }

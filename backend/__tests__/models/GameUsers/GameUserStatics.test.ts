@@ -67,25 +67,33 @@ describe('GameUserStatics', () => {
 
   describe('getGameUsers', () => {
     it('指定されたゲームのユーザー一覧を取得する', async () => {
-      await GameUsers.create([
-        { gameId, userId, role: 'villager' },
-        { gameId, userId: secondUserId, role: 'seer' },
-      ]);
+      await GameUsers.create({
+        gameId,
+        userId,
+        userName: 'TestUser',
+        pic: 'pic.jpg',
+        role: 'villager',
+      });
+      await GameUsers.create({
+        gameId,
+        userId: secondUserId,
+        userName: 'SecondUser',
+        pic: 'pic2.jpg',
+        role: 'seer',
+      });
 
       const users = await GameUsers.getGameUsers(gameId.toString());
 
       expect(users).toHaveLength(2);
-      expect(users[0]).toEqual({
-        _id: userId,
+      expect(users).toContainEqual({
+        userId: userId,
         userName: 'TestUser',
         pic: 'pic.jpg',
-        isGuest: false,
       });
-      expect(users[1]).toEqual({
-        _id: secondUserId,
+      expect(users).toContainEqual({
+        userId: secondUserId,
         userName: 'SecondUser',
         pic: 'pic2.jpg',
-        isGuest: false,
       });
     });
 
@@ -107,10 +115,11 @@ describe('GameUserStatics', () => {
         userId: secondUserId,
         role: 'werewolf',
       });
+      await GameUsers.createIndexes();
 
       const users = await GameUsers.getGameUsers(gameId.toString());
       expect(users).toHaveLength(1);
-      expect(users[0]._id.toString()).toBe(userId.toString());
+      expect(users[0].userId.toString()).toBe(userId.toString());
     });
   });
 
@@ -237,7 +246,7 @@ describe('GameUserStatics', () => {
       // ゲームユーザー一覧を確認
       let users = await GameUsers.getGameUsers(gameId.toString());
       expect(users).toHaveLength(1);
-      expect(users[0]._id.toString()).toBe(userId.toString());
+      expect(users[0].userId.toString()).toBe(userId.toString());
 
       // ゲーム終了
       await GameUsers.endGame(gameId.toString());

@@ -5,7 +5,7 @@ describe('ChannelSchema', () => {
   const adminId = new mongoose.Types.ObjectId();
   const channelId = new mongoose.Types.ObjectId();
 
-  afterEach(async () => {
+  beforeEach(async () => {
     await Channels.deleteOne({ _id: channelId });
   });
 
@@ -143,6 +143,7 @@ describe('ChannelSchema', () => {
 
   describe('インデックス', () => {
     it('channelAdminのインデックスが作成されている', async () => {
+      await Channels.createIndexes();
       const indexes = await Channels.collection.indexes();
       const adminIndex = indexes.find(
         (index) => index.key && index.key.channelAdmin === 1,

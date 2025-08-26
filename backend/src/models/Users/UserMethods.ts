@@ -19,7 +19,6 @@ export const UserMethods = {
     currentPassword: string,
     newPassword: string,
   ): Promise<void> {
-    if (this.isGuest) throw new Error(errors.PERMISSION_DENIED);
     await this.matchPassword(currentPassword);
     this.password = newPassword;
     await this.save();

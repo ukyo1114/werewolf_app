@@ -123,20 +123,6 @@ describe('UserMethods', () => {
       ).resolves.not.toThrow();
     });
 
-    it('ゲストユーザーでエラーを投げる', async () => {
-      const user = new Users({
-        _id: userId,
-        userName: 'GuestUser',
-        isGuest: true,
-      });
-
-      await user.save();
-
-      await expect(
-        user.changePassword('oldpassword', 'newpassword'),
-      ).rejects.toThrow(errors.PERMISSION_DENIED);
-    });
-
     it('現在のパスワードが間違っている場合エラーを投げる', async () => {
       const user = new Users({
         _id: userId,
@@ -196,14 +182,13 @@ describe('UserMethods', () => {
 
   describe('updateEmail', () => {
     it('メールアドレスを更新できる', async () => {
-      const user = new Users({
+      const user = await Users.create({
         _id: userId,
         userName: 'TestUser',
         email,
         password: 'password123',
       });
-
-      await user.save();
+      await Users.createIndexes();
       const originalEmail = user.email;
 
       await user.updateEmail('new.UserMethods@example.com');

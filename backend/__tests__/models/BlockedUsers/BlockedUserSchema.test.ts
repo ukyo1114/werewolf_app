@@ -37,6 +37,7 @@ describe('BlockedUserSchema', () => {
         channelId,
         userId,
       });
+      await BlockedUsers.createIndexes();
 
       // 同じ組み合わせで2番目のチャンネルユーザーを作成しようとする
       await expect(
@@ -153,6 +154,7 @@ describe('BlockedUserSchema', () => {
         userId,
       });
 
+      await BlockedUsers.createIndexes();
       const indexes = await BlockedUsers.listIndexes();
       const compoundIndex = indexes.find(
         (index: any) =>
@@ -169,6 +171,7 @@ describe('BlockedUserSchema', () => {
         userId,
       });
 
+      await BlockedUsers.createIndexes();
       const indexes = await BlockedUsers.listIndexes();
       const userIdIndex = indexes.find(
         (index: any) => index.key && index.key.userId === 1,

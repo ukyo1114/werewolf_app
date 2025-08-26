@@ -258,6 +258,7 @@ describe('UserStatics', () => {
         password: 'oldpassword123',
         isGuest: false,
       });
+      await Users.createIndexes();
 
       await Users.changePassword(
         userId.toString(),

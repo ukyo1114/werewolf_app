@@ -1,18 +1,15 @@
 import { Types } from 'mongoose';
-import { IChannelUser, IChannelUserStatics } from './ChannelUserTypes';
+import {
+  IChannelUser,
+  IChannelUserStatics,
+  IChannelParticipant,
+} from './ChannelUserTypes';
 
 export const ChannelUserStatics = {
   async getChannelUsers(
     this: IChannelUserStatics,
     channelId: string,
-  ): Promise<
-    {
-      _id: Types.ObjectId;
-      userName: string;
-      pic?: string;
-      isGuest: boolean;
-    }[]
-  > {
+  ): Promise<IChannelParticipant[]> {
     const users = await this.find({ channelId })
       .select('userId')
       .populate('userId', '_id userName pic isGuest')
@@ -30,17 +27,6 @@ export const ChannelUserStatics = {
     return !!channelUser;
   },
 
-  // ユーザーをチャンネルから削除
-  async leaveChannel(
-    this: IChannelUserStatics,
-    channelId: string,
-    userId: string,
-  ): Promise<boolean> {
-    const result = await this.deleteOne({ channelId, userId });
-    return result.deletedCount > 0;
-  },
-
-  // ユーザーが参加しているチャンネル一覧を取得
   async getParticipantingChannels(
     this: IChannelUserStatics,
     userId: string,

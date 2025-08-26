@@ -16,18 +16,16 @@ export const GameUserStatics = {
     gameId: string,
   ): Promise<
     {
-      _id: Types.ObjectId;
+      userId: Types.ObjectId;
       userName: string;
       pic?: string;
-      isGuest: boolean;
     }[]
   > {
     const users = await this.find({ gameId })
-      .select('userId')
-      .populate('userId', '_id userName pic isGuest')
+      .select('-_id userId userName pic')
       .lean();
 
-    return users.map((user: any) => user.userId);
+    return users;
   },
 
   async isUserPlaying(

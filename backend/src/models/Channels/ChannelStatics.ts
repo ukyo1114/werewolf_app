@@ -1,3 +1,4 @@
+import { ClientSession } from 'mongoose';
 import { errors } from '../../config/messages';
 import {
   IChannel,
@@ -6,6 +7,16 @@ import {
 } from './ChannelTypes';
 
 export const ChannelStatics = {
+  async findActiveChannelById(
+    this: IChannelStatics,
+    channelId: string,
+  ): Promise<IChannel> {
+    const channel = await this.findById(channelId);
+    if (!channel || channel.deletedAt)
+      throw new Error(errors.CHANNEL_NOT_FOUND);
+    return channel;
+  },
+
   async getChannelAsAdmin(
     this: IChannelStatics,
     channelId: string,
@@ -30,7 +41,6 @@ export const ChannelStatics = {
     return channel.channelAdmin.toString() === userId;
   },
 
-  // チャンネル一覧を取得
   async getChannelList(this: IChannelStatics): Promise<IChannel[]> {
     return this.find({ deletedAt: { $exists: false } })
       .select('-password')
@@ -38,7 +48,6 @@ export const ChannelStatics = {
       .lean();
   },
 
-  // チャンネル設定を更新
   async updateChannelSettings(
     this: IChannelStatics,
     userId: string,
@@ -63,8 +72,10 @@ export const ChannelStatics = {
     this: IChannelStatics,
     channelId: string,
     userId: string,
+    session?: ClientSession,
   ): Promise<void> {
     const channel = await this.getChannelAsAdmin(channelId, userId);
-    await channel.softDelete();
+    channel.deletedAt = new Date();
+    await channel.save({ session });
   },
 };

@@ -13,6 +13,14 @@ export const GameUserSchema = new Schema<IGameUser>(
       index: true,
       ref: 'Users',
     },
+    userName: {
+      type: String,
+      maxlength: 20,
+      default: 'ゲスト',
+    },
+    pic: {
+      type: String,
+    },
     role: {
       type: String,
       enum: [

@@ -1,0 +1,118 @@
+// Werewolf App - Organized Database Schema
+// 個別フォルダが作成されているデータモデルのみを対象
+
+// Users テーブル
+Table Users {
+  _id ObjectId [pk]
+  userName String [note: '最大20文字、デフォルト: ゲスト']
+  email String [unique, note: 'null値の重複を許可']
+  password String [note: '最小8文字、ゲストユーザーはnull']
+  pic String [note: 'プロフィール画像URL']
+  isGuest Boolean [default: false]
+  deletedAt Date [note: 'ソフトデリート用']
+  createdAt Date [note: '作成日時']
+  updatedAt Date [note: '更新日時']
+  
+  indexes {
+    (email, deletedAt) [note: 'メールアドレスと削除日時の複合インデックス']
+  }
+}
+
+// Channels テーブル
+Table Channels {
+  _id ObjectId [pk]
+  channelName String [not null, note: '最大50文字']
+  channelDescription String [not null, note: '最大2000文字']
+  passwordEnabled Boolean [default: false]
+  password String [note: '最小8文字、passwordEnabledがtrueの場合必須']
+  channelAdmin ObjectId [not null, ref: > Users._id]
+  denyGuests Boolean [default: false]
+  numberOfPlayers Number [default: 10, note: '範囲: 5-20']
+  deletedAt Date [note: 'ソフトデリート用']
+  createdAt Date [note: '作成日時']
+  updatedAt Date [note: '更新日時']
+  
+  indexes {
+    (channelAdmin) [note: '管理者検索用']
+  }
+}
+
+// ChannelUsers テーブル（チャンネル参加者）
+Table ChannelUsers {
+  channelId ObjectId [not null, ref: > Channels._id]
+  userId ObjectId [not null, ref: > Users._id]
+  createdAt Date [note: '参加日時']
+  
+  indexes {
+    (channelId, userId) [pk, unique, note: '同じチャンネルとユーザーの組み合わせは一意']
+  }
+}
+
+// BlockedUsers テーブル（チャンネルブロックユーザー）
+Table BlockedUsers {
+  channelId ObjectId [not null, ref: > Channels._id]
+  userId ObjectId [not null, ref: > Users._id]
+  createdAt Date [note: 'ブロック日時']
+  
+  indexes {
+    (channelId, userId) [pk, unique, note: '同じチャンネルとユーザーの組み合わせは一意']
+    (userId) [note: 'ユーザー別ブロックチャンネル検索用']
+  }
+}
+
+// Games テーブル
+Table Games {
+  _id ObjectId [pk]
+  channelId ObjectId [not null, ref: > Channels._id]
+  result String [default: 'running', note: 'running,villagersWin,werewolvesWin,foxesWin,villageAbandoned']
+  numberOfPlayers Number [default: 10, note: '範囲: 5-20']
+  createdAt Date [note: '作成日時']
+  updatedAt Date [note: '更新日時']
+  
+  indexes {
+    (channelId) [note: 'チャンネル別ゲーム検索用']
+  }
+}
+
+// GameUsers テーブル（ゲーム参加者）
+Table GameUsers {
+  gameId ObjectId [not null, ref: > Games._id]
+  userId ObjectId [not null, ref: > Users._id]
+  role String [default: 'spectator', note: 'villager,seer,medium,hunter,freemason,werewolf,madman,fanatic,fox,immoralist,spectator']
+  isPlaying Boolean [default: false]
+  createdAt Date [note: '参加日時']
+  updatedAt Date [note: '更新日時']
+  
+  indexes {
+    (gameId, userId) [pk, unique, note: '同じゲームとユーザーの組み合わせは一意']
+    (userId) [note: 'ユーザー別ゲーム検索用']
+  }
+}
+
+// Messages テーブル
+Table Messages {
+  _id ObjectId [pk]
+  channelId ObjectId [not null, ref: > Channels._id]
+  userId ObjectId [not null, ref: > Users._id]
+  message String [not null, note: '最大400文字']
+  messageType String [default: 'normal', note: 'normal,werewolf,spectator,freemason,system']
+  replyTo ObjectId [ref: > Messages._id, note: '返信先メッセージ']
+  createdAt Date [note: '投稿日時']
+  
+  indexes {
+    (channelId, createdAt) [note: 'チャンネル別メッセージ時系列検索用']
+  }
+}
+
+// リレーション定義
+Ref: Channels.channelAdmin > Users._id
+Ref: ChannelUsers.channelId > Channels._id
+Ref: ChannelUsers.userId > Users._id
+Ref: BlockedUsers.channelId > Channels._id
+Ref: BlockedUsers.userId > Users._id
+Ref: Games.channelId > Channels._id
+Ref: GameUsers.gameId > Games._id
+Ref: GameUsers.userId > Users._id
+Ref: Messages.channelId > Channels._id
+Ref: Messages.userId > Users._id
+Ref: Messages.replyTo > Messages._id

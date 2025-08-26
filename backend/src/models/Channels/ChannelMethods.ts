@@ -12,11 +12,6 @@ export const ChannelMethods = {
     return await bcrypt.compare(enteredPassword, this.password);
   },
 
-  async softDelete(this: IChannel): Promise<void> {
-    this.deletedAt = new Date();
-    await this.save();
-  },
-
   async update(
     this: IChannel,
     data: IUpdateChannelSetingsData,

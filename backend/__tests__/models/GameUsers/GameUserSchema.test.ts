@@ -82,6 +82,15 @@ describe('GameUserSchema', () => {
   });
 
   describe('デフォルト値', () => {
+    it('userNameフィールドのデフォルト値がゲストである', async () => {
+      const gameUser = await GameUsers.create({
+        gameId,
+        userId,
+      });
+
+      expect(gameUser.userName).toBe('ゲスト');
+    });
+
     it('roleフィールドのデフォルト値がspectatorである', async () => {
       const gameUser = await GameUsers.create({
         gameId,
@@ -116,6 +125,30 @@ describe('GameUserSchema', () => {
       await expect(
         GameUsers.create({
           gameId,
+          role: 'villager',
+        }),
+      ).rejects.toThrow();
+    });
+
+    it('userNameフィールドが20文字以内の文字列を受け入れる', async () => {
+      const validUserName = 'A'.repeat(20); // 20文字
+      const gameUser = await GameUsers.create({
+        gameId,
+        userId,
+        userName: validUserName,
+        role: 'villager',
+      });
+
+      expect(gameUser.userName).toBe(validUserName);
+    });
+
+    it('userNameフィールドが20文字を超えるとエラーが発生する', async () => {
+      const invalidUserName = 'A'.repeat(21); // 21文字
+      await expect(
+        GameUsers.create({
+          gameId,
+          userId,
+          userName: invalidUserName,
           role: 'villager',
         }),
       ).rejects.toThrow();
@@ -306,6 +339,7 @@ describe('GameUserSchema', () => {
         userId,
         role: 'villager',
       });
+      await GameUsers.createIndexes();
 
       const indexes = await GameUsers.listIndexes();
       const userIdIndex = indexes.find(

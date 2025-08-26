@@ -69,6 +69,7 @@ describe('UserSchema', () => {
         password: 'password123',
       });
       await firstUser.save();
+      await Users.createIndexes();
 
       // 同じemailで2番目のユーザーを作成しようとする
       const secondUser = new Users({
@@ -147,6 +148,7 @@ describe('UserSchema', () => {
 
   describe('インデックス', () => {
     it('emailとdeletedAtの複合インデックスが存在する', async () => {
+      await Users.createIndexes();
       const indexes = await Users.collection.indexes();
       const emailDeletedIndex = indexes.find(
         (index: any) =>

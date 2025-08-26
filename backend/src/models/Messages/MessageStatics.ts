@@ -1,9 +1,8 @@
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 import { MessageType } from '../../config/types';
-import { IMessage, IMessageStatics } from './MessageTypes';
+import { IMessagesIndex, IMessage, IMessageStatics } from './MessageTypes';
 
-// Message静的メソッド
 export const MessageStatics = {
   // チャンネルのメッセージ一覧を取得
   async getMessages(
@@ -31,10 +30,22 @@ export const MessageStatics = {
       query.createdAt = { $lt: message.createdAt };
     }
 
-    return this.find(query)
+    return this.find(query).sort({ createdAt: -1 }).limit(limit).lean();
+  },
+
+  async getIndex(
+    this: IMessageStatics,
+    channelId: string,
+  ): Promise<IMessagesIndex[]> {
+    const messages = await this.find({ channelId })
+      .limit(5000)
+      .select('_id createdAt replyTo')
       .sort({ createdAt: -1 })
-      .limit(limit)
-      .select('-__v')
       .lean();
+    return messages.map((message) => ({
+      _id: message._id,
+      createdAt: message.createdAt,
+      replyTo: message.replyTo || undefined,
+    }));
   },
 };

@@ -1,4 +1,4 @@
-import mongoose, { Document, Types } from 'mongoose';
+import mongoose, { ClientSession, Document, Types } from 'mongoose';
 
 // Channelドキュメントのインターフェース
 export interface IChannel extends Document {
@@ -12,7 +12,6 @@ export interface IChannel extends Document {
   numberOfPlayers: number;
   deletedAt: Date | undefined; // ソフトデリートフラグ（削除日時）
   matchPassword(enteredPassword: string): Promise<boolean>;
-  softDelete(): Promise<void>;
   update(data: IUpdateChannelSetingsData): Promise<IChannel>;
   createdAt: Date;
   updatedAt: Date;
@@ -29,6 +28,7 @@ export interface IUpdateChannelSetingsData {
 
 // Channelモデルの静的メソッドのインターフェース
 export interface IChannelStatics extends mongoose.Model<IChannel> {
+  findActiveChannelById(channelId: string): Promise<IChannel>;
   getChannelAsAdmin(channelId: string, userId: string): Promise<IChannel>;
   isChannelAdmin(channelId: string, userId: string): Promise<boolean>;
   getChannelList(): Promise<IChannel[]>;
@@ -41,5 +41,9 @@ export interface IChannelStatics extends mongoose.Model<IChannel> {
     channelDescription: string;
     numberOfPlayers: number;
   }>;
-  deleteChannel(channelId: string, userId: string): Promise<void>;
+  deleteChannel(
+    channelId: string,
+    userId: string,
+    session?: ClientSession,
+  ): Promise<void>;
 }

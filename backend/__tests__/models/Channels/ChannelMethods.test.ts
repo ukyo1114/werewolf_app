@@ -7,6 +7,7 @@ describe('ChannelMethods', () => {
   let channel: any;
 
   beforeEach(async () => {
+    await Channels.deleteOne({ _id: channelId });
     // テスト用のチャンネルを作成
     channel = await Channels.create({
       _id: channelId,
@@ -16,10 +17,6 @@ describe('ChannelMethods', () => {
       passwordEnabled: true,
       password: 'securepass123',
     });
-  });
-
-  afterEach(async () => {
-    await Channels.deleteOne({ _id: channelId });
   });
 
   describe('matchPassword', () => {
@@ -45,31 +42,6 @@ describe('ChannelMethods', () => {
         channelWithoutPassword.matchPassword('anypassword'),
       ).rejects.toThrow();
       await Channels.deleteOne({ _id: channelWithoutPassword._id });
-    });
-  });
-
-  describe('softDelete (ソフトデリート)', () => {
-    it('deletedAtフィールドに現在の日時を設定する', async () => {
-      const beforeDelete = new Date();
-      await channel.softDelete();
-      const afterDelete = new Date();
-
-      expect(channel.deletedAt).toBeDefined();
-      expect(channel.deletedAt).toBeInstanceOf(Date);
-      expect(channel.deletedAt.getTime()).toBeGreaterThanOrEqual(
-        beforeDelete.getTime(),
-      );
-      expect(channel.deletedAt.getTime()).toBeLessThanOrEqual(
-        afterDelete.getTime(),
-      );
-    });
-
-    it('チャンネルをデータベースから完全に削除しない', async () => {
-      await channel.softDelete();
-
-      const deletedChannel = await Channels.findById(channelId);
-      expect(deletedChannel).toBeDefined();
-      expect(deletedChannel?.deletedAt).toBeDefined();
     });
   });
 
