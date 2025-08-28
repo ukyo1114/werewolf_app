@@ -31,6 +31,7 @@ export interface IChannelStatics extends mongoose.Model<IChannel> {
   findActiveChannelById(channelId: string): Promise<IChannel>;
   getChannelAsAdmin(channelId: string, userId: string): Promise<IChannel>;
   isChannelAdmin(channelId: string, userId: string): Promise<boolean>;
+  checkChannelAdmin(channelId: string, userId: string): Promise<void>;
   getChannelList(): Promise<IChannel[]>;
   updateChannelSettings(
     userId: string,

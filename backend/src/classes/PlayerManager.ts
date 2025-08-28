@@ -1,11 +1,11 @@
 import _ from 'lodash';
 
-import AppError from '../utils/AppError';
-import { errors } from '../config/messages';
-import { appState } from '../app';
-import { roleConfig, teammateMapping } from '../config/roles';
-import { Role, Status, IUser, IPlayer, IPlayerState } from '../config/types';
-import GameUser from '../models/GameUser';
+import AppError from '@/utils/AppError';
+import { errors } from '@/config/messages';
+import { appState } from '@/app';
+import { roleConfig, teammateMapping } from '@/config/roles';
+import { Role, Status, IUser, IPlayer, IPlayerState } from '@/config/types';
+import GameUsers from '@/models/GameUsers';
 
 const { channelManagers } = appState;
 
@@ -56,7 +56,7 @@ export default class PlayerManager {
     player.status = 'dead';
     channelManagers[this.gameId]?.users[userId]?.kill();
     try {
-      await GameUser.updateOne(
+      await GameUsers.updateOne(
         { gameId: this.gameId, userId },
         { isPlaying: false },
       );

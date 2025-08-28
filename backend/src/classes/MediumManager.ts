@@ -1,6 +1,6 @@
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-import { MediumResult } from '../config/types';
+import { MediumResult } from '@/config/types';
 
 export default class MediumManager {
   public phaseManager: PhaseManager;

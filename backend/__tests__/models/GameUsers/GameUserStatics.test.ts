@@ -123,6 +123,59 @@ describe('GameUserStatics', () => {
     });
   });
 
+  describe('getGamePlayers', () => {
+    it('指定されたゲームのプレイヤー一覧を取得する（spectatorを除く）', async () => {
+      await GameUsers.create({
+        gameId,
+        userId,
+        userName: 'TestUser',
+        pic: 'pic.jpg',
+        role: 'villager',
+      });
+      await GameUsers.create({
+        gameId,
+        userId: secondUserId,
+        userName: 'SecondUser',
+        pic: 'pic2.jpg',
+        role: 'seer',
+      });
+      await GameUsers.create({
+        gameId,
+        userId: new mongoose.Types.ObjectId(),
+        userName: 'SpectatorUser',
+        pic: 'pic3.jpg',
+        role: 'spectator',
+      });
+
+      const players = await GameUsers.getGamePlayers(gameId.toString());
+
+      expect(players).toHaveLength(2);
+      expect(players).toContainEqual({
+        userId: userId,
+        userName: 'TestUser',
+        pic: 'pic.jpg',
+      });
+      expect(players).toContainEqual({
+        userId: secondUserId,
+        userName: 'SecondUser',
+        pic: 'pic2.jpg',
+      });
+    });
+
+    it('spectatorのみの場合は空配列を返す', async () => {
+      await GameUsers.create({
+        gameId,
+        userId,
+        userName: 'SpectatorUser',
+        pic: 'pic.jpg',
+        role: 'spectator',
+      });
+
+      const players = await GameUsers.getGamePlayers(gameId.toString());
+      expect(players).toHaveLength(0);
+    });
+  });
+
   describe('isUserPlaying', () => {
     it('プレイ中のユーザーの場合、ゲームIDを返す', async () => {
       await GameUsers.create({

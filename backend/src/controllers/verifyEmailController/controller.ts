@@ -37,12 +37,12 @@ export const sendVerificationEmail = (action: keyof typeof mailContent) =>
       )
         throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
 
-      // メールアドレスが登録されていなければ通知する
+      // メールアドレスが登録されていなければエラー
       if (action === 'forgotPassword' && !emailExists)
         throw new AppError(400, errors.EMAIL_NOT_REGISTERED);
 
       const verificationToken: string = genVerificationToken({
-        userId: userId || null,
+        userId,
         email,
         action,
       });

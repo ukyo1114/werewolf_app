@@ -1,4 +1,4 @@
-import { RoleConfig } from './types';
+import { RoleConfig } from '@/config/types';
 
 export const roleConfig: RoleConfig = {
   5: ['villager', 'villager', 'seer', 'werewolf', 'madman'],

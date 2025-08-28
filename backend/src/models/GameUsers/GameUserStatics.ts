@@ -1,5 +1,4 @@
-import { Types } from 'mongoose';
-import { IGameUserStatics } from './GameUserTypes';
+import { IGameUser, IGameUserStatics } from './GameUserTypes';
 
 export const GameUserStatics = {
   async joinGame(
@@ -14,14 +13,19 @@ export const GameUserStatics = {
   async getGameUsers(
     this: IGameUserStatics,
     gameId: string,
-  ): Promise<
-    {
-      userId: Types.ObjectId;
-      userName: string;
-      pic?: string;
-    }[]
-  > {
+  ): Promise<IGameUser[]> {
     const users = await this.find({ gameId })
+      .select('-_id userId userName pic')
+      .lean();
+
+    return users;
+  },
+
+  async getGamePlayers(
+    this: IGameUserStatics,
+    gameId: string,
+  ): Promise<IGameUser[]> {
+    const users = await this.find({ gameId, role: { $nin: ['spectator'] } })
       .select('-_id userId userName pic')
       .lean();
 

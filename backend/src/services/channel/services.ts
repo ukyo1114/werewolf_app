@@ -12,6 +12,7 @@ import {
   IChannelService,
   ICreateChannelData,
 } from './interfaces';
+import AppError from '@/utils/AppError';
 import { errors } from '@/config/messages';
 
 export class ChannelService implements IChannelService {
@@ -20,7 +21,7 @@ export class ChannelService implements IChannelService {
     channelData: ICreateChannelData,
   ): Promise<string> {
     const isGuest = await Users.isGuest(userId);
-    if (isGuest) throw new Error(errors.GUEST_CREATE_CHANNEL_DENIED);
+    if (isGuest) throw new AppError(400, errors.GUEST_CREATE_CHANNEL_DENIED);
 
     return TransactionHelper.withTransaction(async (session) => {
       const newChannel = await Channels.create([channelData], { session });
@@ -62,16 +63,19 @@ export class ChannelService implements IChannelService {
 
   async leaveChannel(channelId: string, userId: string): Promise<void> {
     const isChannelAdmin = await Channels.isChannelAdmin(channelId, userId);
-    if (isChannelAdmin) throw new Error(errors.ADMIN_LEAVE_DENIED);
+    if (isChannelAdmin) throw new AppError(400, errors.ADMIN_LEAVE_DENIED);
     await ChannelUsers.deleteOne({ channelId, userId });
   }
 
   async deleteChannel(channelId: string, userId: string): Promise<void> {
+    await Channels.checkChannelAdmin(channelId, userId);
     return TransactionHelper.withTransaction(async (session) => {
-      await ChannelUsers.deleteMany({ channelId }, { session });
-      await BlockedUsers.deleteMany({ channelId }, { session });
-      await Messages.deleteMany({ channelId }, { session });
-      await Channels.deleteChannel(channelId, userId, session);
+      await Promise.all([
+        ChannelUsers.deleteMany({ channelId }, { session }),
+        BlockedUsers.deleteMany({ channelId }, { session }),
+        Messages.deleteMany({ channelId }, { session }),
+        Channels.deleteChannel(channelId, userId, session),
+      ]);
 
       await session.commitTransaction();
     });
@@ -99,12 +103,12 @@ export class ChannelService implements IChannelService {
         password ? channel.matchPassword(password) : false,
       ]);
 
-    if (isUserBlocked) throw new Error(errors.USER_BLOCKED);
+    if (isUserBlocked) throw new AppError(400, errors.USER_BLOCKED);
     if (!isUserInChannel) {
       if (channel.denyGuests && isGuest)
-        throw new Error(errors.GUEST_ENTRY_DENIED);
+        throw new AppError(400, errors.GUEST_ENTRY_DENIED);
       if (channel.passwordEnabled && !isPasswordCorrect)
-        throw new Error(errors.WRONG_PASSWORD);
+        throw new AppError(400, errors.WRONG_PASSWORD);
       await ChannelUsers.create({ channelId, userId });
     }
   }

@@ -1,6 +1,6 @@
-import AppError from '../utils/AppError';
-import { errors } from '../config/messages';
-import { GuardHistory } from '../config/types';
+import AppError from '@/utils/AppError';
+import { errors } from '@/config/messages';
+import { GuardHistory } from '@/config/types';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 

@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import ChannelUsers from '@/models/ChannelUsers';
 import Users from '@/models/Users';
+import AppError from '@/utils/AppError';
+import { errors } from '@/config/messages';
 
 describe('ChannelUserStatics', () => {
   const channelId = new mongoose.Types.ObjectId();
@@ -135,6 +137,52 @@ describe('ChannelUserStatics', () => {
       );
 
       expect(isInChannel).toBe(false);
+    });
+  });
+
+  describe('checkUserInChannel', () => {
+    it('ユーザーがチャンネルにいる場合何もしない', async () => {
+      // チャンネルユーザーを作成
+      await ChannelUsers.create({
+        channelId,
+        userId,
+      });
+
+      const result = await ChannelUsers.checkUserInChannel(
+        channelId.toString(),
+        userId.toString(),
+      );
+
+      expect(result).toBeUndefined();
+    });
+
+    it('ユーザーがチャンネルにいない場合エラーを投げる', async () => {
+      await expect(
+        ChannelUsers.checkUserInChannel(
+          channelId.toString(),
+          userId.toString(),
+        ),
+      ).rejects.toThrow(new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN));
+    });
+
+    it('存在しないチャンネルIDでエラーを投げる', async () => {
+      const nonExistentChannelId = new mongoose.Types.ObjectId().toString();
+      await expect(
+        ChannelUsers.checkUserInChannel(
+          nonExistentChannelId,
+          userId.toString(),
+        ),
+      ).rejects.toThrow(new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN));
+    });
+
+    it('存在しないユーザーIDでエラーを投げる', async () => {
+      const nonExistentUserId = new mongoose.Types.ObjectId().toString();
+      await expect(
+        ChannelUsers.checkUserInChannel(
+          channelId.toString(),
+          nonExistentUserId,
+        ),
+      ).rejects.toThrow(new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN));
     });
   });
 

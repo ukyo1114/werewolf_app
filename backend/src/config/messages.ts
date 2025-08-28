@@ -21,7 +21,7 @@ export const errors = {
   CHANNEL_NOT_FOUND: 'チャンネルが見つかりません。',
   PERMISSION_DENIED: '権限がありません。',
   USER_ALREADY_BLOCKED: 'ユーザーが既にブロックされています。',
-  USER_NOT_BLOCKED: 'ユーザーはブロックされていません',
+  USER_NOT_BLOCKED: 'ユーザーはブロックリストに含まれていません',
   DENIED_SELF_BLOCK: '自分自身をブロックすることはできません',
   USER_BLOCKED: 'ブロックされています。',
   GUEST_CREATE_CHANNEL_DENIED:
@@ -29,7 +29,7 @@ export const errors = {
   GUEST_ENTRY_DENIED: 'ゲストアカウントでは入室できません。',
   ADMIN_LEAVE_DENIED: '管理者は退出できません。',
   USER_ALREADY_LEFT: 'ユーザーは既に退出済みです。',
-  GAME_ACCESS_FORBIDDEN: 'ゲームを利用できません。',
+  GAME_ACCESS_FORBIDDEN: 'ゲームにアクセスできません。',
   GAME_IS_PROCESSING: '集計中のため受付できません。',
   MESSAGE_NOT_FOUND: 'メッセージが見つかりません。',
   EMAIL_NOT_REGISTERED: 'メールアドレスが登録されていません。',

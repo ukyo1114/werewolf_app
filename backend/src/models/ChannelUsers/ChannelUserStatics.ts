@@ -1,9 +1,6 @@
-import { Types } from 'mongoose';
-import {
-  IChannelUser,
-  IChannelUserStatics,
-  IChannelParticipant,
-} from './ChannelUserTypes';
+import AppError from '@/utils/AppError';
+import { errors } from '@/config/messages';
+import { IChannelUserStatics, IChannelParticipant } from './ChannelUserTypes';
 
 export const ChannelUserStatics = {
   async getChannelUsers(
@@ -25,6 +22,15 @@ export const ChannelUserStatics = {
   ): Promise<boolean> {
     const channelUser = await this.findOne({ channelId, userId });
     return !!channelUser;
+  },
+
+  async checkUserInChannel(
+    this: IChannelUserStatics,
+    channelId: string,
+    userId: string,
+  ): Promise<void> {
+    if (!(await this.isUserInChannel(channelId, userId)))
+      throw new AppError(403, errors.CHANNEL_ACCESS_FORBIDDEN);
   },
 
   async getParticipantingChannels(

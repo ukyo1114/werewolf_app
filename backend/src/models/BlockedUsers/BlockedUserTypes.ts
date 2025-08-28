@@ -8,18 +8,17 @@ export interface IBlockedUser extends Document {
   createdAt: Date;
 }
 
+export interface IBlockedUserList {
+  _id: Types.ObjectId;
+  userName: string;
+  pic: string | null;
+  isGuest: boolean;
+}
+
 // ChannelBlockUserモデルの静的メソッドのインターフェース
 export interface IBlockedUserStatics extends mongoose.Model<IBlockedUser> {
-  getBlockedUsers(channelId: string): Promise<
-    {
-      _id: Types.ObjectId;
-      userName: string;
-      pic: string | null;
-      isGuest: boolean;
-    }[]
-  >;
+  getBlockedUserList(channelId: string): Promise<IBlockedUserList[]>;
   isUserBlocked(channelId: string, userId: string): Promise<boolean>;
-  addBlockUser(channelId: string, userId: string): Promise<void>;
-  unblockUser(channelId: string, userId: string): Promise<boolean>;
+  cancelBlock(channelId: string, userId: string): Promise<void>;
   getBlockedChannels(userId: string): Promise<string[]>;
 }

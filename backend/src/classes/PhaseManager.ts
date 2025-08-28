@@ -1,6 +1,5 @@
 import EventEmitter from 'events';
-import { IGameResult, CurrentPhase } from '../config/types';
-import GameUser from '../models/GameUser';
+import { CurrentPhase } from '../config/types';
 
 export default class PhaseManager {
   phaseDurations_sec = {
@@ -15,12 +14,10 @@ export default class PhaseManager {
   public currentPhase: CurrentPhase = 'pre';
   public changedAt: Date;
   public timerId: ReturnType<typeof setTimeout> | null = null;
-  public result: IGameResult;
   public eventEmitter: EventEmitter;
 
-  constructor(eventEmitter: EventEmitter, result: IGameResult, gameId: string) {
+  constructor(eventEmitter: EventEmitter, gameId: string) {
     this.changedAt = new Date();
-    this.result = result;
     this.eventEmitter = eventEmitter;
     this.gameId = gameId;
     this.registerListner();
@@ -28,10 +25,9 @@ export default class PhaseManager {
   }
 
   registerListner(): void {
-    this.eventEmitter.on('processCompleted', async () => {
-      await this.nextPhase();
+    this.eventEmitter.on('processCompleted', async (isRunning: boolean) => {
+      await this.nextPhase(isRunning);
       this.eventEmitter.emit('phaseSwitched');
-      this.startTimer();
     });
   }
 
@@ -43,23 +39,26 @@ export default class PhaseManager {
     );
   }
 
-  async nextPhase(): Promise<void> {
+  async nextPhase(isRunning: boolean): Promise<void> {
     const currentPhase = this.currentPhase;
     this.changedAt = new Date();
 
     if (currentPhase === 'finished') return;
-
-    if (this.result.value !== 'running') {
+    if (!isRunning) {
       this.currentPhase = 'finished';
-      await GameUser.endGame(this.gameId);
-      return;
-    }
-
-    if (currentPhase === 'day') {
+    } else if (currentPhase === 'day') {
       this.currentPhase = 'night';
     } else {
       this.currentDay = this.currentDay + 1;
       this.currentPhase = 'day';
     }
+    this.startTimer();
+    /* 
+    if (this.result.value !== 'running') {
+      this.currentPhase = 'finished';
+      await GameUser.endGame(this.gameId);
+      return;
+    }
+    */
   }
 }

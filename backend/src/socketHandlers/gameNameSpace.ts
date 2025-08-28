@@ -1,7 +1,7 @@
 import { Namespace, Socket } from 'socket.io';
-import { appState, Events } from '../app';
-import { errors } from '../config/messages';
-import { authSocketUser } from '../middleware/authSocketUser';
+import { appState, Events } from '@/app';
+import { errors } from '@/config/messages';
+import { authSocketUser } from '@/middleware/authSocketUser';
 
 const { gameManagers } = appState;
 const { gameEvents } = Events;

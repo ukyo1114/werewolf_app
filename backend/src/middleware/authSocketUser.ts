@@ -1,9 +1,9 @@
 import { Socket } from 'socket.io';
-import User from '../models/User';
-import ChannelUser from '../models/ChannelUser';
-import GameUser from '../models/GameUser';
-import { decodeToken } from '../utils/decodeToken';
-import { socketError } from '../config/messages';
+import Users from '@/models/Users';
+import ChannelUsers from '@/models/ChannelUsers';
+import GameUsers from '@/models/GameUsers';
+import { decodeToken } from '@/utils/decodeToken';
+import { socketError } from '@/config/messages';
 
 export const authSocketUser =
   (nameSpace: string) =>
@@ -16,7 +16,7 @@ export const authSocketUser =
       if (!userId) throw new Error(socketError.AUTH_ERROR);
 
       // プレイ中のゲームがあるかどうかチェック
-      const currentGameId = await GameUser.isUserPlaying(userId);
+      const currentGameId = await GameUsers.isUserPlaying(userId);
       if (
         currentGameId &&
         (nameSpace === 'entry' || currentGameId !== channelId)
@@ -30,19 +30,19 @@ export const authSocketUser =
       let [userExists, inChannel, inGame] = [false, false, false];
       if (nameSpace === 'entry') {
         [userExists, inChannel] = await Promise.all([
-          !!User.exists({ _id: userId }),
-          !!ChannelUser.exists({ channelId, userId }),
+          !!Users.exists({ _id: userId }),
+          !!ChannelUsers.exists({ channelId, userId }),
         ]);
       } else if (nameSpace === 'game') {
         [userExists, inGame] = await Promise.all([
-          !!User.exists({ _id: userId }),
-          !!GameUser.exists({ gameId: channelId, userId }),
+          !!Users.exists({ _id: userId }),
+          !!GameUsers.exists({ gameId: channelId, userId }),
         ]);
       } else if (nameSpace === 'chat') {
         [userExists, inChannel, inGame] = await Promise.all([
-          !!User.exists({ _id: userId }),
-          !!ChannelUser.exists({ channelId, userId }),
-          !!GameUser.exists({ gameId: channelId, userId }),
+          !!Users.exists({ _id: userId }),
+          !!ChannelUsers.exists({ channelId, userId }),
+          !!GameUsers.exists({ gameId: channelId, userId }),
         ]);
       }
 

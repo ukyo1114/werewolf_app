@@ -26,13 +26,8 @@ export interface IGameUser extends Document {
 
 export interface IGameUserStatics extends mongoose.Model<IGameUser> {
   joinGame(gameId: string, userId: string): Promise<void>;
-  getGameUsers(gameId: string): Promise<
-    {
-      userId: Types.ObjectId;
-      userName: string;
-      pic?: string;
-    }[]
-  >;
+  getGameUsers(gameId: string): Promise<IGameUser[]>;
+  getGamePlayers(gameId: string): Promise<IGameUser[]>;
   isUserPlaying(userId: string): Promise<string | null>;
   endGame(gameId: string): Promise<void>;
 }

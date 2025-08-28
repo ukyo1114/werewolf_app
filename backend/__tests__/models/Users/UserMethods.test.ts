@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import Users from '@/models/Users';
+import AppError from '@/utils/AppError';
 import { errors } from '@/config/messages';
 
 describe('UserMethods', () => {
@@ -37,7 +38,7 @@ describe('UserMethods', () => {
       await user.save();
 
       await expect(user.matchPassword('wrongpassword')).rejects.toThrow(
-        errors.WRONG_PASSWORD,
+        new AppError(400, errors.WRONG_PASSWORD),
       );
     });
 
@@ -52,49 +53,6 @@ describe('UserMethods', () => {
       await user.save();
 
       await expect(user.matchPassword('anypassword')).rejects.toThrow();
-    });
-  });
-
-  describe('softDelete', () => {
-    it('ユーザーをソフトデリートできる', async () => {
-      const user = new Users({
-        _id: userId,
-        userName: 'TestUser',
-        email,
-        password: 'password123',
-      });
-
-      await user.save();
-      expect(user.deletedAt).toBeUndefined();
-
-      await user.softDelete();
-      expect(user.deletedAt).toBeDefined();
-      expect(user.deletedAt).toBeInstanceOf(Date);
-
-      // データベースの値も確認
-      const deletedUser = await Users.findById(user._id);
-      expect(deletedUser?.deletedAt).toBeDefined();
-    });
-
-    it('削除日時が現在時刻に設定される', async () => {
-      const user = new Users({
-        _id: userId,
-        userName: 'TestUser',
-        email,
-        password: 'password123',
-      });
-
-      await user.save();
-      const beforeDelete = new Date();
-      await user.softDelete();
-      const afterDelete = new Date();
-
-      expect(user.deletedAt!.getTime()).toBeGreaterThanOrEqual(
-        beforeDelete.getTime(),
-      );
-      expect(user.deletedAt!.getTime()).toBeLessThanOrEqual(
-        afterDelete.getTime(),
-      );
     });
   });
 
@@ -136,7 +94,7 @@ describe('UserMethods', () => {
 
       await expect(
         user.changePassword('wrongpassword', 'newpassword123'),
-      ).rejects.toThrow(errors.WRONG_PASSWORD);
+      ).rejects.toThrow(new AppError(400, errors.WRONG_PASSWORD));
     });
 
     it('パスワードが設定されていない場合エラーを投げる', async () => {

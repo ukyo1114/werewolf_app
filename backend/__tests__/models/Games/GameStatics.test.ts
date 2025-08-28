@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Games from '@/models/Games';
+import Channels from '@/models/Channels';
 
 describe('GameStatics', () => {
   const channelId = new mongoose.Types.ObjectId();
@@ -9,7 +10,39 @@ describe('GameStatics', () => {
     await Promise.all([
       Games.deleteMany({ channelId }),
       Games.deleteMany({ channelId: secondChannelId }),
+      Channels.deleteMany({ _id: { $in: [channelId, secondChannelId] } }),
     ]);
+  });
+
+  describe('getGameInfo', () => {
+    it('ゲーム情報を取得できる', async () => {
+      // チャンネルを作成
+      await Channels.create({
+        _id: channelId,
+        channelName: 'Test Channel',
+        channelDescription: 'A test channel',
+        channelAdmin: new mongoose.Types.ObjectId(),
+      });
+
+      // ゲームを作成
+      const game = await Games.create({
+        channelId,
+        numberOfPlayers: 10,
+        result: 'running',
+      });
+
+      const gameInfo = await Games.getGameInfo(game._id.toString());
+
+      expect(gameInfo.channelId).toBe(channelId.toString());
+      expect(gameInfo.channelName).toBe('Test Channel');
+      expect(gameInfo.channelDescription).toBe('A test channel');
+    });
+
+    it('存在しないゲームIDでエラーを投げる', async () => {
+      const nonExistentId = new mongoose.Types.ObjectId().toString();
+
+      await expect(Games.getGameInfo(nonExistentId)).rejects.toThrow();
+    });
   });
 
   describe('getRunningGame', () => {

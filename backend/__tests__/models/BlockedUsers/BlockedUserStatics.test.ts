@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import BlockedUsers from '@/models/BlockedUsers';
 import Users from '@/models/Users';
+import AppError from '@/utils/AppError';
+import { errors } from '@/config/messages';
 
 describe('BlockedUserStatics', () => {
   const channelId = new mongoose.Types.ObjectId();
@@ -22,12 +24,12 @@ describe('BlockedUserStatics', () => {
     });
   });
 
-  describe('getBlockedUsers', () => {
+  describe('getBlockUserList', () => {
     it('指定されたチャンネルのブロックされたユーザー一覧を取得する', async () => {
       // テストデータを作成
       await BlockedUsers.create([{ channelId, userId }]);
 
-      const blockedUsers = await BlockedUsers.getBlockedUsers(
+      const blockedUsers = await BlockedUsers.getBlockedUserList(
         channelId.toString(),
       );
 
@@ -43,7 +45,7 @@ describe('BlockedUserStatics', () => {
     });
 
     it('指定されたチャンネルにブロックされたユーザーがいない場合は空配列を返す', async () => {
-      const blockedUsers = await BlockedUsers.getBlockedUsers(
+      const blockedUsers = await BlockedUsers.getBlockedUserList(
         channelId.toString(),
       );
       expect(blockedUsers).toHaveLength(0);
@@ -51,7 +53,7 @@ describe('BlockedUserStatics', () => {
 
     it('存在しないチャンネルIDで空配列を返す', async () => {
       const nonExistentChannelId = new mongoose.Types.ObjectId().toString();
-      const users = await BlockedUsers.getBlockedUsers(nonExistentChannelId);
+      const users = await BlockedUsers.getBlockedUserList(nonExistentChannelId);
       expect(users).toHaveLength(0);
     });
 
@@ -59,7 +61,7 @@ describe('BlockedUserStatics', () => {
       await BlockedUsers.create({ channelId, userId });
 
       // channelId2のブロックされたユーザーを取得
-      const blockedUsers = await BlockedUsers.getBlockedUsers(
+      const blockedUsers = await BlockedUsers.getBlockedUserList(
         secondChannelId.toString(),
       );
 
@@ -121,18 +123,13 @@ describe('BlockedUserStatics', () => {
     });
   });
 
-  describe('unblockUser', () => {
+  describe('cancelBlock', () => {
     it('ブロックされたユーザーをブロック解除する', async () => {
       // ブロックされたユーザーを作成
       await BlockedUsers.create({ channelId, userId });
 
       // ブロック解除
-      const result = await BlockedUsers.unblockUser(
-        channelId.toString(),
-        userId.toString(),
-      );
-
-      expect(result).toBe(true);
+      await BlockedUsers.cancelBlock(channelId.toString(), userId.toString());
 
       // ブロック解除されたことを確認
       const isBlocked = await BlockedUsers.isUserBlocked(
@@ -142,23 +139,10 @@ describe('BlockedUserStatics', () => {
       expect(isBlocked).toBe(false);
     });
 
-    it('存在しないブロックユーザーを解除しようとした場合、falseを返す', async () => {
-      const result = await BlockedUsers.unblockUser(
-        channelId.toString(),
-        userId.toString(),
-      );
-
-      expect(result).toBe(false);
-    });
-
-    it('存在しないチャンネルから削除しようとした場合falseを返す', async () => {
-      const nonExistentChannelId = new mongoose.Types.ObjectId().toString();
-      const removed = await BlockedUsers.unblockUser(
-        nonExistentChannelId,
-        userId.toString(),
-      );
-
-      expect(removed).toBe(false);
+    it('存在しないブロックユーザーを解除しようとした場合、エラーが発生する', async () => {
+      await expect(
+        BlockedUsers.cancelBlock(channelId.toString(), userId.toString()),
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_BLOCKED));
     });
 
     it('ブロック解除後にドキュメントが削除される', async () => {
@@ -166,7 +150,7 @@ describe('BlockedUserStatics', () => {
       await BlockedUsers.create({ channelId, userId });
 
       // ブロック解除
-      await BlockedUsers.unblockUser(channelId.toString(), userId.toString());
+      await BlockedUsers.cancelBlock(channelId.toString(), userId.toString());
 
       // ドキュメントが削除されたことを確認
       const count = await BlockedUsers.countDocuments({ channelId, userId });
@@ -257,7 +241,7 @@ describe('BlockedUserStatics', () => {
       expect(isBlocked).toBe(true);
 
       // ブロックされたユーザー一覧に含まれることを確認
-      const blockedUsers = await BlockedUsers.getBlockedUsers(
+      const blockedUsers = await BlockedUsers.getBlockedUserList(
         channelId.toString(),
       );
       expect(blockedUsers).toHaveLength(1);
@@ -271,11 +255,7 @@ describe('BlockedUserStatics', () => {
       expect(blockedChannels[0]).toBe(channelId.toString());
 
       // ブロック解除
-      const unblockResult = await BlockedUsers.unblockUser(
-        channelId.toString(),
-        userId.toString(),
-      );
-      expect(unblockResult).toBe(true);
+      await BlockedUsers.cancelBlock(channelId.toString(), userId.toString());
 
       // ブロック解除されたことを確認
       isBlocked = await BlockedUsers.isUserBlocked(
@@ -285,7 +265,7 @@ describe('BlockedUserStatics', () => {
       expect(isBlocked).toBe(false);
 
       // ブロックされたユーザー一覧から削除されたことを確認
-      const blockedUsersAfter = await BlockedUsers.getBlockedUsers(
+      const blockedUsersAfter = await BlockedUsers.getBlockedUserList(
         channelId.toString(),
       );
       expect(blockedUsersAfter).toHaveLength(0);
@@ -311,13 +291,13 @@ describe('BlockedUserStatics', () => {
       ]);
 
       // channelId1のブロックされたユーザー
-      const blockedUsers1 = await BlockedUsers.getBlockedUsers(
+      const blockedUsers1 = await BlockedUsers.getBlockedUserList(
         channelId1.toString(),
       );
       expect(blockedUsers1).toHaveLength(2);
 
       // channelId2のブロックされたユーザー
-      const blockedUsers2 = await BlockedUsers.getBlockedUsers(
+      const blockedUsers2 = await BlockedUsers.getBlockedUserList(
         channelId2.toString(),
       );
       expect(blockedUsers2).toHaveLength(1);

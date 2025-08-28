@@ -7,13 +7,13 @@ import DevineManager from './DevineManager';
 import MediumManager from './MediumManager';
 import GuardManager from './GuardManager';
 import AttackManager from './AttackManager';
-import Message from '../models/Message';
-import User from '../models/User';
-import Game from '../models/Game';
-import GameUser from '../models/GameUser';
-import { gameMaster } from '../config/messages';
-import { GameResult, IGameState, IUser } from '../config/types';
-import { appState, Events } from '../app';
+import Messages from '@/models/Messages';
+import Users from '@/models/Users';
+import Games from '@/models/Games';
+import GameUsers from '@/models/GameUsers';
+import { gameMaster } from '@/config/messages';
+import { GameResult, IGameState, IUser } from '@/config/types';
+import { appState, Events } from '@/app';
 
 const { gameManagers } = appState;
 const { channelEvents, gameEvents } = Events;
@@ -35,11 +35,7 @@ export default class GameManager {
   constructor(channelId: string, gameId: string, users: IUser[]) {
     this.channelId = channelId;
     this.gameId = gameId;
-    this.phaseManager = new PhaseManager(
-      this.eventEmitter,
-      this.result,
-      this.gameId,
-    );
+    this.phaseManager = new PhaseManager(this.eventEmitter, this.gameId);
     this.playerManager = new PlayerManager(gameId, users);
     this.voteManager = new VoteManager(this.phaseManager, this.playerManager);
     this.devineManager = new DevineManager(
@@ -67,15 +63,15 @@ export default class GameManager {
 
     try {
       // ゲームを作成
-      const game = await Game.create({
+      const game = await Games.create({
         channelId,
         numberOfPlayers: users.length,
       });
       gameId = game._id.toString();
 
       // ユーザーの詳細を取得
-      const dbUsers = await User.find({ _id: { $in: users } })
-        .select('_id userName')
+      const dbUsers = await Users.find({ _id: { $in: users } })
+        .select('_id userName pic')
         .lean();
       if (dbUsers.length !== users.length) {
         throw new Error();
@@ -91,18 +87,25 @@ export default class GameManager {
 
       // プレイヤーのデータをDBに保存
       const players = gameManagers[gameId].playerManager.players;
-      const userList = Object.values(players).map((player) => ({
-        gameId,
-        userId: player.userId,
-        role: player.role,
-        isPlaying: true,
-      }));
-      await GameUser.insertMany(userList);
+      const userList = Object.values(players).map((player) => {
+        const dbUser = dbUsers.find(
+          (user) => user._id.toString() === player.userId,
+        );
+        return {
+          gameId,
+          userId: player.userId,
+          userName: dbUser?.userName,
+          pic: dbUser?.pic,
+          role: player.role,
+          isPlaying: true,
+        };
+      });
+      await GameUsers.insertMany(userList);
 
       return gameId;
     } catch (error) {
       if (gameId) {
-        await Game.findByIdAndDelete(gameId);
+        await Games.findByIdAndDelete(gameId);
         const timerId = gameManagers[gameId]?.phaseManager.timerId;
         if (timerId) clearTimeout(timerId);
         delete gameManagers[gameId];
@@ -144,7 +147,7 @@ export default class GameManager {
       return;
     }
 
-    this.eventEmitter.emit('processCompleted');
+    this.eventEmitter.emit('processCompleted', this.result.value === 'running');
   }
 
   async handleDayPhaseEnd(): Promise<void> {
@@ -250,7 +253,7 @@ export default class GameManager {
 
   async sendMessage(message: string): Promise<void> {
     try {
-      const newMessage = await Message.create({
+      const newMessage = await Messages.create({
         channelId: this.gameId,
         userId: '672626acf66b851cf141bd0f', // GMのid
         message,
@@ -265,7 +268,7 @@ export default class GameManager {
 
   async handleGameEnd(): Promise<void> {
     try {
-      await Game.endGame(this.gameId, this.result.value);
+      await Games.endGame(this.gameId, this.result.value);
     } catch (error) {
       console.error(`Failed to end game ${this.gameId}:`, error);
     } finally {

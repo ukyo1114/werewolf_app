@@ -1,4 +1,5 @@
 import { ClientSession } from 'mongoose';
+import AppError from '@/utils/AppError';
 import { errors } from '../../config/messages';
 import {
   IChannel,
@@ -13,7 +14,7 @@ export const ChannelStatics = {
   ): Promise<IChannel> {
     const channel = await this.findById(channelId);
     if (!channel || channel.deletedAt)
-      throw new Error(errors.CHANNEL_NOT_FOUND);
+      throw new AppError(404, errors.CHANNEL_NOT_FOUND);
     return channel;
   },
 
@@ -22,11 +23,9 @@ export const ChannelStatics = {
     channelId: string,
     userId: string,
   ): Promise<IChannel> {
-    const channel = await this.findById(channelId);
-    if (!channel || channel.deletedAt)
-      throw new Error(errors.CHANNEL_NOT_FOUND);
+    const channel = await this.findActiveChannelById(channelId);
     if (channel.channelAdmin.toString() !== userId)
-      throw new Error(errors.PERMISSION_DENIED);
+      throw new AppError(403, errors.PERMISSION_DENIED);
     return channel;
   },
 
@@ -35,10 +34,17 @@ export const ChannelStatics = {
     channelId: string,
     userId: string,
   ): Promise<boolean> {
-    const channel = await this.findById(channelId);
-    if (!channel || channel.deletedAt)
-      throw new Error(errors.CHANNEL_NOT_FOUND);
+    const channel = await this.findActiveChannelById(channelId);
     return channel.channelAdmin.toString() === userId;
+  },
+
+  async checkChannelAdmin(
+    this: IChannelStatics,
+    channelId: string,
+    userId: string,
+  ): Promise<void> {
+    const isAdmin = await this.isChannelAdmin(channelId, userId);
+    if (!isAdmin) throw new AppError(403, errors.PERMISSION_DENIED);
   },
 
   async getChannelList(this: IChannelStatics): Promise<IChannel[]> {

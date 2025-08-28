@@ -1,10 +1,10 @@
 import _ from 'lodash';
 
-import AppError from '../utils/AppError';
-import { errors } from '../config/messages';
+import AppError from '@/utils/AppError';
+import { errors } from '@/config/messages';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-import { VotesByVotee, VoteHistory } from '../config/types';
+import { VotesByVotee, VoteHistory } from '@/config/types';
 
 export default class VoteManager {
   public votes: Record<string, string> = {};

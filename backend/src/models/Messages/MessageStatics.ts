@@ -1,44 +1,35 @@
-import AppError from '../../utils/AppError';
-import { errors } from '../../config/messages';
-import { MessageType } from '../../config/types';
-import { IMessagesIndex, IMessage, IMessageStatics } from './MessageTypes';
+import {
+  IMessageIndex,
+  IMessage,
+  IMessageStatics,
+  MessageType,
+} from './MessageTypes';
 
 export const MessageStatics = {
-  // チャンネルのメッセージ一覧を取得
   async getMessages(
     this: IMessageStatics,
-    {
-      channelId,
-      messageId,
-      limit = 50,
-      messageType = null,
-    }: {
-      channelId: string;
-      messageId?: string;
-      limit?: number;
-      messageType: MessageType[] | null;
-    },
+    channelId: string,
+    index: string[],
+    messageType?: MessageType[],
   ): Promise<IMessage[]> {
     const query: any = { channelId };
-
+    query._id = { $in: index };
     if (messageType) query.messageType = { $in: messageType };
 
-    if (messageId) {
-      const message = await this.findById(messageId).select('createdAt').lean();
-      if (!message) throw new AppError(404, errors.MESSAGE_NOT_FOUND);
-      query._id = { $ne: messageId };
-      query.createdAt = { $lt: message.createdAt };
-    }
-
-    return this.find(query).sort({ createdAt: -1 }).limit(limit).lean();
+    return this.find(query).sort({ createdAt: -1 }).lean();
   },
 
   async getIndex(
     this: IMessageStatics,
     channelId: string,
-  ): Promise<IMessagesIndex[]> {
-    const messages = await this.find({ channelId })
-      .limit(5000)
+    messageType?: MessageType[],
+    limit = 3000,
+  ): Promise<IMessageIndex[]> {
+    const query: any = { channelId };
+    if (messageType) query.messageType = { $in: messageType };
+
+    const messages = await this.find(query)
+      .limit(limit)
       .select('_id createdAt replyTo')
       .sort({ createdAt: -1 })
       .lean();

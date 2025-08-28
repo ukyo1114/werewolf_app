@@ -1,5 +1,5 @@
 import { Document, Types } from 'mongoose';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 
 export type Role =
   | 'villager'
@@ -28,9 +28,6 @@ export type GameResult =
   | 'werewolvesWin'
   | 'foxesWin'
   | 'villageAbandoned';
-export interface IGameResult {
-  value: GameResult;
-}
 
 export interface IGameState {
   gameId: string;

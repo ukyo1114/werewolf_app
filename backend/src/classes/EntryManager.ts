@@ -1,6 +1,6 @@
 import GameManager from './GameManager';
-import { appState, Events } from '../app';
-import Channel from '../models/Channel';
+import { appState, Events } from '@/app';
+import Channels from '@/models/Channels';
 
 const { entryManagers } = appState;
 const { entryEvents } = Events;
@@ -19,7 +19,7 @@ export default class EntryManager {
   static async createEntryManager(channelId: string): Promise<EntryManager> {
     if (entryManagers[channelId]) return entryManagers[channelId];
 
-    const channel = await Channel.findById(channelId)
+    const channel = await Channels.findById(channelId)
       .select('numberOfPlayers')
       .lean();
     if (!channel) throw new Error();

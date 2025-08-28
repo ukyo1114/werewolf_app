@@ -1,22 +1,22 @@
 import _ from 'lodash';
 
-import AppError from '../utils/AppError';
-import { errors, socketError } from '../config/messages';
-import { appState } from '../app';
-import { IChannelUser, MessageType } from '../config/types';
+import AppError from '@/utils/AppError';
+import { errors } from '@/config/messages';
+import { appState } from '@/app';
+import { IChannelUser, MessageType } from '@/config/types';
 import GameManager from './GameManager';
 import ChannelUserManager from './ChannelUserManager';
-import Channel from '../models/Channel';
-import Game from '../models/Game';
+import Channels from '@/models/Channels';
+import Games from '@/models/Games';
 
 const { channelManagers, gameManagers } = appState;
 
 export default class ChannelManager {
-  public channelId: string;
-  public users: Record<string, ChannelUserManager>;
-  public game: GameManager | undefined = undefined;
+  channelId: string;
+  users: Record<string, ChannelUserManager>;
+  game: GameManager | undefined;
 
-  constructor(channelId: string, game: GameManager | undefined = undefined) {
+  constructor(channelId: string, game?: GameManager) {
     this.channelId = channelId;
     this.users = {};
     this.game = game;
@@ -25,24 +25,18 @@ export default class ChannelManager {
   static async createChannelInstance(
     channelId: string,
   ): Promise<ChannelManager> {
-    try {
-      const [isChannel, isGame] = await Promise.all([
-        Channel.exists({ _id: channelId }),
-        Game.exists({ _id: channelId }),
-      ]);
-      if (!isChannel && !isGame) throw new Error();
-      if (isChannel) {
-        return (channelManagers[channelId] = new ChannelManager(channelId));
-      } else {
-        const game = gameManagers[channelId];
-        if (!game) throw new Error();
-        return (channelManagers[channelId] = new ChannelManager(
-          channelId,
-          game,
-        ));
-      }
-    } catch (error) {
-      throw new Error(socketError.CHANNEL_CONNECTION_FAILED);
+    const [isChannel, isGame] = await Promise.all([
+      !!Channels.exists({ _id: channelId }),
+      !!Games.exists({ _id: channelId }),
+    ]);
+    if (!isChannel && !isGame) throw new Error();
+
+    if (isChannel) {
+      return (channelManagers[channelId] = new ChannelManager(channelId));
+    } else {
+      const game = gameManagers[channelId];
+      if (!game) throw new Error();
+      return (channelManagers[channelId] = new ChannelManager(channelId, game));
     }
   }
 

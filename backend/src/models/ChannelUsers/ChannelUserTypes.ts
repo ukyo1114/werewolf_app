@@ -17,5 +17,6 @@ export interface IChannelParticipant {
 export interface IChannelUserStatics extends mongoose.Model<IChannelUser> {
   getChannelUsers(channelId: string): Promise<IChannelParticipant[]>;
   isUserInChannel(channelId: string, userId: string): Promise<boolean>;
+  checkUserInChannel(channelId: string, userId: string): Promise<void>;
   getParticipantingChannels(userId: string): Promise<string[]>;
 }

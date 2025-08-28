@@ -38,6 +38,42 @@ describe('MessageStatics', () => {
       expect(result[1].replyTo).toBeUndefined();
     });
 
+    it('messageTypeフィルターで特定のメッセージタイプのみ取得できる', async () => {
+      // 異なるタイプのメッセージを作成
+      await Messages.create({
+        channelId,
+        userId,
+        message: '通常メッセージ',
+        messageType: 'normal',
+      });
+
+      await Messages.create({
+        channelId,
+        userId,
+        message: 'システムメッセージ',
+        messageType: 'system',
+      });
+
+      // normalタイプのみ取得
+      const normalMessages = await Messages.getIndex(channelId.toString(), [
+        'normal',
+      ]);
+      expect(normalMessages).toHaveLength(1);
+
+      // systemタイプのみ取得
+      const systemMessages = await Messages.getIndex(channelId.toString(), [
+        'system',
+      ]);
+      expect(systemMessages).toHaveLength(1);
+
+      // 複数タイプを指定
+      const multiTypeMessages = await Messages.getIndex(channelId.toString(), [
+        'normal',
+        'system',
+      ]);
+      expect(multiTypeMessages).toHaveLength(2);
+    });
+
     it('空のチャンネルで空配列を返す', async () => {
       const emptyChannelId = new mongoose.Types.ObjectId();
       const result = await Messages.getIndex(emptyChannelId.toString());
@@ -45,10 +81,10 @@ describe('MessageStatics', () => {
       expect(result).toHaveLength(0);
     });
 
-    it('5000件を超えるメッセージがある場合でも5000件まで取得する', async () => {
-      // 5001件のメッセージを作成
+    it('3000件を超えるメッセージがある場合でも3000件まで取得する', async () => {
+      // 3001件のメッセージを作成
       const messages = [];
-      for (let i = 0; i < 5001; i++) {
+      for (let i = 0; i < 3001; i++) {
         messages.push({
           channelId,
           userId,
@@ -61,7 +97,7 @@ describe('MessageStatics', () => {
 
       const result = await Messages.getIndex(channelId.toString());
 
-      expect(result).toHaveLength(5000);
+      expect(result).toHaveLength(3000);
     });
   });
 });

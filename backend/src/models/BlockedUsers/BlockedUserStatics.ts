@@ -1,18 +1,12 @@
-import { Types } from 'mongoose';
-import { IBlockedUserStatics } from './BlockedUserTypes';
+import AppError from '@/utils/AppError';
+import { errors } from '@/config/messages';
+import { IBlockedUserList, IBlockedUserStatics } from './BlockedUserTypes';
 
 export const BlockedUserStatics = {
-  async getBlockedUsers(
+  async getBlockedUserList(
     this: IBlockedUserStatics,
     channelId: string,
-  ): Promise<
-    {
-      _id: Types.ObjectId;
-      userName: string;
-      pic: string | null;
-      isGuest: boolean;
-    }[]
-  > {
+  ): Promise<IBlockedUserList[]> {
     const blockedUsers = await this.find({ channelId })
       .select('userId')
       .populate('userId', '_id userName pic isGuest')
@@ -30,13 +24,14 @@ export const BlockedUserStatics = {
     return !!blockedUser;
   },
 
-  async unblockUser(
+  async cancelBlock(
     this: IBlockedUserStatics,
     channelId: string,
     userId: string,
-  ): Promise<boolean> {
+  ): Promise<void> {
     const result = await this.deleteOne({ channelId, userId });
-    return result.deletedCount > 0;
+    if (result.deletedCount === 0)
+      throw new AppError(404, errors.USER_NOT_BLOCKED);
   },
 
   async getBlockedChannels(

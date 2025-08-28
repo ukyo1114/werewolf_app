@@ -1,5 +1,7 @@
 import { IUser, IUserStatics } from './UserTypes';
+import AppError from '@/utils/AppError';
 import { errors } from '../../config/messages';
+import { ClientSession } from 'mongoose';
 
 export const UserStatics = {
   async isGuest(this: IUserStatics, userId: string): Promise<boolean> {
@@ -13,7 +15,7 @@ export const UserStatics = {
     email: string,
     password: string,
   ): Promise<string> {
-    await this.checkEmailRecentlyDeleted(email);
+    await this.checkEmailAvailable(email);
     const user = await this.create({ userName, password, email });
     return user._id.toString();
   },
@@ -38,7 +40,7 @@ export const UserStatics = {
     userId: string,
     email: string,
   ): Promise<void> {
-    await this.checkEmailRecentlyDeleted(email);
+    await this.checkEmailAvailable(email);
 
     const user = await this.findActiveUserById(userId);
     await user.updateEmail(email);
@@ -63,14 +65,27 @@ export const UserStatics = {
     await user.resetPassword(password);
   },
 
-  async softDelete(this: IUserStatics, userId: string): Promise<void> {
-    const user = await this.findActiveUserById(userId);
-    await user.softDelete();
+  async softDelete(
+    this: IUserStatics,
+    userId: string,
+    session?: ClientSession,
+  ): Promise<void> {
+    const user = await this.findActiveUserById(userId, session);
+
+    user.deletedAt = new Date();
+    await user.save({ session });
   },
 
-  async findActiveUserById(this: IUserStatics, userId: string): Promise<IUser> {
-    const user = await this.findOne({ _id: userId, deletedAt: undefined });
-    if (!user) throw new Error(errors.USER_NOT_FOUND);
+  async findActiveUserById(
+    this: IUserStatics,
+    userId: string,
+    session?: ClientSession,
+  ): Promise<IUser> {
+    const user = await this.findOne({
+      _id: userId,
+      deletedAt: undefined,
+    }).session(session || null);
+    if (!user) throw new AppError(404, errors.USER_NOT_FOUND);
     return user;
   },
 
@@ -84,7 +99,18 @@ export const UserStatics = {
       deletedAt: { $gte: twentyFourHoursAgo },
     });
 
-    if (deletedUser) throw new Error(errors.EMAIL_RESENTLY_DELETED);
+    if (deletedUser) throw new AppError(400, errors.EMAIL_RESENTLY_DELETED);
+  },
+
+  async checkEmailAvailable(this: IUserStatics, email: string): Promise<void> {
+    const emailExists = await this.exists({ email, deletedAt: undefined });
+    if (emailExists) throw new AppError(400, errors.EMAIL_ALREADY_REGISTERED);
+    await this.checkEmailRecentlyDeleted(email);
+  },
+
+  async checkEmailRegisterd(this: IUserStatics, email: string): Promise<void> {
+    const emailExists = await this.exists({ email, deletedAt: undefined });
+    if (!emailExists) throw new AppError(400, errors.EMAIL_NOT_REGISTERED);
   },
 
   async findActiveUserByEmail(
@@ -95,7 +121,7 @@ export const UserStatics = {
       email,
       deletedAt: undefined,
     });
-    if (!user) throw new Error(errors.USER_NOT_FOUND);
+    if (!user) throw new AppError(404, errors.USER_NOT_FOUND);
     return user;
   },
 
@@ -106,5 +132,16 @@ export const UserStatics = {
   ): Promise<void> {
     const user = await this.findActiveUserById(userId);
     await user.updateProfile(data);
+  },
+
+  async authChangeEmail(
+    this: IUserStatics,
+    userId: string,
+    email: string,
+    currentPassword: string,
+  ): Promise<void> {
+    await this.checkEmailAvailable(email);
+    const user = await this.findActiveUserById(userId);
+    await user.matchPassword(currentPassword);
   },
 };

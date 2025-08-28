@@ -1,17 +1,13 @@
 import bcrypt from 'bcryptjs';
 import { IUser } from './UserTypes';
+import AppError from '@/utils/AppError';
 import { errors } from '../../config/messages';
 
 export const UserMethods = {
   async matchPassword(this: IUser, enteredPassword: string): Promise<void> {
     if (!this.password) throw new Error();
     const isMatch = await bcrypt.compare(enteredPassword, this.password);
-    if (!isMatch) throw new Error(errors.WRONG_PASSWORD);
-  },
-
-  async softDelete(this: IUser): Promise<void> {
-    this.deletedAt = new Date();
-    await this.save();
+    if (!isMatch) throw new AppError(400, errors.WRONG_PASSWORD);
   },
 
   async changePassword(

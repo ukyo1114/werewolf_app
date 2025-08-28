@@ -4,7 +4,7 @@ import { getSecret } from './getSecret';
 export type actionType = 'registerUser' | 'changeEmail' | 'forgotPassword';
 
 export interface IVerificationTokenPayload {
-  userId: string | null;
+  userId?: string;
   email: string;
   action: actionType;
 }

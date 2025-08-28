@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Users from '@/models/Users';
+import AppError from '@/utils/AppError';
 import { errors } from '@/config/messages';
 
 describe('UserStatics', () => {
@@ -37,7 +38,7 @@ describe('UserStatics', () => {
     it('存在しないユーザーIDでエラーを投げる', async () => {
       const nonExistentId = new mongoose.Types.ObjectId().toString();
       await expect(Users.isGuest(nonExistentId)).rejects.toThrow(
-        errors.USER_NOT_FOUND,
+        new AppError(404, errors.USER_NOT_FOUND),
       );
     });
 
@@ -50,10 +51,11 @@ describe('UserStatics', () => {
         isGuest: false,
       });
 
-      await user.softDelete();
+      user.deletedAt = new Date();
+      await user.save();
 
       await expect(Users.isGuest(user._id.toString())).rejects.toThrow(
-        errors.USER_NOT_FOUND,
+        new AppError(404, errors.USER_NOT_FOUND),
       );
     });
   });
@@ -91,7 +93,7 @@ describe('UserStatics', () => {
           'deleted.UserStatics@example.com',
           'password123',
         ),
-      ).rejects.toThrow(errors.EMAIL_RESENTLY_DELETED);
+      ).rejects.toThrow(new AppError(400, errors.EMAIL_RESENTLY_DELETED));
     });
 
     it('メールアドレスがすでに使用されている場合エラーを投げる', async () => {
@@ -110,7 +112,7 @@ describe('UserStatics', () => {
           'alreadyRegistered.UserStatics@example.com',
           'password123',
         ),
-      ).rejects.toThrow();
+      ).rejects.toThrow(new AppError(400, errors.EMAIL_ALREADY_REGISTERED));
 
       await Users.deleteOne({ _id: alreadyRegisteredUserId });
     });
@@ -133,7 +135,7 @@ describe('UserStatics', () => {
     it('存在しないメールアドレスでエラーを投げる', async () => {
       await expect(
         Users.login('nonexistent@example.com', 'password123'),
-      ).rejects.toThrow(errors.USER_NOT_FOUND);
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
     });
 
     it('間違ったパスワードでエラーを投げる', async () => {
@@ -146,7 +148,7 @@ describe('UserStatics', () => {
       });
 
       await expect(Users.login(email, 'wrongpassword')).rejects.toThrow(
-        errors.WRONG_PASSWORD,
+        new AppError(400, errors.WRONG_PASSWORD),
       );
     });
 
@@ -159,10 +161,11 @@ describe('UserStatics', () => {
         isGuest: false,
       });
 
-      await user.softDelete();
+      user.deletedAt = new Date();
+      await user.save();
 
       await expect(Users.login(email, 'password123')).rejects.toThrow(
-        errors.USER_NOT_FOUND,
+        new AppError(404, errors.USER_NOT_FOUND),
       );
     });
   });
@@ -230,7 +233,7 @@ describe('UserStatics', () => {
       const nonExistentId = new mongoose.Types.ObjectId().toString();
       await expect(
         Users.updateEmail(nonExistentId, 'new@example.com'),
-      ).rejects.toThrow(errors.USER_NOT_FOUND);
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
     });
 
     it('削除されたユーザーでエラーを投げる', async () => {
@@ -245,7 +248,7 @@ describe('UserStatics', () => {
 
       await expect(
         Users.updateEmail(userId.toString(), 'new.UserStatics@example.com'),
-      ).rejects.toThrow(errors.USER_NOT_FOUND);
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
     });
   });
 
@@ -287,14 +290,14 @@ describe('UserStatics', () => {
           'wrongpassword',
           'newpassword123',
         ),
-      ).rejects.toThrow(errors.WRONG_PASSWORD);
+      ).rejects.toThrow(new AppError(400, errors.WRONG_PASSWORD));
     });
 
     it('存在しないユーザーIDでエラーを投げる', async () => {
       const nonExistentId = new mongoose.Types.ObjectId().toString();
       await expect(
         Users.changePassword(nonExistentId, 'oldpassword', 'newpassword'),
-      ).rejects.toThrow(errors.USER_NOT_FOUND);
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
     });
 
     it('削除されたユーザーでエラーを投げる', async () => {
@@ -313,7 +316,7 @@ describe('UserStatics', () => {
           'oldpassword123',
           'newpassword123',
         ),
-      ).rejects.toThrow(errors.USER_NOT_FOUND);
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
     });
   });
 
@@ -338,7 +341,7 @@ describe('UserStatics', () => {
     it('存在しないメールアドレスでエラーを投げる', async () => {
       await expect(
         Users.resetPassword('nonexistent@example.com', 'newpassword123'),
-      ).rejects.toThrow(errors.USER_NOT_FOUND);
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
     });
 
     it('削除されたユーザーでエラーを投げる', async () => {
@@ -353,7 +356,7 @@ describe('UserStatics', () => {
 
       await expect(
         Users.resetPassword(email, 'newpassword123'),
-      ).rejects.toThrow(errors.USER_NOT_FOUND);
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
     });
   });
 
@@ -376,7 +379,7 @@ describe('UserStatics', () => {
     it('存在しないユーザーIDでエラーを投げる', async () => {
       const nonExistentId = new mongoose.Types.ObjectId().toString();
       await expect(Users.softDelete(nonExistentId)).rejects.toThrow(
-        errors.USER_NOT_FOUND,
+        new AppError(404, errors.USER_NOT_FOUND),
       );
     });
 
@@ -391,7 +394,7 @@ describe('UserStatics', () => {
       });
 
       await expect(Users.softDelete(userId.toString())).rejects.toThrow(
-        errors.USER_NOT_FOUND,
+        new AppError(404, errors.USER_NOT_FOUND),
       );
     });
   });
@@ -421,14 +424,14 @@ describe('UserStatics', () => {
       });
 
       await expect(Users.findActiveUserById(userId.toString())).rejects.toThrow(
-        errors.USER_NOT_FOUND,
+        new AppError(404, errors.USER_NOT_FOUND),
       );
     });
 
     it('存在しないユーザーIDでエラーを投げる', async () => {
       const nonExistentId = new mongoose.Types.ObjectId().toString();
       await expect(Users.findActiveUserById(nonExistentId)).rejects.toThrow(
-        errors.USER_NOT_FOUND,
+        new AppError(404, errors.USER_NOT_FOUND),
       );
     });
   });
@@ -445,7 +448,7 @@ describe('UserStatics', () => {
       });
 
       await expect(Users.checkEmailRecentlyDeleted(email)).rejects.toThrow(
-        errors.EMAIL_RESENTLY_DELETED,
+        new AppError(400, errors.EMAIL_RESENTLY_DELETED),
       );
     });
 
@@ -511,14 +514,14 @@ describe('UserStatics', () => {
       });
 
       await expect(Users.findActiveUserByEmail(email)).rejects.toThrow(
-        errors.USER_NOT_FOUND,
+        new AppError(404, errors.USER_NOT_FOUND),
       );
     });
 
     it('存在しないメールアドレスでエラーを投げる', async () => {
       await expect(
         Users.findActiveUserByEmail('nonexistent@example.com'),
-      ).rejects.toThrow(errors.USER_NOT_FOUND);
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
     });
   });
 
@@ -587,7 +590,7 @@ describe('UserStatics', () => {
       const nonExistentId = new mongoose.Types.ObjectId().toString();
       await expect(
         Users.updateProfile(nonExistentId, { userName: 'NewName' }),
-      ).rejects.toThrow(errors.USER_NOT_FOUND);
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
     });
 
     it('削除されたユーザーでエラーを投げる', async () => {
@@ -602,7 +605,213 @@ describe('UserStatics', () => {
 
       await expect(
         Users.updateProfile(userId.toString(), { userName: 'NewName' }),
-      ).rejects.toThrow(errors.USER_NOT_FOUND);
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
+    });
+  });
+
+  describe('checkEmailAvailable', () => {
+    it('利用可能なメールアドレスでエラーが発生しない', async () => {
+      await expect(
+        Users.checkEmailAvailable('new@example.com'),
+      ).resolves.not.toThrow();
+    });
+
+    it('既に登録されているメールアドレスでエラーを投げる', async () => {
+      await Users.create({
+        _id: userId,
+        userName: 'TestUser',
+        email,
+        password: 'password123',
+        isGuest: false,
+      });
+
+      await expect(Users.checkEmailAvailable(email)).rejects.toThrow(
+        new AppError(400, errors.EMAIL_ALREADY_REGISTERED),
+      );
+    });
+
+    it('最近削除されたメールアドレスでエラーを投げる', async () => {
+      await Users.create({
+        _id: userId,
+        userName: 'DeletedUser',
+        email: 'deleted@example.com',
+        password: 'password123',
+        isGuest: false,
+        deletedAt: new Date(),
+      });
+
+      await expect(
+        Users.checkEmailAvailable('deleted@example.com'),
+      ).rejects.toThrow(new AppError(400, errors.EMAIL_RESENTLY_DELETED));
+    });
+
+    it('削除されたユーザーのメールアドレスは利用可能', async () => {
+      await Users.create({
+        _id: userId,
+        userName: 'DeletedUser',
+        email: 'deleted@example.com',
+        password: 'password123',
+        isGuest: false,
+        deletedAt: new Date(Date.now() - 25 * 60 * 60 * 1000), // 25時間前
+      });
+
+      await expect(
+        Users.checkEmailAvailable('deleted@example.com'),
+      ).resolves.not.toThrow();
+    });
+  });
+
+  describe('checkEmailRegisterd', () => {
+    it('登録されているメールアドレスでエラーが発生しない', async () => {
+      await Users.create({
+        _id: userId,
+        userName: 'TestUser',
+        email,
+        password: 'password123',
+        isGuest: false,
+      });
+
+      await expect(Users.checkEmailRegisterd(email)).resolves.not.toThrow();
+    });
+
+    it('登録されていないメールアドレスでエラーを投げる', async () => {
+      await expect(
+        Users.checkEmailRegisterd('nonexistent@example.com'),
+      ).rejects.toThrow(new AppError(400, errors.EMAIL_NOT_REGISTERED));
+    });
+
+    it('削除されたユーザーのメールアドレスでエラーを投げる', async () => {
+      await Users.create({
+        _id: userId,
+        userName: 'DeletedUser',
+        email,
+        password: 'password123',
+        isGuest: false,
+        deletedAt: new Date(),
+      });
+
+      await expect(Users.checkEmailRegisterd(email)).rejects.toThrow(
+        new AppError(400, errors.EMAIL_NOT_REGISTERED),
+      );
+    });
+  });
+
+  describe('authChangeEmail', () => {
+    it('正しいパスワードでメールアドレス変更の認証ができる', async () => {
+      await Users.create({
+        _id: userId,
+        userName: 'TestUser',
+        email,
+        password: 'password123',
+        isGuest: false,
+      });
+
+      await expect(
+        Users.authChangeEmail(
+          userId.toString(),
+          'new@example.com',
+          'password123',
+        ),
+      ).resolves.not.toThrow();
+    });
+
+    it('間違ったパスワードでエラーを投げる', async () => {
+      await Users.create({
+        _id: userId,
+        userName: 'TestUser',
+        email,
+        password: 'password123',
+        isGuest: false,
+      });
+
+      await expect(
+        Users.authChangeEmail(
+          userId.toString(),
+          'new@example.com',
+          'wrongpassword',
+        ),
+      ).rejects.toThrow(new AppError(400, errors.WRONG_PASSWORD));
+    });
+
+    it('既に使用されているメールアドレスでエラーを投げる', async () => {
+      const secondUserId = new mongoose.Types.ObjectId();
+      await Users.create({
+        _id: userId,
+        userName: 'TestUser',
+        email,
+        password: 'password123',
+        isGuest: false,
+      });
+
+      await Users.create({
+        _id: secondUserId,
+        userName: 'SecondUser',
+        email: 'second@example.com',
+        password: 'password123',
+        isGuest: false,
+      });
+
+      await expect(
+        Users.authChangeEmail(
+          userId.toString(),
+          'second@example.com',
+          'password123',
+        ),
+      ).rejects.toThrow(new AppError(400, errors.EMAIL_ALREADY_REGISTERED));
+
+      await Users.deleteOne({ _id: secondUserId });
+    });
+
+    it('最近削除されたメールアドレスでエラーを投げる', async () => {
+      await Users.create({
+        _id: userId,
+        userName: 'TestUser',
+        email,
+        password: 'password123',
+        isGuest: false,
+      });
+
+      await Users.create({
+        userName: 'DeletedUser',
+        email: 'deleted@example.com',
+        password: 'password123',
+        isGuest: false,
+        deletedAt: new Date(),
+      });
+
+      await expect(
+        Users.authChangeEmail(
+          userId.toString(),
+          'deleted@example.com',
+          'password123',
+        ),
+      ).rejects.toThrow(new AppError(400, errors.EMAIL_RESENTLY_DELETED));
+    });
+
+    it('存在しないユーザーIDでエラーを投げる', async () => {
+      const nonExistentId = new mongoose.Types.ObjectId().toString();
+      await expect(
+        Users.authChangeEmail(nonExistentId, 'new@example.com', 'password123'),
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
+    });
+
+    it('削除されたユーザーでエラーを投げる', async () => {
+      await Users.create({
+        _id: userId,
+        userName: 'TestUser',
+        email,
+        password: 'password123',
+        isGuest: false,
+        deletedAt: new Date(),
+      });
+
+      await expect(
+        Users.authChangeEmail(
+          userId.toString(),
+          'new@example.com',
+          'password123',
+        ),
+      ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
     });
   });
 });

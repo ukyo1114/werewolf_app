@@ -1,4 +1,4 @@
-import { errors } from '../config/messages';
+import { errors } from '@/config/messages';
 
 export const getSecret = () => {
   const secret = process.env.JWT_SECRET;

@@ -1,4 +1,4 @@
-import { Document, Types, Model } from 'mongoose';
+import { Document, Types, Model, ClientSession } from 'mongoose';
 
 /**
  * ユーザーインスタンスのインターフェイス
@@ -13,7 +13,6 @@ export interface IUser extends Document {
   isGuest: boolean; // ゲストユーザーフラグ
   deletedAt?: Date; // ソフトデリートフラグ（削除日時）
   matchPassword(enteredPassword: string): Promise<void>; // パスワード照合
-  softDelete(): Promise<void>; // ソフトデリート
   changePassword(currentPassword: string, newPassword: string): Promise<void>; // パスワード認証と更新
   resetPassword(password: string): Promise<void>; // パスワードリセット
   updateEmail(email: string): Promise<void>; // メールアドレス更新
@@ -39,12 +38,19 @@ export interface IUserStatics extends Model<IUser> {
     newPassword: string,
   ): Promise<void>; // パスワード変更
   resetPassword(email: string, password: string): Promise<void>; // パスワードリセット
-  findActiveUserById(userId: string): Promise<IUser>; // アクティブユーザー検索
-  softDelete(userId: string): Promise<void>; // ユーザーソフトデリート
+  findActiveUserById(userId: string, session?: ClientSession): Promise<IUser>; // アクティブユーザー検索
+  softDelete(userId: string, session?: ClientSession): Promise<void>; // ユーザーソフトデリート
   checkEmailRecentlyDeleted(email: string): Promise<void>; // 削除済みメールアドレスチェック
+  checkEmailAvailable(email: string): Promise<void>; // メールアドレス利用可能チェック
+  checkEmailRegisterd(email: string): Promise<void>; // メールアドレス登録済みチェック
   findActiveUserByEmail(email: string): Promise<IUser>; // アクティブユーザー検索
   updateProfile(
     userId: string,
     data: { userName?: string; pic?: string },
   ): Promise<void>; // プロフィール更新
+  authChangeEmail(
+    userId: string,
+    email: string,
+    currentPassword: string,
+  ): Promise<void>; // メールアドレス変更認証
 }

@@ -1,8 +1,7 @@
 import { Namespace, Socket } from 'socket.io';
-import { appState, Events } from '../app';
-import EntryManager from '../classes/EntryManager';
-import Channel from '../models/Channel';
-import { authSocketUser } from '../middleware/authSocketUser';
+import { appState, Events } from '@/app';
+import EntryManager from '@/classes/EntryManager';
+import { authSocketUser } from '@/middleware/authSocketUser';
 
 const { entryManagers } = appState;
 const { entryEvents } = Events;
