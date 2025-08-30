@@ -1,4 +1,5 @@
 import mongoose, { ClientSession, Document, Types } from 'mongoose';
+import { IUpdateChannelSetingsData } from '@/config/types';
 
 // Channelドキュメントのインターフェース
 export interface IChannel extends Document {
@@ -15,15 +16,6 @@ export interface IChannel extends Document {
   update(data: IUpdateChannelSetingsData): Promise<IChannel>;
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface IUpdateChannelSetingsData {
-  channelName: string;
-  channelDescription: string;
-  passwordEnabled: boolean;
-  password: string;
-  denyGuests: boolean;
-  numberOfPlayers: number;
 }
 
 // Channelモデルの静的メソッドのインターフェース
@@ -48,3 +40,5 @@ export interface IChannelStatics extends mongoose.Model<IChannel> {
     session?: ClientSession,
   ): Promise<void>;
 }
+
+export type { IUpdateChannelSetingsData };

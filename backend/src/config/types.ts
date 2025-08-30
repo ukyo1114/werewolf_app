@@ -31,11 +31,9 @@ export type GameResult =
 
 export interface IGameState {
   gameId: string;
-  phase: {
-    currentDay: number;
-    currentPhase: CurrentPhase;
-    changedAt: Date;
-  };
+  currentDay: number;
+  currentPhase: CurrentPhase;
+  changedAt: Date;
   users: Record<string, IPlayerState>;
 }
 
@@ -62,10 +60,8 @@ export type Status = 'alive' | 'dead' | 'spectator';
 export type CurrentPhase = 'pre' | 'day' | 'night' | 'finished';
 
 type Team = 'villagers' | 'werewolves';
-export type DevineResult = Record<number, Record<string, Team>>;
-export type MediumResult = Record<number, Record<string, Team>>;
-export type GuardHistory = Record<number, string>;
-export type AttackHistory = Record<number, string>;
+export type Result = Record<number, Record<string, Team>>;
+export type History = Record<number, string>;
 
 export type VotesByVotee = Record<string, string[]>;
 export type VoteHistory = Record<number, VotesByVotee>;
@@ -142,4 +138,39 @@ export interface IChangePassword {
 export interface IResetPassword {
   password: string;
   token: string;
+}
+
+export interface IBlockedUserList {
+  _id: Types.ObjectId;
+  userName: string;
+  pic: string | null;
+  isGuest: boolean;
+}
+
+export interface IUpdateChannelSetingsData {
+  channelName: string;
+  channelDescription: string;
+  passwordEnabled: boolean;
+  password: string;
+  denyGuests: boolean;
+  numberOfPlayers: number;
+}
+
+export interface IChannelParticipant {
+  _id: Types.ObjectId;
+  userName: string;
+  pic: string | null;
+  isGuest: boolean;
+}
+
+export interface IGameInfo {
+  channelId: string;
+  channelName: string;
+  channelDescription: string;
+}
+
+export interface IMessageIndex {
+  _id: Types.ObjectId;
+  createdAt: Date;
+  replyTo?: Types.ObjectId;
 }

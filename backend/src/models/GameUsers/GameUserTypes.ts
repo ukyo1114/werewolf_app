@@ -1,17 +1,5 @@
 import mongoose, { Document, Types } from 'mongoose';
-
-type Role =
-  | 'villager'
-  | 'seer'
-  | 'medium'
-  | 'hunter'
-  | 'freemason'
-  | 'werewolf'
-  | 'madman'
-  | 'fanatic'
-  | 'fox'
-  | 'immoralist'
-  | 'spectator';
+import { Role } from '@/config/types';
 
 export interface IGameUser extends Document {
   _id: Types.ObjectId;
@@ -31,3 +19,5 @@ export interface IGameUserStatics extends mongoose.Model<IGameUser> {
   isUserPlaying(userId: string): Promise<string | null>;
   endGame(gameId: string): Promise<void>;
 }
+
+export type { Role };

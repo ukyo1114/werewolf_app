@@ -8,7 +8,7 @@ Object.assign(GameUserSchema.statics, GameUserStatics);
 
 // モデルを作成してエクスポート
 const GameUsers = mongoose.model<IGameUser, IGameUserStatics>(
-  'GameUsers', // コレクション名を複数形に変更
+  'GameUsers',
   GameUserSchema,
 );
 

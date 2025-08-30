@@ -144,4 +144,19 @@ export const UserStatics = {
     const user = await this.findActiveUserById(userId);
     await user.matchPassword(currentPassword);
   },
+
+  async getUsersForGame(
+    this: IUserStatics,
+    users: string[],
+    session?: ClientSession,
+  ): Promise<IUser[]> {
+    const usersData = await this.find({ _id: { $in: users } })
+      .select('_id userName pic')
+      .lean()
+      .session(session || null);
+
+    if (usersData.length !== users.length) throw new Error();
+
+    return usersData;
+  },
 };

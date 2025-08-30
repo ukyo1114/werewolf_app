@@ -1,4 +1,3 @@
-import EventEmitter from 'events';
 import { CurrentPhase } from '../config/types';
 
 export default class PhaseManager {
@@ -9,37 +8,37 @@ export default class PhaseManager {
     finished: 10 * 60,
   };
 
-  public gameId: string;
   public currentDay: number = 0;
   public currentPhase: CurrentPhase = 'pre';
   public changedAt: Date;
-  public timerId: ReturnType<typeof setTimeout> | null = null;
-  public eventEmitter: EventEmitter;
+  private timerId: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(eventEmitter: EventEmitter, gameId: string) {
+  constructor() {
     this.changedAt = new Date();
-    this.eventEmitter = eventEmitter;
-    this.gameId = gameId;
-    this.registerListner();
-    this.startTimer();
   }
 
-  registerListner(): void {
-    this.eventEmitter.on('processCompleted', async (isRunning: boolean) => {
-      await this.nextPhase(isRunning);
-      this.eventEmitter.emit('phaseSwitched');
-    });
-  }
-
-  startTimer(): void {
+  startTimer(callback: () => any): void {
+    this.cancelTimer();
     const timer = this.phaseDurations_sec[this.currentPhase];
-    this.timerId = setTimeout(
-      () => this.eventEmitter.emit('timerEnd'),
-      timer * 1000,
-    );
+    this.timerId = setTimeout(callback, timer * 1000);
   }
 
-  async nextPhase(isRunning: boolean): Promise<void> {
+  cancelTimer(): void {
+    if (this.timerId) {
+      clearTimeout(this.timerId);
+      this.timerId = null;
+    }
+  }
+
+  switchPhase(phaseTo: CurrentPhase, callback: () => any): void {
+    this.changedAt = new Date();
+    if (phaseTo === 'day') this.currentDay = this.currentDay + 1;
+    this.currentPhase = phaseTo;
+    this.startTimer(callback);
+  }
+
+  // TODO: remove this
+  /* nextPhase(isRunning: boolean): void {
     const currentPhase = this.currentPhase;
     this.changedAt = new Date();
 
@@ -53,12 +52,12 @@ export default class PhaseManager {
       this.currentPhase = 'day';
     }
     this.startTimer();
-    /* 
+    
     if (this.result.value !== 'running') {
       this.currentPhase = 'finished';
       await GameUser.endGame(this.gameId);
       return;
     }
-    */
-  }
+   
+  } */
 }

@@ -1,29 +1,33 @@
 import EventEmitter from 'events';
-
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
 import VoteManager from './VoteManager';
-import DevineManager from './DevineManager';
-import MediumManager from './MediumManager';
-import GuardManager from './GuardManager';
-import AttackManager from './AttackManager';
+import {
+  DevineManager,
+  MediumManager,
+  GuardManager,
+  AttackManager,
+} from './RoleManager';
 import Messages from '@/models/Messages';
-import Users from '@/models/Users';
+import Users, { IUser } from '@/models/Users';
 import Games from '@/models/Games';
 import GameUsers from '@/models/GameUsers';
 import { gameMaster } from '@/config/messages';
-import { GameResult, IGameState, IUser } from '@/config/types';
+import { GameResult, IGameState, IPlayer } from './classTypes';
 import { appState, Events } from '@/app';
+import { TransactionHelper } from '@/utils/TransactionHelper';
+import { ClientSession } from 'mongoose';
 
 const { gameManagers } = appState;
-const { channelEvents, gameEvents } = Events;
 
 export default class GameManager {
+  protected channelEvents: EventEmitter = Events.channelEvents;
+  protected gameEvents: EventEmitter = Events.gameEvents;
+  protected gameMaster: string = process.env.GAME_MASTER_ID || '';
   public channelId: string;
   public gameId: string;
   public result: { value: GameResult } = { value: 'running' };
   public isProcessing: boolean = false;
-  public eventEmitter: EventEmitter = new EventEmitter();
   public phaseManager: PhaseManager;
   public playerManager: PlayerManager;
   public voteManager: VoteManager;
@@ -32,10 +36,14 @@ export default class GameManager {
   public guardManager: GuardManager;
   public attackManager: AttackManager;
 
-  constructor(channelId: string, gameId: string, users: IUser[]) {
+  constructor(
+    channelId: string,
+    gameId: string,
+    users: { userId: string; userName: string }[],
+  ) {
     this.channelId = channelId;
     this.gameId = gameId;
-    this.phaseManager = new PhaseManager(this.eventEmitter, this.gameId);
+    this.phaseManager = new PhaseManager();
     this.playerManager = new PlayerManager(gameId, users);
     this.voteManager = new VoteManager(this.phaseManager, this.playerManager);
     this.devineManager = new DevineManager(
@@ -51,67 +59,68 @@ export default class GameManager {
       this.phaseManager,
       this.playerManager,
     );
-    this.registerListners();
-    // this.sendMessage();
   }
 
-  static async createGameManager(
-    channelId: string,
-    users: string[],
-  ): Promise<string> {
+  static async createGame(channelId: string, users: string[]): Promise<string> {
     let gameId: string | undefined;
 
     try {
-      // ゲームを作成
-      const game = await Games.create({
-        channelId,
-        numberOfPlayers: users.length,
-      });
-      gameId = game._id.toString();
-
-      // ユーザーの詳細を取得
-      const dbUsers = await Users.find({ _id: { $in: users } })
-        .select('_id userName pic')
-        .lean();
-      if (dbUsers.length !== users.length) {
-        throw new Error();
-      }
-
-      const usersDetail = dbUsers.map((user) => ({
-        userId: user._id.toString(),
-        userName: user.userName,
-      }));
-
-      // ゲームマネージャーを作成
-      gameManagers[gameId] = new GameManager(channelId, gameId, usersDetail);
-
-      // プレイヤーのデータをDBに保存
-      const players = gameManagers[gameId].playerManager.players;
-      const userList = Object.values(players).map((player) => {
-        const dbUser = dbUsers.find(
-          (user) => user._id.toString() === player.userId,
+      return await TransactionHelper.withTransaction(async (session) => {
+        const numberOfPlayers = users.length;
+        const game = await Games.create(
+          { channelId, numberOfPlayers },
+          { session },
         );
-        return {
-          gameId,
-          userId: player.userId,
-          userName: dbUser?.userName,
-          pic: dbUser?.pic,
-          role: player.role,
-          isPlaying: true,
-        };
-      });
-      await GameUsers.insertMany(userList);
+        gameId = game[0]._id.toString();
 
-      return gameId;
+        const dbUsers = await Users.getUsersForGame(users, session);
+        const gameManager = this.createGameManager(channelId, gameId, dbUsers);
+
+        await this.registerPlayersToDB(gameId, dbUsers, gameManager, session);
+
+        return gameId;
+      });
     } catch (error) {
-      if (gameId) {
-        await Games.findByIdAndDelete(gameId);
-        const timerId = gameManagers[gameId]?.phaseManager.timerId;
-        if (timerId) clearTimeout(timerId);
-        delete gameManagers[gameId];
-      }
+      if (gameId) delete gameManagers[gameId];
       throw error;
     }
+  }
+
+  static createGameManager(
+    channelId: string,
+    gameId: string,
+    users: IUser[],
+  ): GameManager {
+    const formattedUsers = users.map((user) => ({
+      userId: user._id.toString(),
+      userName: user.userName,
+    }));
+    return (gameManagers[gameId] = new GameManager(
+      channelId,
+      gameId,
+      formattedUsers,
+    ));
+  }
+
+  static async registerPlayersToDB(
+    gameId: string,
+    players: IUser[],
+    gameManager: GameManager,
+    session: ClientSession,
+  ): Promise<void> {
+    const userRoleMap = gameManager.playerManager.getUserRoleMap();
+    const playerData = players.map((player) => {
+      const userId = player._id.toString();
+      return {
+        gameId,
+        userId,
+        userName: player.userName,
+        pic: player.pic,
+        role: userRoleMap[userId],
+        isPlaying: true,
+      };
+    });
+    await GameUsers.insertMany(playerData, { session });
   }
 
   static checkIsUserInGame(userId: string): boolean {
@@ -130,176 +139,233 @@ export default class GameManager {
     return filteredGames;
   }
 
-  registerListners(): void {
-    this.eventEmitter.on('timerEnd', async () => await this.handleTimerEnd());
-    this.eventEmitter.on('phaseSwitched', () => this.handlePhaseSwitched());
-  }
+  protected handleGameProcess(): void {
+    if (this.result.value !== 'running') return;
 
-  async handleTimerEnd(): Promise<void> {
-    this.isProcessing = true;
     const { currentPhase } = this.phaseManager;
-
-    if (currentPhase === 'pre') await this.sendMessage(gameMaster.MORNING);
-    if (currentPhase === 'day') await this.handleDayPhaseEnd();
-    if (currentPhase === 'night') await this.handleNightPhaseEnd();
-    if (currentPhase === 'finished') {
-      await this.handleGameEnd();
-      return;
-    }
-
-    this.eventEmitter.emit('processCompleted', this.result.value === 'running');
-  }
-
-  async handleDayPhaseEnd(): Promise<void> {
-    await this.execution();
-    if (this.result.value === 'villageAbandoned') return;
-
-    await this.judgement();
-
-    if (this.result.value === 'running') {
-      await this.sendMessage(gameMaster.NIGHT);
+    if (currentPhase === 'day') {
+      this.phaseManager.switchPhase('night', async () => {
+        await this.handleNightPhaseEnd();
+        this.handleGameProcess();
+      });
+    } else {
+      this.phaseManager.switchPhase('day', async () => {
+        await this.handleDayPhaseEnd();
+        this.handleGameProcess();
+      });
     }
   }
 
-  async handleNightPhaseEnd(): Promise<void> {
-    const deadPlayers: string[] = [];
+  protected startPrePhase(): void {
+    this.phaseManager.switchPhase('pre', () => {
+      this.handleGameProcess();
+    });
+  }
 
-    const curseOccurred = this.devineManager.devine();
+  protected async handleDayPhaseEnd(): Promise<void> {
+    this.isProcessing = true;
+    await this.dayProcess();
+    this.isProcessing = false;
+    if (this.result.value !== 'running') return;
 
+    await this.sendMessage(gameMaster.NIGHT);
+  }
+
+  protected async handleNightPhaseEnd(): Promise<void> {
+    this.isProcessing = true;
+    await this.nightProcess();
+    this.isProcessing = false;
+    if (this.result.value !== 'running') return;
+
+    await this.sendMessage(gameMaster.MORNING);
+  }
+
+  protected async dayProcess(): Promise<void> {
+    const targetId = await this.execution();
+    if (!targetId || this.result.value !== 'running') return;
+
+    this.mediumManager.medium(targetId);
+  }
+
+  protected async nightProcess(): Promise<void> {
+    const curseId = this.devineManager.devine();
+    const attackId = await this.attack();
+
+    if (this.result.value !== 'running') return;
+
+    const deadPlayers = [];
+    if (curseId) deadPlayers.push(curseId);
+    if (attackId) deadPlayers.push(attackId);
+    await this.notifyAttack(deadPlayers);
+
+    if (curseId) await this.killFox(curseId);
+  }
+
+  protected async killFox(userId: string): Promise<void> {
+    await this.playerManager.kill(userId);
+    await this.handleJudgement();
+    if (this.result.value !== 'running') return;
+    await this.suicide();
+  }
+
+  protected async attack(): Promise<string | undefined> {
+    const attackTargetId = this.attackManager.attack();
     const guardTargetId = this.guardManager.guard();
-    const attackTarget = await this.attackManager.attack(guardTargetId);
-    if (attackTarget) deadPlayers.push(attackTarget);
 
-    if (curseOccurred) {
-      const curseResult = await this.curse();
-      if (curseResult) deadPlayers.push(curseResult);
-    }
-
-    await this.sendMessage(gameMaster.ATTACK(deadPlayers));
-
-    await this.judgement();
-    if (this.result.value === 'running') {
-      await this.sendMessage(gameMaster.MORNING);
+    if (attackTargetId && attackTargetId !== guardTargetId) {
+      await this.playerManager.kill(attackTargetId);
+      await this.handleJudgement(async () => {
+        await this.notifyAttack([attackTargetId]);
+      });
+      return attackTargetId;
     }
   }
 
-  async execution(): Promise<void> {
-    const executionTargetId = this.voteManager.getExecutionTarget();
-    if (!executionTargetId) {
+  protected async notifyAttack(deadPlayers: string[]): Promise<void> {
+    const nameList = deadPlayers.map(
+      (id) => this.playerManager.players[id].userName,
+    );
+    await this.sendMessage(gameMaster.ATTACK(nameList));
+  }
+
+  protected async execution(): Promise<string | undefined> {
+    const targetId = this.voteManager.getExecutionTarget();
+    if (!targetId) {
       await this.villageAbandoned();
       return;
     }
 
-    // 処刑を行いメッセージを送信
-    const executionTarget = this.playerManager.players[executionTargetId];
-    await this.playerManager.kill(executionTargetId);
-    await this.sendMessage(gameMaster.EXECUTION(executionTarget.userName));
+    const target = this.playerManager.players[targetId];
+    await this.sendMessage(gameMaster.EXECUTION(target.userName));
 
-    if (executionTarget.role === 'fox') await this.suicide();
+    if (target.role === 'fox') {
+      await this.killFox(targetId);
+    } else {
+      await this.kill(targetId);
+    }
 
-    this.mediumManager.medium(executionTargetId);
+    return targetId;
   }
 
-  async curse(): Promise<string | undefined> {
-    const fox = this.playerManager.getLivingPlayers('fox')[0];
-    if (!fox) return;
-    await this.playerManager.kill(fox.userId);
-
-    await this.suicide();
-
-    return fox.userName;
+  protected async kill(userId: string): Promise<void> {
+    await this.playerManager.kill(userId);
+    await this.handleJudgement();
   }
 
-  async suicide(): Promise<void> {
+  protected async suicide(): Promise<void> {
     const immoralists = this.playerManager.getLivingPlayers('immoralist');
-    if (immoralists.length > 0) {
-      await Promise.all(
-        immoralists.map((immor) => this.playerManager.kill(immor.userId)),
-      );
-      await this.sendMessage(
-        gameMaster.KILL_IMMORALIST(immoralists.map((user) => user.userName)),
-      );
-    }
+    if (immoralists.length === 0) return;
+
+    const nameList = immoralists.map((user) => user.userName);
+    await this.sendMessage(gameMaster.KILL_IMMORALIST(nameList));
+
+    const idList = immoralists.map((user) => user.userId);
+    await Promise.all(idList.map((id) => this.playerManager.kill(id)));
+
+    await this.handleJudgement();
   }
 
-  async villageAbandoned(): Promise<void> {
+  protected async villageAbandoned(): Promise<void> {
     this.result.value = 'villageAbandoned';
-    await this.sendMessage(gameMaster.VILLAGE_ABANDONED);
+    this.handleGameEnd('villageAbandoned');
   }
 
-  async judgement(): Promise<void> {
-    const livingPlayers = this.playerManager.getLivingPlayers();
-    const werewolves = livingPlayers.filter(
-      (user) => user.role === 'werewolf',
-    ).length;
+  protected async handleJudgement(onGameEnd?: () => any): Promise<void> {
+    const result = await this.judgement();
+    if (result === 'running') return;
+    if (onGameEnd) onGameEnd();
 
-    const isWerewolvesExtinct = werewolves === 0;
-    const isWerewolvesMajority = werewolves * 2 >= livingPlayers.length;
-    const isFoxAlive = livingPlayers.some((user) => user.role === 'fox');
+    this.handleGameEnd(result);
+  }
 
-    if (isWerewolvesExtinct || isWerewolvesMajority) {
-      if (isFoxAlive) {
-        this.result.value = 'foxesWin';
-        await this.sendMessage(gameMaster.FOXES_WIN);
-      } else if (isWerewolvesExtinct) {
-        this.result.value = 'villagersWin';
-        await this.sendMessage(gameMaster.VILLAGERS_WIN);
-      } else if (isWerewolvesMajority) {
-        this.result.value = 'werewolvesWin';
-        await this.sendMessage(gameMaster.WEREWOLVES_WIN);
-      }
+  protected async judgement(): Promise<GameResult> {
+    const players = this.playerManager.getLivingPlayers();
+    const werewolves = this.playerManager.getLivingPlayers('werewolf');
+    const foxes = this.playerManager.getLivingPlayers('fox');
+
+    const isWerewolvesExtinct = werewolves.length === 0;
+    const isWerewolvesMajority = werewolves.length * 2 >= players.length;
+    if (!isWerewolvesExtinct && !isWerewolvesMajority) return 'running';
+    const isFoxAlive = foxes.length > 0;
+
+    const result = isFoxAlive
+      ? 'foxesWin'
+      : isWerewolvesExtinct
+        ? 'villagersWin'
+        : 'werewolvesWin';
+    return (this.result.value = result);
+  }
+
+  protected async announceResult(result: GameResult): Promise<void> {
+    this.result.value = result;
+    const resultMap = {
+      running: '',
+      foxesWin: gameMaster.FOXES_WIN,
+      villagersWin: gameMaster.VILLAGERS_WIN,
+      werewolvesWin: gameMaster.WEREWOLVES_WIN,
+      villageAbandoned: gameMaster.VILLAGE_ABANDONED,
+    };
+    await this.sendMessage(resultMap[result]);
+  }
+
+  protected async handleGameEnd(result: GameResult): Promise<void> {
+    await this.announceResult(result);
+    await this.recordResultToDB(result);
+
+    this.notifyGameState();
+    this.switchPhaseToFinished();
+  }
+
+  protected async recordResultToDB(result: GameResult): Promise<void> {
+    try {
+      await Promise.all([
+        Games.endGame(this.gameId, result),
+        GameUsers.endGame(this.gameId),
+      ]);
+    } catch (error) {
+      console.error(`Failed to end game ${this.gameId}:`, error);
     }
   }
 
-  async sendMessage(message: string): Promise<void> {
+  protected switchPhaseToFinished(): void {
+    this.phaseManager.switchPhase(
+      'finished',
+      () => delete gameManagers[this.gameId],
+    );
+  }
+
+  protected notifyGameState(): void {
+    const gameState = this.getGameState();
+    this.gameEvents.emit('updateGameState', gameState);
+  }
+
+  protected getGameState(): IGameState {
+    const { currentDay, currentPhase, changedAt } = this.phaseManager;
+    const gameState = {
+      gameId: this.gameId,
+      currentDay,
+      currentPhase,
+      changedAt,
+    };
+
+    const withRole = currentPhase === 'finished';
+    const users = this.playerManager.getPlayersInfo(withRole);
+
+    return { ...gameState, users };
+  }
+
+  protected async sendMessage(message: string): Promise<void> {
     try {
       const newMessage = await Messages.create({
         channelId: this.gameId,
-        userId: '672626acf66b851cf141bd0f', // GMのid
+        userId: this.gameMaster,
         message,
         messageType: 'system',
       });
 
-      channelEvents.emit('newMessage', this.gameId, newMessage, null);
+      this.channelEvents.emit('newMessage', this.gameId, newMessage, null);
     } catch (error) {
       console.error(`Failed to send message ${this.gameId}:`, error);
     }
-  }
-
-  async handleGameEnd(): Promise<void> {
-    try {
-      await Games.endGame(this.gameId, this.result.value);
-    } catch (error) {
-      console.error(`Failed to end game ${this.gameId}:`, error);
-    } finally {
-      this.eventEmitter.removeAllListeners();
-      const timerId = this.phaseManager.timerId;
-      if (timerId) clearTimeout(timerId);
-      delete gameManagers[this.gameId];
-    }
-  }
-
-  handlePhaseSwitched(): void {
-    this.updateGameState();
-    this.isProcessing = false;
-  }
-
-  updateGameState(): void {
-    const gameState = this.getGameState();
-    gameEvents.emit('updateGameState', gameState);
-  }
-
-  getGameState(): IGameState {
-    const { currentDay, currentPhase, changedAt } = this.phaseManager;
-    const phase = { currentDay, currentPhase, changedAt };
-    const gameState: IGameState = { gameId: this.gameId, phase, users: {} };
-
-    if (currentPhase === 'finished') {
-      gameState.users = this.playerManager.getPlayersInfo(true);
-    } else {
-      gameState.users = this.playerManager.getPlayersInfo(false);
-    }
-
-    return gameState;
   }
 }

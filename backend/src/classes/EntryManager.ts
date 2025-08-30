@@ -1,4 +1,4 @@
-import GameManager from './GameManager';
+import GameManager from '@/classes/GameManager';
 import { appState, Events } from '@/app';
 import Channels from '@/models/Channels';
 
@@ -62,10 +62,7 @@ export default class EntryManager {
   async startGame(): Promise<void> {
     const userList = this.getUserList();
     try {
-      const gameId = await GameManager.createGameManager(
-        this.channelId,
-        userList,
-      );
+      const gameId = await GameManager.createGame(this.channelId, userList);
       this.emitGameStart(gameId);
     } catch (error: any) {
       error.status = 500;

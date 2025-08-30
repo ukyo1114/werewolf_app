@@ -1,22 +1,29 @@
 import _ from 'lodash';
 
+import GameUsers from '@/models/GameUsers';
 import AppError from '@/utils/AppError';
 import { errors } from '@/config/messages';
 import { appState } from '@/app';
 import { roleConfig, teammateMapping } from '@/config/roles';
-import { Role, Status, IUser, IPlayer, IPlayerState } from '@/config/types';
-import GameUsers from '@/models/GameUsers';
+import ChannelManager from './ChannelManager';
+import { Role, Status, IUser, IPlayer, IPlayerState } from './classTypes';
 
 const { channelManagers } = appState;
 
 export default class PlayerManager {
   public gameId: string;
   public players: Record<string, IPlayer> = {};
+  protected channelManager: ChannelManager;
 
   constructor(gameId: string, users: IUser[]) {
     this.gameId = gameId;
     this.setPlayers(users);
     this.setTeammates();
+    this.channelManager = (() => {
+      const channelManager = channelManagers[gameId];
+      if (!channelManager) throw new Error();
+      return channelManager;
+    })();
   }
 
   setPlayers(users: IUser[]): void {
@@ -54,7 +61,8 @@ export default class PlayerManager {
   async kill(userId: string): Promise<void> {
     const player = this.players[userId];
     player.status = 'dead';
-    channelManagers[this.gameId]?.users[userId]?.kill();
+    this.channelManager?.users[userId]?.kill();
+
     try {
       await GameUsers.updateOne(
         { gameId: this.gameId, userId },
@@ -65,22 +73,16 @@ export default class PlayerManager {
     }
   }
 
-  getPlayerState(userId: string): {
-    status: Status;
-    role: Role;
-    teammates: string[];
-  } {
+  getPlayerState(userId: string): IPlayerState {
     const player = this.players[userId];
     if (!player)
       return { status: 'spectator', role: 'spectator', teammates: [] };
 
-    const playerState = {
+    return {
       status: player.status,
       role: player.role,
       teammates: player.teammates,
     };
-
-    return playerState;
   }
 
   getLivingPlayers(filterRole: Role | undefined = undefined): IPlayer[] {
@@ -101,7 +103,7 @@ export default class PlayerManager {
     return players;
   }
 
-  getRandomTarget(excludedRole: Role | undefined): string | undefined {
+  getRandomTarget(excludedRole: Role | undefined): string {
     const players = this.players;
     const randomTargets = Object.values(players)
       .filter(
@@ -111,15 +113,16 @@ export default class PlayerManager {
       )
       .map((player) => player.userId);
 
-    const target = _.sample(randomTargets);
-    if (!target) return;
-
-    return target;
+    return _.sample(randomTargets) as string;
   }
 
   validatePlayerByRole(userId: string, role: Role): void {
     const player = this.players[userId];
     if (!player || player.role !== role)
       throw new AppError(400, errors.AUTH_FAILED);
+  }
+
+  getUserRoleMap(): Record<string, Role> {
+    return _.mapValues(this.players, (player) => player.role);
   }
 }

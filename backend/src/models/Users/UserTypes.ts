@@ -1,9 +1,5 @@
 import { Document, Types, Model, ClientSession } from 'mongoose';
 
-/**
- * ユーザーインスタンスのインターフェイス
- * ドキュメントの基本プロパティとインスタンスメソッドを含む
- */
 export interface IUser extends Document {
   _id: Types.ObjectId;
   userName: string; // ユーザー名（一意）
@@ -22,10 +18,6 @@ export interface IUser extends Document {
   updatedAt: Date; // 更新日時
 }
 
-/**
- * ユーザーモデルの静的メソッドインターフェイス
- * クラスレベルで実行されるメソッドを定義
- */
 export interface IUserStatics extends Model<IUser> {
   isGuest(userId: string): Promise<boolean>; // ゲストユーザー判定
   register(userName: string, email: string, password: string): Promise<string>; // ユーザー登録
@@ -53,4 +45,5 @@ export interface IUserStatics extends Model<IUser> {
     email: string,
     currentPassword: string,
   ): Promise<void>; // メールアドレス変更認証
+  getUsersForGame(users: string[], session?: ClientSession): Promise<IUser[]>; // ゲーム用ユーザー取得
 }

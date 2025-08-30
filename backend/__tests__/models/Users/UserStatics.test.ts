@@ -814,4 +814,25 @@ describe('UserStatics', () => {
       ).rejects.toThrow(new AppError(404, errors.USER_NOT_FOUND));
     });
   });
+
+  describe('getUsersForGame', () => {
+    it('指定されたユーザーIDのユーザー情報を取得できる', async () => {
+      await Users.create({
+        _id: userId,
+        userName: 'TestUser',
+        email,
+        pic: 'test-pic.jpg',
+        password: 'password123',
+        isGuest: false,
+      });
+
+      const userIds = [userId.toString()];
+      const result = await Users.getUsersForGame(userIds);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toHaveProperty('_id');
+      expect(result[0]).toHaveProperty('userName');
+      expect(result[0]).toHaveProperty('pic');
+    });
+  });
 });
