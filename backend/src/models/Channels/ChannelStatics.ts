@@ -1,5 +1,4 @@
-import { ClientSession } from 'mongoose';
-import AppError from '@/utils/AppError';
+import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 import {
   IChannel,
@@ -78,10 +77,9 @@ export const ChannelStatics = {
     this: IChannelStatics,
     channelId: string,
     userId: string,
-    session?: ClientSession,
   ): Promise<void> {
     const channel = await this.getChannelAsAdmin(channelId, userId);
     channel.deletedAt = new Date();
-    await channel.save({ session });
+    await channel.save();
   },
 };

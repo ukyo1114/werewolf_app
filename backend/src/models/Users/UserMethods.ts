@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { IUser } from './UserTypes';
-import AppError from '@/utils/AppError';
+import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 
 export const UserMethods = {

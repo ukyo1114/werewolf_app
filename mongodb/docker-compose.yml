@@ -1,39 +1,62 @@
+version: "3.8"
+
 services:
-  mongodb:
-    build:
-      context: .
-      dockerfile: Dockerfile.mongodb
-      args:
-        - MONGO_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
-        - MONGO_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
-        - MONGO_APP_USERNAME=${MONGO_APP_USERNAME}
-        - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
-        - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
-    container_name: werewolf-mongodb
+  mongodb-primary:
+    image: mongo:6.0
+    container_name: werewolf-mongodb-primary
     restart: unless-stopped
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
       - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
-      - MONGO_APP_USERNAME=${MONGO_APP_USERNAME}
-      - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD}
     ports:
       - "27017:27017"
     volumes:
-      - mongodb_data:/data/db
+      - mongodb_primary_data:/data/db
+      - ./init-replica.js:/docker-entrypoint-initdb.d/init-replica.js:ro
+      - ./init-users.js:/docker-entrypoint-initdb.d/init-users.js:ro
+      - ./init-collections.js:/docker-entrypoint-initdb.d/init-collections.js:ro
     networks:
       - werewolf-network
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+
+  mongodb-secondary-1:
+    image: mongo:6.0
+    container_name: werewolf-mongodb-secondary-1
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_secondary1_data:/data/db
+    networks:
+      - werewolf-network
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    depends_on:
+      - mongodb-primary
+
+  mongodb-secondary-2:
+    image: mongo:6.0
+    container_name: werewolf-mongodb-secondary-2
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+    ports:
+      - "27019:27017"
+    volumes:
+      - mongodb_secondary2_data:/data/db
+    networks:
+      - werewolf-network
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    depends_on:
+      - mongodb-primary
 
 volumes:
-  mongodb_data:
+  mongodb_primary_data:
     driver: local
-
+  mongodb_secondary1_data:
+    driver: local
+  mongodb_secondary2_data:
+    driver: local
 networks:
   werewolf-network:
     driver: bridge

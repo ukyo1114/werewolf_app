@@ -45,6 +45,7 @@ export const errors = {
   AUTH_FAILED: '認証に失敗しました',
   EMAIL_RESENTLY_DELETED:
     'このメールアドレスは最近削除されたユーザーで使用されていました。24時間後に再登録可能です。',
+  DENIED_DELETE_PLAYING_USER: 'ゲーム中のユーザーは削除できません',
 };
 
 export const validation = {

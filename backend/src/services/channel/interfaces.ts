@@ -1,6 +1,8 @@
-import { IChannel } from '@/models/Channels/ChannelTypes';
-import { IChannelParticipant } from '@/models/ChannelUsers/ChannelUserTypes';
-import { IUser } from '@/models/Users/UserTypes';
+import { IChannel } from '../../models/Channels/ChannelTypes';
+import {
+  IUpdateChannelSetingsData,
+  IJoinChannelData,
+} from '../../config/types';
 
 export interface ICreateChannelData {
   channelName: string;
@@ -18,6 +20,8 @@ export interface IChannelList {
   blockedChannels: string[];
 }
 
+export { IJoinChannelData };
+
 export interface IChannelService {
   createChannel(
     userId: string,
@@ -28,15 +32,17 @@ export interface IChannelService {
     userId: string,
     channelId: string,
     password?: string,
-  ): Promise<{
-    channel: IChannel;
-    channelUsers: IChannelParticipant[];
-    user: IUser;
-  }>;
+  ): Promise<IJoinChannelData>;
 
   leaveChannel(channelId: string, userId: string): Promise<void>;
 
   deleteChannel(channelId: string, userId: string): Promise<void>;
 
   getChannelList(userId: string): Promise<IChannelList>;
+
+  updateChannelSettings(
+    userId: string,
+    channelId: string,
+    data: IUpdateChannelSetingsData,
+  ): Promise<void>;
 }

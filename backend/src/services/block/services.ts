@@ -1,11 +1,13 @@
-import Channels from '@/models/Channels';
-import BlockedUsers from '@/models/BlockedUsers';
+import Channels from '../../models/Channels';
+import BlockedUsers from '../../models/BlockedUsers';
 import { IBlockService } from './interfaces';
-import { IBlockedUserList } from '@/models/BlockedUsers/BlockedUserTypes';
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
-import ChannelUsers from '@/models/ChannelUsers';
-import { TransactionHelper } from '@/utils/TransactionHelper';
+import { IBlockedUserList } from '../../models/BlockedUsers/BlockedUserTypes';
+import AppError from '../../utils/AppError';
+import { errors } from '../../config/messages';
+import ChannelUsers from '../../models/ChannelUsers';
+import { Events } from '../../config/appState';
+
+const { channelEvents } = Events;
 
 export class BlockService implements IBlockService {
   async getBlockedUserList(
@@ -14,6 +16,7 @@ export class BlockService implements IBlockService {
   ): Promise<IBlockedUserList[]> {
     await Channels.checkChannelAdmin(channelId, userId);
     const blockedUserList = await BlockedUsers.getBlockedUserList(channelId);
+
     return blockedUserList;
   }
 
@@ -25,15 +28,14 @@ export class BlockService implements IBlockService {
     if (userId === selectedUser)
       throw new AppError(400, errors.DENIED_SELF_BLOCK);
     await Channels.checkChannelAdmin(channelId, userId);
-    await TransactionHelper.withTransaction(async (session) => {
-      await ChannelUsers.deleteOne(
-        { channelId, userId: selectedUser },
-        { session },
-      );
-      await BlockedUsers.create(
-        { channelId, userId: selectedUser },
-        { session },
-      );
+
+    // NOTE: トランザクション検討
+    await ChannelUsers.deleteOne({ channelId, userId: selectedUser });
+    await BlockedUsers.create({ channelId, userId: selectedUser });
+
+    channelEvents.emit('registerBlock', {
+      channelId,
+      userId: selectedUser,
     });
   }
 
@@ -44,5 +46,12 @@ export class BlockService implements IBlockService {
   ): Promise<void> {
     await Channels.checkChannelAdmin(channelId, userId);
     await BlockedUsers.deleteOne({ channelId, userId: selectedUser });
+
+    channelEvents.emit('cancelBlock', {
+      channelId,
+      userId: selectedUser,
+    });
   }
 }
+
+export const blockService = new BlockService();

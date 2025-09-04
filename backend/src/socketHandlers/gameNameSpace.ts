@@ -1,7 +1,8 @@
 import { Namespace, Socket } from 'socket.io';
-import { appState, Events } from '@/app';
-import { errors } from '@/config/messages';
-import { authSocketUser } from '@/middleware/authSocketUser';
+import { appState, Events } from '../config/appState';
+import { errors } from '../config/messages';
+import { authSocketUser } from '../middleware/authSocketUser';
+import { IGameState } from '../config/types';
 
 const { gameManagers } = appState;
 const { gameEvents } = Events;
@@ -21,7 +22,7 @@ export const gameNameSpaceHandler = (gameNameSpace: Namespace) => {
     next();
   });
 
-  gameNameSpace.on('connection', async (socket: CustomSocket) => {
+  gameNameSpace.on('connection', (socket: CustomSocket) => {
     try {
       const gameId = socket.channelId as string;
       const game = gameManagers[gameId];
@@ -36,7 +37,7 @@ export const gameNameSpaceHandler = (gameNameSpace: Namespace) => {
     }
   });
 
-  gameEvents.on('updateGameState', (gameState) => {
+  gameEvents.on('updateGameState', (gameState: IGameState) => {
     const { gameId } = gameState;
     gameNameSpace.to(gameId).emit('updateGameState', gameState);
   });

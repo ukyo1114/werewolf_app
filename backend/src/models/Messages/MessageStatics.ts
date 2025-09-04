@@ -22,8 +22,8 @@ export const MessageStatics = {
   async getIndex(
     this: IMessageStatics,
     channelId: string,
+    limit: number,
     messageType?: MessageType[],
-    limit = 3000,
   ): Promise<IMessageIndex[]> {
     const query: any = { channelId };
     if (messageType) query.messageType = { $in: messageType };
@@ -33,6 +33,7 @@ export const MessageStatics = {
       .select('_id createdAt replyTo')
       .sort({ createdAt: -1 })
       .lean();
+
     return messages.map((message) => ({
       _id: message._id,
       createdAt: message.createdAt,

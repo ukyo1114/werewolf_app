@@ -1,9 +1,9 @@
 import { Socket } from 'socket.io';
-import Users from '@/models/Users';
-import ChannelUsers from '@/models/ChannelUsers';
-import GameUsers from '@/models/GameUsers';
-import { decodeToken } from '@/utils/decodeToken';
-import { socketError } from '@/config/messages';
+import Users from '../models/Users';
+import ChannelUsers from '../models/ChannelUsers';
+import GameUsers from '../models/GameUsers';
+import { decodeToken } from '../utils/decodeToken';
+import { socketError } from '../config/messages';
 
 export const authSocketUser =
   (nameSpace: string) =>
@@ -17,12 +17,9 @@ export const authSocketUser =
 
       // プレイ中のゲームがあるかどうかチェック
       const currentGameId = await GameUsers.isUserPlaying(userId);
-      if (
-        currentGameId &&
-        (nameSpace === 'entry' || currentGameId !== channelId)
-      ) {
+      if (currentGameId && currentGameId !== channelId) {
         const error = new Error(socketError.AUTH_ERROR);
-        (error as any).data = { gameId: currentGameId };
+        Object.assign(error, { data: { gameId: currentGameId } });
         throw error;
       }
 
@@ -49,8 +46,7 @@ export const authSocketUser =
       if (!userExists) throw new Error(socketError.AUTH_USER_NOT_FOUND);
       if (!inChannel && !inGame) throw new Error(socketError.AUTH_ERROR);
 
-      (socket as any).userId = userId;
-      (socket as any).channelId = channelId;
+      Object.assign(socket, { userId, channelId });
       next();
     } catch (error: any) {
       next(error);

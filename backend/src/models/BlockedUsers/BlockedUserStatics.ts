@@ -1,5 +1,5 @@
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
+import AppError from '../../utils/AppError';
+import { errors } from '../../config/messages';
 import { IBlockedUserList, IBlockedUserStatics } from './BlockedUserTypes';
 
 export const BlockedUserStatics = {

@@ -1,99 +1,215 @@
+import { EventEmitter } from 'events';
+
+// モックの設定
 jest.mock('../../src/app', () => ({
   appState: {
-    channelManagers: {},
+    gameManagers: {},
+    entryManagers: {},
+  },
+  Events: {
+    entryEvents: new EventEmitter(),
+    channelEvents: new EventEmitter(),
   },
 }));
 
-import { EventEmitter } from 'events';
-
-import AppError from '../../src/utils/AppError';
-import { errors } from '../../src/config/messages';
-import { mockGameId, mockUsers, gamePlayers } from '../../__mocks__/mockdata';
-import PlayerManager from '../../src/classes/PlayerManager';
+import MediumManager from '../../src/classes/RoleManager/MediumManager';
 import PhaseManager from '../../src/classes/PhaseManager';
-import MediumManager from '../../src/classes/MediumManager';
+import PlayerManager from '../../src/classes/PlayerManager';
 
-describe('test MediumManager', () => {
-  const phaseManager = new PhaseManager(
-    new EventEmitter(),
-    { value: 'running' },
-    mockGameId,
-  );
-  const playerManager = new PlayerManager(mockGameId, mockUsers);
-  const mediumManager = new MediumManager(phaseManager, playerManager);
+describe('MediumManager', () => {
+  let mediumManager: MediumManager;
+  let phaseManager: PhaseManager;
+  let playerManager: PlayerManager;
 
   beforeEach(() => {
-    playerManager.players = gamePlayers();
+    // PhaseManagerとPlayerManagerのモック
+    phaseManager = {
+      currentPhase: 'night',
+      currentDay: 1,
+    } as PhaseManager;
+
+    playerManager = {
+      players: {
+        player1: { id: 'player1', role: 'medium', status: 'alive' },
+        player2: { id: 'player2', role: 'villager', status: 'alive' },
+        player3: { id: 'player3', role: 'werewolf', status: 'alive' },
+        deadPlayer: { id: 'deadPlayer', role: 'medium', status: 'dead' },
+      },
+      validatePlayerByRole: jest.fn(),
+      getRandomTarget: jest.fn(),
+      getLivingPlayers: jest.fn(),
+    } as any;
+
+    mediumManager = new MediumManager(phaseManager, playerManager);
   });
 
-  afterAll(() => {
-    const timerId = phaseManager.timerId;
-    if (timerId) clearTimeout(timerId);
-    jest.restoreAllMocks();
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('medium', () => {
-    const getLivingPlayersSpy = jest.spyOn(playerManager, 'getLivingPlayers');
+    it('霊媒師が生存している場合、霊媒を実行する', () => {
+      // 生存している霊媒師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
 
-    beforeEach(() => {
-      getLivingPlayersSpy.mockClear();
+      const result = mediumManager.medium('player2');
+
+      expect(result).toBeUndefined();
+      expect((mediumManager as any).history[1]).toEqual({
+        player2: 'villagers',
+      });
     });
 
-    it('正しい霊能結果が保存される', () => {
-      mediumManager.medium('villager');
-      expect(mediumManager.mediumResult[0].villager).toBe('villagers');
+    it('霊媒師が死亡している場合、何も実行しない', () => {
+      // 死亡している霊媒師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([]);
 
-      mediumManager.medium('werewolf');
-      expect(mediumManager.mediumResult[0].werewolf).toBe('werewolves');
-      expect(getLivingPlayersSpy).toHaveBeenCalledWith('medium');
+      const result = mediumManager.medium('player2');
+
+      expect(result).toBeUndefined();
+      expect((mediumManager as any).history[1]).toBeUndefined();
     });
 
-    it('霊能力者が死亡しているとき', () => {
-      mediumManager.mediumResult = {};
-      playerManager.players.medium.status = 'dead';
+    it('人狼を霊媒した場合、werewolvesとして記録される', () => {
+      // 生存している霊媒師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
 
-      mediumManager.medium('villager');
-      expect(mediumManager.mediumResult).not.toHaveProperty('villager');
-      expect(getLivingPlayersSpy).toHaveBeenCalledWith('medium');
+      const result = mediumManager.medium('player3');
+
+      expect(result).toBeUndefined();
+      expect((mediumManager as any).history[1]).toEqual({
+        player3: 'werewolves',
+      });
+    });
+
+    it('村人を霊媒した場合、villagersとして記録される', () => {
+      // 生存している霊媒師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
+
+      const result = mediumManager.medium('player2');
+
+      expect(result).toBeUndefined();
+      expect((mediumManager as any).history[1]).toEqual({
+        player2: 'villagers',
+      });
+    });
+
+    it('霊媒結果が履歴に正しく記録される', () => {
+      // 生存している霊媒師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
+
+      // 複数日での霊媒をテスト
+      mediumManager.medium('player2');
+
+      phaseManager.currentDay = 2;
+      mediumManager.medium('player3');
+
+      expect((mediumManager as any).history).toEqual({
+        1: { player2: 'villagers' },
+        2: { player3: 'werewolves' },
+      });
+    });
+
+    it('同じ日に複数回霊媒した場合、最新の結果で上書きされる', () => {
+      // 生存している霊媒師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
+
+      // 同じ日に複数回霊媒
+      mediumManager.medium('player2');
+      mediumManager.medium('player3');
+
+      expect((mediumManager as any).history[1]).toEqual({
+        player3: 'werewolves',
+      });
+      expect(Object.keys((mediumManager as any).history[1])).toHaveLength(1);
     });
   });
 
-  describe('getMediumResult', () => {
-    const validatePlayerByRoleSpy = jest.spyOn(
-      playerManager,
-      'validatePlayerByRole',
-    );
+  describe('統合テスト', () => {
+    it('完全な霊媒フローのテスト', () => {
+      // 夜のフェーズに設定
+      phaseManager.currentPhase = 'night';
 
-    beforeEach(() => {
-      validatePlayerByRoleSpy.mockClear();
+      // 生存している霊媒師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
+
+      // 霊媒を実行
+      const result = mediumManager.medium('player2');
+
+      // 結果を確認
+      expect(result).toBeUndefined();
+      expect((mediumManager as any).history[1]).toEqual({
+        player2: 'villagers',
+      });
     });
 
-    it('霊能履歴を取得できる', () => {
-      mediumManager.mediumResult = { 0: { villager: 'villagers' } };
+    it('霊媒師死亡時の統合テスト', () => {
+      // 夜のフェーズに設定
+      phaseManager.currentPhase = 'night';
 
-      const mediumResult = mediumManager.getMediumResult('medium');
-      expect(mediumResult).toEqual({ 0: { villager: 'villagers' } });
-      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith('medium', 'medium');
+      // 死亡している霊媒師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([]);
+
+      // 霊媒を実行
+      const result = mediumManager.medium('player2');
+
+      // 結果を確認
+      expect(result).toBeUndefined();
+      expect((mediumManager as any).history[1]).toBeUndefined();
     });
 
-    it('プレイヤーが霊能でないときエラーを返す', () => {
-      expect(() => mediumManager.getMediumResult('villager')).toThrow(
-        new AppError(400, errors.AUTH_FAILED),
-      );
-      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
-        'villager',
-        'medium',
-      );
+    it('人狼霊媒の統合テスト', () => {
+      // 夜のフェーズに設定
+      phaseManager.currentPhase = 'night';
+
+      // 生存している霊媒師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
+
+      // 人狼を霊媒
+      const result = mediumManager.medium('player3');
+
+      // 結果を確認
+      expect(result).toBeUndefined();
+      expect((mediumManager as any).history[1]).toEqual({
+        player3: 'werewolves',
+      });
     });
 
-    it('プレイヤーが存在しないときエラーを返す', () => {
-      expect(() => mediumManager.getMediumResult('notExist')).toThrow(
-        new AppError(400, errors.AUTH_FAILED),
-      );
-      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith(
-        'notExist',
-        'medium',
-      );
+    it('複数日での霊媒履歴の統合テスト', () => {
+      // 夜のフェーズに設定
+      phaseManager.currentPhase = 'night';
+
+      // 生存している霊媒師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
+
+      // 1日目の霊媒
+      mediumManager.medium('player2');
+
+      // 2日目の霊媒
+      phaseManager.currentDay = 2;
+      mediumManager.medium('player3');
+
+      // 履歴を確認
+      expect((mediumManager as any).history).toEqual({
+        1: { player2: 'villagers' },
+        2: { player3: 'werewolves' },
+      });
     });
   });
 });

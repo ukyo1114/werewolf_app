@@ -36,28 +36,4 @@ export default class PhaseManager {
     this.currentPhase = phaseTo;
     this.startTimer(callback);
   }
-
-  // TODO: remove this
-  /* nextPhase(isRunning: boolean): void {
-    const currentPhase = this.currentPhase;
-    this.changedAt = new Date();
-
-    if (currentPhase === 'finished') return;
-    if (!isRunning) {
-      this.currentPhase = 'finished';
-    } else if (currentPhase === 'day') {
-      this.currentPhase = 'night';
-    } else {
-      this.currentDay = this.currentDay + 1;
-      this.currentPhase = 'day';
-    }
-    this.startTimer();
-    
-    if (this.result.value !== 'running') {
-      this.currentPhase = 'finished';
-      await GameUser.endGame(this.gameId);
-      return;
-    }
-   
-  } */
 }

@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import Channels from '@/models/Channels';
+import Channels from '../../../src/models/Channels';
 
 describe('ChannelMethods', () => {
   const adminId = new mongoose.Types.ObjectId();

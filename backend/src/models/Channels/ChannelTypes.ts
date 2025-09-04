@@ -1,5 +1,5 @@
-import mongoose, { ClientSession, Document, Types } from 'mongoose';
-import { IUpdateChannelSetingsData } from '@/config/types';
+import mongoose, { Document, Types } from 'mongoose';
+import { IUpdateChannelSetingsData } from '../../config/types';
 
 // Channelドキュメントのインターフェース
 export interface IChannel extends Document {
@@ -34,11 +34,7 @@ export interface IChannelStatics extends mongoose.Model<IChannel> {
     channelDescription: string;
     numberOfPlayers: number;
   }>;
-  deleteChannel(
-    channelId: string,
-    userId: string,
-    session?: ClientSession,
-  ): Promise<void>;
+  deleteChannel(channelId: string, userId: string): Promise<void>;
 }
 
 export type { IUpdateChannelSetingsData };

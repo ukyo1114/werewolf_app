@@ -1,5 +1,5 @@
 import { Document, Types, Model } from 'mongoose';
-import { GameResult, IGameInfo } from '@/config/types';
+import { GameResult, IGameInfo } from '../../config/types';
 
 // Gameドキュメントのインターフェース
 export interface IGame extends Document {

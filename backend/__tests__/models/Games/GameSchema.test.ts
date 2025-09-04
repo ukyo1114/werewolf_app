@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import Games from '@/models/Games';
+import Games from '../../../src/models/Games';
 
 describe('GameSchema', () => {
   const channelId = new mongoose.Types.ObjectId();

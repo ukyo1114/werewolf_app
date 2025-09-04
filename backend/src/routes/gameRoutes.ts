@@ -2,10 +2,7 @@ import express from 'express';
 import { param, body } from 'express-validator';
 import { validation } from '../config/messages';
 import validateRequest from '../middleware/validateRequest';
-import {
-  joinGame,
-  handleGameAction,
-} from '../controllers/gameController/controller';
+import { joinGame, handleGameAction } from '../controllers/gameController';
 import protect from '../middleware/protect';
 
 const validateGameId = param('gameId')

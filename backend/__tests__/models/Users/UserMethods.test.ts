@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
-import Users from '@/models/Users';
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
+import Users from '../../../src/models/Users';
+import AppError from '../../../src/utils/AppError';
+import { errors } from '../../../src/config/messages';
 
 describe('UserMethods', () => {
   const userId = new mongoose.Types.ObjectId();

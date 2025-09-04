@@ -1,15 +1,15 @@
 import _ from 'lodash';
 
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
 import PhaseManager from './PhaseManager';
 import PlayerManager from './PlayerManager';
-import { VotesByVotee, VoteHistory } from '@/config/types';
+import { VoteHistory } from '../config/types';
 
 export default class VoteManager {
-  public votes: Record<string, string> = {};
-  public phaseManager: PhaseManager;
-  public playerManager: PlayerManager;
+  protected votes: Record<string, string> = {};
+  protected phaseManager: PhaseManager;
+  protected playerManager: PlayerManager;
   public voteHistory: VoteHistory = {};
 
   constructor(phaseManager: PhaseManager, playerManager: PlayerManager) {
@@ -18,60 +18,73 @@ export default class VoteManager {
   }
 
   receiveVote(voterId: string, voteeId: string): void {
-    if (voterId === voteeId) throw new AppError(400, errors.VOTE_FAILED);
-
-    const { currentPhase } = this.phaseManager;
-    const player = this.playerManager.players[voterId];
-    const target = this.playerManager.players[voteeId];
-
-    const isDayPhase = currentPhase === 'day';
-    const isPlayerValid = player && player.status === 'alive';
-    const isTargetValid = target && target.status === 'alive';
-
-    if (!isDayPhase || !isPlayerValid || !isTargetValid)
-      throw new AppError(400, errors.VOTE_FAILED);
-
+    this.validateVote(voterId, voteeId);
     this.votes[voterId] = voteeId;
   }
 
+  protected validateDayPhase(): void {
+    if (this.phaseManager.currentPhase !== 'day') {
+      throw new AppError(400, errors.VOTE_FAILED);
+    }
+  }
+
+  protected validatePlayer(playerId: string): void {
+    const player = this.playerManager.players[playerId];
+    if (!player || player.status !== 'alive') {
+      throw new AppError(400, errors.VOTE_FAILED);
+    }
+  }
+
+  protected validateVote(voterId: string, voteeId: string): void {
+    if (voterId === voteeId) throw new AppError(400, errors.VOTE_FAILED);
+    this.validateDayPhase();
+    this.validatePlayer(voterId);
+    this.validatePlayer(voteeId);
+  }
+
   getExecutionTarget(): string | undefined {
-    const voteCount = this.voteCounter();
-    if (Object.keys(voteCount).length === 0) return;
-
-    // 最多得票者の配列を作成
-    const maxVotes = _.max(Object.values(voteCount));
-    const executionTargets = Object.entries(voteCount)
-      .filter(([_, count]) => count === maxVotes)
-      .map(([votee]) => votee);
-
-    const target = _.sample(executionTargets);
-    if (!target) return;
-
-    this.genVoteHistory();
-
+    const target = this.decideExecutionTarget();
+    this.logVoteHistory();
     return target;
   }
 
-  voteCounter(): Record<string, number> {
+  protected voteCounter(): Record<string, number> | undefined {
     const votes = this.votes;
-    if (Object.keys(votes).length === 0) return {};
+    if (Object.keys(votes).length === 0) return;
 
     const voteeArray = Object.values(votes);
     return _.countBy(voteeArray);
   }
 
-  genVoteHistory(): void {
+  protected decideExecutionTarget(): string | undefined {
+    const voteCount = this.voteCounter();
+    if (!voteCount) return;
+
+    const maxVotes = _.max(Object.values(voteCount));
+    const targets = Object.entries(voteCount)
+      .filter(([_, count]) => count === maxVotes)
+      .map(([votee]) => votee);
+
+    return _.sample(targets);
+  }
+
+  protected logVoteHistory(): void {
     const { currentDay } = this.phaseManager;
-    const votesByVotee: VotesByVotee = {};
-    // 投票を得票者 -> 投票者リストに変換
+    const votesByVotee = this.genVoteHistory();
+    this.voteHistory[currentDay] = votesByVotee;
+    this.votes = {};
+  }
+
+  protected genVoteHistory(): Record<string, string[]> {
+    const votesByVotee: any = {};
+
     for (const [voter, votee] of Object.entries(this.votes)) {
       if (!votesByVotee[votee]) {
         votesByVotee[votee] = [];
       }
       votesByVotee[votee].push(voter);
     }
-    this.voteHistory[currentDay] = votesByVotee;
-    // 投票をリセット
-    this.votes = {};
+
+    return votesByVotee;
   }
 }

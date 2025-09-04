@@ -1,4 +1,4 @@
-import { IBlockedUserList } from '@/models/BlockedUsers/BlockedUserTypes';
+import { IBlockedUserList } from '../../models/BlockedUsers/BlockedUserTypes';
 
 export interface IBlockService {
   getBlockedUserList(

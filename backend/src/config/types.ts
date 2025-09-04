@@ -102,10 +102,10 @@ export interface ICreateChannel {
 }
 
 export interface IChannelSettings {
-  channelName: string | null;
-  channelDescription: string | null;
+  channelName?: string;
+  channelDescription?: string;
   passwordEnabled: boolean;
-  password: string | null;
+  password?: string;
   denyGuests: boolean;
   numberOfPlayers: number;
 }
@@ -122,8 +122,8 @@ export interface ILogin {
 }
 
 export interface IUpdateProfile {
-  userName: string | null;
-  pic: string | null;
+  userName?: string;
+  pic?: string;
 }
 
 export interface IUpdateEmail {
@@ -161,6 +161,14 @@ export interface IChannelParticipant {
   userName: string;
   pic: string | null;
   isGuest: boolean;
+}
+
+export interface IJoinChannelData {
+  channelName: string;
+  channelDescription: string;
+  channelAdmin: string;
+  numberOfPlayers: number;
+  channelUsers: IChannelParticipant[];
 }
 
 export interface IGameInfo {

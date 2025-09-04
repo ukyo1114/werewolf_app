@@ -3,7 +3,7 @@ import { param } from 'express-validator';
 
 import { validation } from '../config/messages';
 import validateRequest from '../middleware/validateRequest';
-import { getGameList } from '../controllers/spectateController/controller';
+import { getGameList } from '../controllers/spectateController';
 import protect from '../middleware/protect';
 
 const validateChannelId = param('channelId')

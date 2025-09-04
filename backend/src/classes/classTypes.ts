@@ -8,4 +8,4 @@ export {
   Result,
   GameResult,
   IGameState,
-} from '@/config/types';
+} from '../config/types';

@@ -8,21 +8,20 @@ import {
   GuardManager,
   AttackManager,
 } from './RoleManager';
-import Messages from '@/models/Messages';
-import Users, { IUser } from '@/models/Users';
-import Games from '@/models/Games';
-import GameUsers from '@/models/GameUsers';
-import { gameMaster } from '@/config/messages';
+import GameChannelManager from './GameChannelManager';
+import Messages from '../models/Messages';
+import Users, { IUser } from '../models/Users';
+import Games from '../models/Games';
+import GameUsers from '../models/GameUsers';
+import { gameMaster } from '../config/messages';
 import { GameResult, IGameState, IPlayer } from './classTypes';
-import { appState, Events } from '@/app';
-import { TransactionHelper } from '@/utils/TransactionHelper';
-import { ClientSession } from 'mongoose';
+import { appState, Events } from '../config/appState';
+import { IMessageIndex } from '../config/types';
 
-const { gameManagers } = appState;
+const { channelManagers, gameManagers } = appState;
+const { channelEvents, gameEvents } = Events;
 
 export default class GameManager {
-  protected channelEvents: EventEmitter = Events.channelEvents;
-  protected gameEvents: EventEmitter = Events.gameEvents;
   protected gameMaster: string = process.env.GAME_MASTER_ID || '';
   public channelId: string;
   public gameId: string;
@@ -65,21 +64,17 @@ export default class GameManager {
     let gameId: string | undefined;
 
     try {
-      return await TransactionHelper.withTransaction(async (session) => {
-        const numberOfPlayers = users.length;
-        const game = await Games.create(
-          { channelId, numberOfPlayers },
-          { session },
-        );
-        gameId = game[0]._id.toString();
+      const numberOfPlayers = users.length;
+      const game = await Games.create({ channelId, numberOfPlayers });
+      gameId = game._id.toString();
 
-        const dbUsers = await Users.getUsersForGame(users, session);
-        const gameManager = this.createGameManager(channelId, gameId, dbUsers);
+      const dbUsers = await Users.getUsersForGame(users);
+      const gameManager = this.createGameManager(channelId, gameId, dbUsers);
+      channelManagers[gameId] = new GameChannelManager(gameId, gameManager);
 
-        await this.registerPlayersToDB(gameId, dbUsers, gameManager, session);
+      await this.registerPlayersToDB(gameId, dbUsers, gameManager);
 
-        return gameId;
-      });
+      return gameId;
     } catch (error) {
       if (gameId) delete gameManagers[gameId];
       throw error;
@@ -106,7 +101,6 @@ export default class GameManager {
     gameId: string,
     players: IUser[],
     gameManager: GameManager,
-    session: ClientSession,
   ): Promise<void> {
     const userRoleMap = gameManager.playerManager.getUserRoleMap();
     const playerData = players.map((player) => {
@@ -120,7 +114,7 @@ export default class GameManager {
         isPlaying: true,
       };
     });
-    await GameUsers.insertMany(playerData, { session });
+    await GameUsers.insertMany(playerData);
   }
 
   static checkIsUserInGame(userId: string): boolean {
@@ -328,18 +322,18 @@ export default class GameManager {
   }
 
   protected switchPhaseToFinished(): void {
-    this.phaseManager.switchPhase(
-      'finished',
-      () => delete gameManagers[this.gameId],
-    );
+    this.phaseManager.switchPhase('finished', () => {
+      delete channelManagers[this.gameId];
+      delete gameManagers[this.gameId];
+    });
   }
 
   protected notifyGameState(): void {
     const gameState = this.getGameState();
-    this.gameEvents.emit('updateGameState', gameState);
+    gameEvents.emit('updateGameState', gameState);
   }
 
-  protected getGameState(): IGameState {
+  getGameState(): IGameState {
     const { currentDay, currentPhase, changedAt } = this.phaseManager;
     const gameState = {
       gameId: this.gameId,
@@ -362,8 +356,12 @@ export default class GameManager {
         message,
         messageType: 'system',
       });
+      const index = {
+        _id: newMessage._id,
+        createdAt: newMessage.createdAt,
+      } as IMessageIndex;
 
-      this.channelEvents.emit('newMessage', this.gameId, newMessage, null);
+      channelEvents.emit('newMessage', this.gameId, [index]);
     } catch (error) {
       console.error(`Failed to send message ${this.gameId}:`, error);
     }

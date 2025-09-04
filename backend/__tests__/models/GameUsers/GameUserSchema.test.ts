@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import GameUsers from '@/models/GameUsers';
-import Users from '@/models/Users';
+import GameUsers from '../../../src/models/GameUsers';
+import Users from '../../../src/models/Users';
 
 describe('GameUserSchema', () => {
   const gameId = new mongoose.Types.ObjectId();

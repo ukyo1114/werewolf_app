@@ -1,8 +1,8 @@
 import { Namespace, Socket } from 'socket.io';
-import { appState, Events } from '@/app';
-import ChannelManager from '@/classes/ChannelManager';
-import { IMessage } from '@/models/Messages';
-import { authSocketUser } from '@/middleware/authSocketUser';
+import { appState, Events } from '../config/appState';
+import { authSocketUser } from '../middleware/authSocketUser';
+import { errors } from '../config/messages';
+import { IMessageIndex } from '../config/types';
 
 const { channelManagers } = appState;
 const { channelEvents } = Events;
@@ -20,9 +20,8 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
     const channelId = socket.channelId as string;
     const socketId = socket.id;
 
-    const channelManager =
-      channelManagers[channelId] ||
-      (await ChannelManager.createChannelInstance(channelId));
+    const channelManager = channelManagers[channelId];
+    if (!channelManager) throw new Error(errors.CHANNEL_NOT_FOUND);
 
     channelManager.userJoined(userId, socketId);
     socket.join(channelId);
@@ -40,14 +39,12 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
 
   channelEvents.on(
     'newMessage',
-    (channelId: string, message: IMessage, users: string[]) => {
-      const { messageType } = message;
-
-      if (messageType == 'normal' || messageType == 'system') {
-        chatNameSpace.to(channelId).emit('newMessage', message);
+    (messageReceivers: string[] | string, index: IMessageIndex[]) => {
+      if (typeof messageReceivers === 'string') {
+        chatNameSpace.to(messageReceivers).emit('newMessage', index);
       } else {
-        users.forEach((user) => {
-          chatNameSpace.to(user).emit('newMessage', message);
+        messageReceivers.forEach((user) => {
+          chatNameSpace.to(user).emit('newMessage', index);
         });
       }
     },
@@ -84,8 +81,8 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
       user: {
         _id: string;
         userName: string;
-        pic: string;
-        isGuest: Boolean | null;
+        pic?: string;
+        isGuest: Boolean;
       };
     }) => {
       chatNameSpace.to(channelId).emit('userJoined', user);
@@ -100,16 +97,16 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
   );
 
   channelEvents.on(
-    'registerBlockUser',
+    'registerBlock',
     ({ channelId, userId }: { channelId: string; userId: string }) => {
-      chatNameSpace.to(channelId).emit('registerBlockUser', userId);
+      chatNameSpace.to(channelId).emit('registerBlock', userId);
     },
   );
 
   channelEvents.on(
-    'cancelBlockUser',
+    'cancelBlock',
     ({ channelId, userId }: { channelId: string; userId: string }) => {
-      chatNameSpace.to(channelId).emit('cancelBlockUser', userId);
+      chatNameSpace.to(channelId).emit('cancelBlock', userId);
     },
   );
 
@@ -119,8 +116,8 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
       channelIds: string[],
       data: {
         userId: string;
-        userName: string | null;
-        pic: string | null;
+        userName?: string;
+        pic?: string;
       },
     ) => {
       channelIds.forEach((channelId) => {
@@ -128,4 +125,8 @@ export const chatNameSpaceHandler = (chatNameSpace: Namespace) => {
       });
     },
   );
+
+  channelEvents.on('channelDeleted', (channelId: string) => {
+    chatNameSpace.to(channelId).emit('channelDeleted');
+  });
 };

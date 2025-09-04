@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import Users from '@/models/Users';
+import Users from '../../../src/models/Users';
 
 describe('UserSchema', () => {
   const userId = new mongoose.Types.ObjectId();

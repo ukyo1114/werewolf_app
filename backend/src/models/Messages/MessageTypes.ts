@@ -1,5 +1,5 @@
 import mongoose, { Document, Types } from 'mongoose';
-import { MessageType, IMessageIndex } from '@/config/types';
+import { MessageType, IMessageIndex } from '../../config/types';
 
 export interface IMessage extends Document {
   _id: Types.ObjectId;
@@ -19,6 +19,7 @@ export interface IMessageStatics extends mongoose.Model<IMessage> {
   ): Promise<IMessage[]>;
   getIndex(
     channelId: string,
+    limit: number,
     messageType?: MessageType[],
   ): Promise<IMessageIndex[]>;
 }

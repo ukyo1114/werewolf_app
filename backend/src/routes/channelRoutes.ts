@@ -9,7 +9,8 @@ import {
   updateChannelSettings,
   joinChannel,
   leaveChannel,
-} from '../controllers/channelController/controller';
+  deleteChannel,
+} from '../controllers/channelController';
 import protect from '../middleware/protect';
 
 const validateChannelId = param('channelId')
@@ -22,7 +23,7 @@ const validateChannelName = (isOptional: boolean) => {
 
   return validator
     .isString()
-    .isLength({ min: 1, max: 20 })
+    .isLength({ min: 1, max: 50 })
     .withMessage(validation.CHANNEL_NAME_LENGTH)
     .escape();
 };
@@ -106,6 +107,13 @@ router.delete(
   [validateChannelId],
   validateRequest,
   leaveChannel,
+);
+
+router.delete(
+  '/delete/:channelId',
+  [validateChannelId],
+  validateRequest,
+  deleteChannel,
 );
 
 export default router;

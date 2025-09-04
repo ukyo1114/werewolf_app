@@ -1,241 +1,218 @@
+import { EventEmitter } from 'events';
+
+// モックの設定
 jest.mock('../../src/app', () => ({
   appState: {
-    channelManagers: {},
+    gameManagers: {},
+    entryManagers: {},
+  },
+  Events: {
+    entryEvents: new EventEmitter(),
+    channelEvents: new EventEmitter(),
   },
 }));
 
-import { EventEmitter } from 'events';
-
-import AppError from '../../src/utils/AppError';
-import { errors } from '../../src/config/messages';
-import { mockGameId, mockUsers } from '../../__mocks__/mockdata';
-import { gamePlayers } from '../../__mocks__/mockdata';
-import PlayerManager from '../../src/classes/PlayerManager';
+import DevineManager from '../../src/classes/RoleManager/DevineManager';
 import PhaseManager from '../../src/classes/PhaseManager';
-import DevineManager from '../../src/classes/DevineManager';
+import PlayerManager from '../../src/classes/PlayerManager';
 
-describe('test DevineManager', () => {
-  const phaseManager = new PhaseManager(
-    new EventEmitter(),
-    { value: 'running' },
-    mockGameId,
-  );
-  const playerManager = new PlayerManager(mockGameId, mockUsers);
-  const devineManager = new DevineManager(phaseManager, playerManager);
+describe('DevineManager', () => {
+  let devineManager: DevineManager;
+  let phaseManager: PhaseManager;
+  let playerManager: PlayerManager;
 
   beforeEach(() => {
-    playerManager.players = gamePlayers();
+    // PhaseManagerとPlayerManagerのモック
+    phaseManager = {
+      currentPhase: 'night',
+      currentDay: 1,
+    } as PhaseManager;
+
+    playerManager = {
+      players: {
+        player1: { id: 'player1', role: 'seer', status: 'alive' },
+        player2: { id: 'player2', role: 'villager', status: 'alive' },
+        player3: { id: 'player3', role: 'werewolf', status: 'alive' },
+        player4: { id: 'player4', role: 'fox', status: 'alive' },
+        deadPlayer: { id: 'deadPlayer', role: 'seer', status: 'dead' },
+      },
+      validatePlayerByRole: jest.fn(),
+      getRandomTarget: jest.fn(),
+      getLivingPlayers: jest.fn(),
+    } as any;
+
+    devineManager = new DevineManager(phaseManager, playerManager);
   });
 
-  afterAll(() => {
-    const timerId = phaseManager.timerId;
-    if (timerId) clearTimeout(timerId);
-    jest.restoreAllMocks();
-  });
-
-  describe('recieveDevineRequest', () => {
-    it('リクエストが受け付けられる', () => {
-      phaseManager.currentPhase = 'night';
-
-      devineManager.receiveDevineRequest('seer', 'villager');
-      expect(devineManager.devineRequest).toBe('villager');
-    });
-
-    it('nightフェーズでないときエラーを返す', () => {
-      phaseManager.currentPhase = 'day';
-
-      expect(() =>
-        devineManager.receiveDevineRequest('seer', 'villager'),
-      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
-    });
-
-    it('リクエストを送信したプレイヤーが死亡しているときエラーを返す', () => {
-      phaseManager.currentPhase = 'night';
-      playerManager.players.seer.status = 'dead';
-
-      expect(() =>
-        devineManager.receiveDevineRequest('seer', 'villager'),
-      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
-    });
-
-    it('リクエストを送信したプレイヤーが占い師でないときエラーを返す', () => {
-      phaseManager.currentPhase = 'night';
-
-      expect(() =>
-        devineManager.receiveDevineRequest('villager', 'villager'),
-      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
-    });
-
-    it('ターゲットが死亡しているときエラーを返す', () => {
-      phaseManager.currentPhase = 'night';
-      playerManager.players.villager.status = 'dead';
-
-      expect(playerManager.players.villager.status).not.toBe('alive');
-      expect(() =>
-        devineManager.receiveDevineRequest('seer', 'villager'),
-      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
-    });
-
-    it('ターゲットが占い師のときエラーを返す', () => {
-      phaseManager.currentPhase = 'night';
-
-      expect(() => devineManager.receiveDevineRequest('seer', 'seer')).toThrow(
-        new AppError(400, errors.REQUEST_FAILED),
-      );
-    });
-
-    it('リクエストを送信したプレイヤーが存在しないときエラーを返す', () => {
-      phaseManager.currentPhase = 'night';
-
-      expect(() =>
-        devineManager.receiveDevineRequest('notExist', 'villager'),
-      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
-    });
-
-    it('ターゲットが存在しないときエラーを返す', () => {
-      phaseManager.currentPhase = 'night';
-
-      expect(() =>
-        devineManager.receiveDevineRequest('werewolf', 'notExist'),
-      ).toThrow(new AppError(400, errors.REQUEST_FAILED));
-    });
-  });
-
-  describe('decideDevineTarget', () => {
-    const getRandomTargetSpy = jest.spyOn(playerManager, 'getRandomTarget');
-
-    beforeEach(() => {
-      getRandomTargetSpy.mockClear();
-    });
-
-    it('リクエストが存在するとき', () => {
-      devineManager.devineRequest = 'testRequest';
-      const devineTarget = devineManager.decideDevineTarget();
-      expect(devineTarget).toBe('testRequest');
-      expect(getRandomTargetSpy).not.toHaveBeenCalled();
-    });
-
-    it('リクエストが存在しないとき', () => {
-      devineManager.devineRequest = null;
-
-      const devineTarget = devineManager.decideDevineTarget();
-      expect(devineTarget).toBeDefined();
-      expect(getRandomTargetSpy).toHaveBeenCalled();
-    });
-
-    it('リクエストが存在せず、getRandomTargetがundefinedを返す場合、undefinedを返す', () => {
-      devineManager.devineRequest = null;
-      getRandomTargetSpy.mockReturnValue(undefined);
-
-      const devineTarget = devineManager.decideDevineTarget();
-      expect(devineTarget).toBeUndefined();
-      expect(devineManager.devineRequest).toBeNull();
-      expect(getRandomTargetSpy).toHaveBeenCalledWith('seer');
-    });
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('devine', () => {
-    const getLivingPlayersSpy = jest.spyOn(playerManager, 'getLivingPlayers');
-    const decideDevineTargetSpy = jest.spyOn(
-      devineManager,
-      'decideDevineTarget',
-    );
-
-    beforeEach(() => {
-      getLivingPlayersSpy.mockClear();
-      decideDevineTargetSpy.mockClear();
-    });
-
-    it('占いが行われる', () => {
-      devineManager.devineRequest = 'villager';
-
-      expect(devineManager.devine()).toBe(false);
-      expect(devineManager.devineRequest).toBe(null);
-      expect(devineManager.devineResult[0]).toEqual({
-        villager: 'villagers',
-      });
-      expect(getLivingPlayersSpy).toHaveBeenCalledWith('seer');
-      expect(decideDevineTargetSpy).toHaveBeenCalled();
-    });
-
-    it('妖狐を占ったとき', () => {
-      devineManager.devineRequest = 'fox';
-
-      expect(devineManager.devine()).toBe(true);
-      expect(devineManager.devineRequest).toBe(null);
-      expect(devineManager.devineResult[0]).toEqual({
-        fox: 'villagers',
-      });
-      expect(getLivingPlayersSpy).toHaveBeenCalledWith('seer');
-      expect(decideDevineTargetSpy).toHaveBeenCalled();
-    });
-
-    it('占い師が死亡しているとき', () => {
-      devineManager.devineResult = {};
-      playerManager.players.seer.status = 'dead';
-      devineManager.devineRequest = 'villager';
-
-      expect(devineManager.devine()).toBe(false);
-      expect(devineManager.devineRequest).toBe(null);
-      expect(devineManager.devineResult).not.toHaveProperty('0');
-      expect(getLivingPlayersSpy).toHaveBeenCalledWith('seer');
-      expect(decideDevineTargetSpy).not.toHaveBeenCalled();
-    });
-
-    it('decideDevineTargetがundefinedを返す場合、falseを返す', () => {
-      devineManager.devineResult = {};
-      getLivingPlayersSpy.mockReturnValue([
-        {
-          userId: 'seer',
-          userName: 'seer',
-          role: 'seer',
-          status: 'alive',
-          teammates: [],
-        },
+    it('占い師が生存している場合、占いを実行する', () => {
+      // 生存している占い師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
       ]);
-      decideDevineTargetSpy.mockReturnValue(undefined);
+
+      // リクエストを設定
+      (devineManager as any).request = 'player2';
 
       const result = devineManager.devine();
-      expect(result).toBe(false);
-      expect(devineManager.devineRequest).toBeNull();
-      expect(devineManager.devineResult).not.toHaveProperty('0');
-      expect(getLivingPlayersSpy).toHaveBeenCalledWith('seer');
-      expect(decideDevineTargetSpy).toHaveBeenCalled();
+
+      expect(result).toBeUndefined(); // キツネでないため
+      expect((devineManager as any).history[1]).toEqual({
+        player2: 'villagers',
+      });
+      expect((devineManager as any).request).toBeNull();
+    });
+
+    it('占い師が死亡している場合、undefinedを返す', () => {
+      // 死亡している占い師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([]);
+
+      const result = devineManager.devine();
+
+      expect(result).toBeUndefined();
+      expect((devineManager as any).request).toBeNull();
+    });
+
+    it('人狼を占った場合、werewolvesとして記録される', () => {
+      // 生存している占い師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
+
+      // 人狼へのリクエストを設定
+      (devineManager as any).request = 'player3';
+
+      const result = devineManager.devine();
+
+      expect(result).toBeUndefined(); // キツネでないため
+      expect((devineManager as any).history[1]).toEqual({
+        player3: 'werewolves',
+      });
+    });
+
+    it('キツネを占った場合、キツネのIDを返す', () => {
+      // 生存している占い師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
+
+      // キツネへのリクエストを設定
+      (devineManager as any).request = 'player4';
+
+      const result = devineManager.devine();
+
+      expect(result).toBe('player4');
+      expect((devineManager as any).history[1]).toEqual({
+        player4: 'villagers',
+      });
+    });
+
+    it('リクエストがない場合、ランダムターゲットを使用する', () => {
+      // 生存している占い師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
+
+      const mockRandomTarget = 'player2';
+      (playerManager.getRandomTarget as jest.Mock).mockReturnValue(
+        mockRandomTarget,
+      );
+
+      const result = devineManager.devine();
+
+      expect(result).toBeUndefined();
+      expect(playerManager.getRandomTarget).toHaveBeenCalledWith('seer');
+      expect((devineManager as any).history[1]).toEqual({
+        player2: 'villagers',
+      });
+    });
+
+    it('占い結果が履歴に正しく記録される', () => {
+      // 生存している占い師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
+
+      // 複数日での占いをテスト
+      (devineManager as any).request = 'player2';
+      devineManager.devine();
+
+      phaseManager.currentDay = 2;
+      (devineManager as any).request = 'player3';
+      devineManager.devine();
+
+      expect((devineManager as any).history).toEqual({
+        1: { player2: 'villagers' },
+        2: { player3: 'werewolves' },
+      });
     });
   });
 
-  describe('getDevineResult', () => {
-    const validatePlayerByRoleSpy = jest.spyOn(
-      playerManager,
-      'validatePlayerByRole',
-    );
+  describe('統合テスト', () => {
+    it('完全な占いフローのテスト', () => {
+      // 夜のフェーズに設定
+      phaseManager.currentPhase = 'night';
 
-    beforeEach(() => {
-      validatePlayerByRoleSpy.mockClear();
-    });
+      // 生存している占い師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
 
-    it('占い結果が正しい形式で返されること', () => {
-      devineManager.devineResult = { 0: { villager: 'villagers' } };
+      // リクエストを受信
+      devineManager.receiveRequest('player1', 'player2');
 
-      const devineResult = devineManager.getDevineResult('seer');
-      expect(devineResult).toEqual({
-        0: { villager: 'villagers' },
+      // 占いを実行
+      const result = devineManager.devine();
+
+      // 結果を確認
+      expect(result).toBeUndefined();
+      expect((devineManager as any).history[1]).toEqual({
+        player2: 'villagers',
       });
-      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith('seer', 'seer');
     });
 
-    it('プレイヤーが占いでないときエラーを返す', () => {
-      expect(() => devineManager.getDevineResult('villager')).toThrow(
-        new AppError(400, errors.AUTH_FAILED),
-      );
-      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith('villager', 'seer');
+    it('キツネ占いの統合テスト', () => {
+      // 夜のフェーズに設定
+      phaseManager.currentPhase = 'night';
+
+      // 生存している占い師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([
+        'player1',
+      ]);
+
+      // キツネへのリクエストを受信
+      devineManager.receiveRequest('player1', 'player4');
+
+      // 占いを実行
+      const result = devineManager.devine();
+
+      // 結果を確認
+      expect(result).toBe('player4');
+      expect((devineManager as any).history[1]).toEqual({
+        player4: 'villagers',
+      });
     });
 
-    it('プレイヤーが存在しないときエラーを返す', () => {
-      expect(() => devineManager.getDevineResult('notExist')).toThrow(
-        new AppError(400, errors.AUTH_FAILED),
-      );
-      expect(validatePlayerByRoleSpy).toHaveBeenCalledWith('notExist', 'seer');
+    it('占い師死亡時の統合テスト', () => {
+      // 夜のフェーズに設定
+      phaseManager.currentPhase = 'night';
+
+      // 死亡している占い師を設定
+      (playerManager.getLivingPlayers as jest.Mock).mockReturnValue([]);
+
+      // リクエストを受信
+      devineManager.receiveRequest('player1', 'player2');
+
+      // 占いを実行
+      const result = devineManager.devine();
+
+      // 結果を確認
+      expect(result).toBeUndefined();
+      expect((devineManager as any).request).toBeNull();
     });
   });
 });

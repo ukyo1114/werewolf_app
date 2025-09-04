@@ -1,5 +1,5 @@
 import mongoose, { Document, Types } from 'mongoose';
-import { IBlockedUserList } from '@/config/types';
+import { IBlockedUserList } from '../../config/types';
 
 export interface IBlockedUser extends Document {
   _id: Types.ObjectId;

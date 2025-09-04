@@ -1,7 +1,6 @@
 import { IUser, IUserStatics } from './UserTypes';
-import AppError from '@/utils/AppError';
+import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
-import { ClientSession } from 'mongoose';
 
 export const UserStatics = {
   async isGuest(this: IUserStatics, userId: string): Promise<boolean> {
@@ -65,26 +64,18 @@ export const UserStatics = {
     await user.resetPassword(password);
   },
 
-  async softDelete(
-    this: IUserStatics,
-    userId: string,
-    session?: ClientSession,
-  ): Promise<void> {
-    const user = await this.findActiveUserById(userId, session);
+  async softDelete(this: IUserStatics, userId: string): Promise<void> {
+    const user = await this.findActiveUserById(userId);
 
     user.deletedAt = new Date();
-    await user.save({ session });
+    await user.save();
   },
 
-  async findActiveUserById(
-    this: IUserStatics,
-    userId: string,
-    session?: ClientSession,
-  ): Promise<IUser> {
+  async findActiveUserById(this: IUserStatics, userId: string): Promise<IUser> {
     const user = await this.findOne({
       _id: userId,
       deletedAt: undefined,
-    }).session(session || null);
+    });
     if (!user) throw new AppError(404, errors.USER_NOT_FOUND);
     return user;
   },
@@ -145,15 +136,10 @@ export const UserStatics = {
     await user.matchPassword(currentPassword);
   },
 
-  async getUsersForGame(
-    this: IUserStatics,
-    users: string[],
-    session?: ClientSession,
-  ): Promise<IUser[]> {
+  async getUsersForGame(this: IUserStatics, users: string[]): Promise<IUser[]> {
     const usersData = await this.find({ _id: { $in: users } })
       .select('_id userName pic')
-      .lean()
-      .session(session || null);
+      .lean();
 
     if (usersData.length !== users.length) throw new Error();
 

@@ -1,8 +1,6 @@
-import GameManager from '@/classes/GameManager';
-import { appState, Events } from '@/app';
-import Channels from '@/models/Channels';
+import GameManager from '../classes/GameManager';
+import { Events } from '../config/appState';
 
-const { entryManagers } = appState;
 const { entryEvents } = Events;
 
 export default class EntryManager {
@@ -11,32 +9,20 @@ export default class EntryManager {
   public isProcessing: boolean = false;
   public users: Record<string, { userId: string }> = {};
 
-  constructor(channelId: string, max_users: number = 10) {
+  constructor(channelId: string, max_users: number) {
     this.channelId = channelId;
     this.MAX_USERS = max_users;
-  }
-
-  static async createEntryManager(channelId: string): Promise<EntryManager> {
-    if (entryManagers[channelId]) return entryManagers[channelId];
-
-    const channel = await Channels.findById(channelId)
-      .select('numberOfPlayers')
-      .lean();
-    if (!channel) throw new Error();
-
-    return (entryManagers[channelId] = new EntryManager(
-      channelId,
-      channel.numberOfPlayers,
-    ));
   }
 
   async register(userId: string, socketId: string): Promise<void> {
     if (this.isProcessing) throw new Error();
     this.users[socketId] = { userId };
+
     if (Object.keys(this.users).length === this.MAX_USERS) {
       this.isProcessing = true;
       await this.startGame();
     }
+
     this.entryUpdate();
   }
 
@@ -51,7 +37,7 @@ export default class EntryManager {
     return Object.values(this.users).map((user) => user.userId);
   }
 
-  entryUpdate(): void {
+  protected entryUpdate(): void {
     const data = {
       channelId: this.channelId,
       userList: this.getUserList(),
@@ -59,9 +45,9 @@ export default class EntryManager {
     entryEvents.emit('entryUpdate', data);
   }
 
-  async startGame(): Promise<void> {
-    const userList = this.getUserList();
+  protected async startGame(): Promise<void> {
     try {
+      const userList = this.getUserList();
       const gameId = await GameManager.createGame(this.channelId, userList);
       this.emitGameStart(gameId);
     } catch (error: any) {
@@ -73,11 +59,9 @@ export default class EntryManager {
     }
   }
 
-  emitGameStart(gameId: string): void {
-    const data = {
-      users: Object.keys(this.users),
-      gameId,
-    };
+  protected emitGameStart(gameId: string): void {
+    const users = Object.keys(this.users);
+    const data = { users, gameId };
     entryEvents.emit('gameStart', data);
   }
 }

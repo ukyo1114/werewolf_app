@@ -1,5 +1,5 @@
 import mongoose, { Document, Types } from 'mongoose';
-import { IChannelParticipant } from '@/config/types';
+import { IChannelParticipant } from '../../config/types';
 
 export interface IChannelUser extends Document {
   _id: Types.ObjectId;

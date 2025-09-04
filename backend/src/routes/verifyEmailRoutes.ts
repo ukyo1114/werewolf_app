@@ -3,7 +3,7 @@ import { body } from 'express-validator';
 import { validation } from '../config/messages';
 
 import validateRequest from '../middleware/validateRequest';
-import { sendVerificationEmail } from '../controllers/verifyEmailController/controller';
+import { sendVerificationEmail } from '../controllers/verifyEmailController';
 import protect from '../middleware/protect';
 
 const router = express.Router();

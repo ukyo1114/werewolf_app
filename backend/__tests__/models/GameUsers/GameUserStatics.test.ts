@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
-import GameUsers from '@/models/GameUsers';
-import Users from '@/models/Users';
+import GameUsers from '../../../src/models/GameUsers';
+import Users from '../../../src/models/Users';
+import AppError from '../../../src/utils/AppError';
+import { errors } from '../../../src/config/messages';
 
 describe('GameUserStatics', () => {
   const gameId = new mongoose.Types.ObjectId();
@@ -222,6 +224,53 @@ describe('GameUserStatics', () => {
     });
   });
 
+  describe('checkUserPlaying', () => {
+    it('プレイ中のユーザーの場合、エラーを投げる', async () => {
+      await GameUsers.create({
+        gameId,
+        userId,
+        role: 'villager',
+        isPlaying: true,
+      });
+
+      await expect(
+        GameUsers.checkUserPlaying(userId.toString()),
+      ).rejects.toThrow(new AppError(403, errors.DENIED_DELETE_PLAYING_USER));
+    });
+
+    it('プレイしていないユーザーの場合、エラーを投げない', async () => {
+      await GameUsers.create({
+        gameId,
+        userId,
+        role: 'spectator',
+        isPlaying: false,
+      });
+
+      await expect(
+        GameUsers.checkUserPlaying(userId.toString()),
+      ).resolves.not.toThrow();
+    });
+
+    it('存在しないユーザーIDの場合、エラーを投げない', async () => {
+      const nonExistentUserId = new mongoose.Types.ObjectId().toString();
+
+      await expect(
+        GameUsers.checkUserPlaying(nonExistentUserId),
+      ).resolves.not.toThrow();
+    });
+
+    it('複数のゲームに参加している場合、プレイ中のゲームがあるとエラーを投げる', async () => {
+      await GameUsers.create([
+        { gameId, userId, role: 'spectator', isPlaying: false },
+        { gameId: secondGameId, userId, role: 'villager', isPlaying: true },
+      ]);
+
+      await expect(
+        GameUsers.checkUserPlaying(userId.toString()),
+      ).rejects.toThrow(new AppError(403, errors.DENIED_DELETE_PLAYING_USER));
+    });
+  });
+
   describe('endGame', () => {
     it('指定されたゲームの全ユーザーのプレイ状態をfalseにする', async () => {
       await GameUsers.create([
@@ -272,6 +321,91 @@ describe('GameUserStatics', () => {
     it('存在しないゲームIDでもエラーが発生しない', async () => {
       const nonExistentGameId = new mongoose.Types.ObjectId().toString();
       await expect(GameUsers.endGame(nonExistentGameId)).resolves.not.toThrow();
+    });
+  });
+
+  describe('leaveGame', () => {
+    it('指定されたユーザーのプレイ状態をfalseにする', async () => {
+      await GameUsers.create({
+        gameId,
+        userId,
+        role: 'villager',
+        isPlaying: true,
+      });
+
+      await GameUsers.leaveGame(gameId.toString(), userId.toString());
+
+      const gameUser = await GameUsers.findOne({ gameId, userId });
+      expect(gameUser?.isPlaying).toBe(false);
+    });
+
+    it('既にプレイしていないユーザーは影響を受けない', async () => {
+      await GameUsers.create({
+        gameId,
+        userId,
+        role: 'spectator',
+        isPlaying: false,
+      });
+
+      await GameUsers.leaveGame(gameId.toString(), userId.toString());
+
+      const gameUser = await GameUsers.findOne({ gameId, userId });
+      expect(gameUser?.isPlaying).toBe(false);
+    });
+
+    it('異なるゲームのユーザーは影響を受けない', async () => {
+      await GameUsers.create([
+        { gameId, userId, role: 'villager', isPlaying: true },
+        {
+          gameId: secondGameId,
+          userId: secondUserId,
+          role: 'werewolf',
+          isPlaying: true,
+        },
+      ]);
+
+      await GameUsers.leaveGame(gameId.toString(), userId.toString());
+
+      const gameUser = await GameUsers.findOne({ gameId, userId });
+      const secondGameUser = await GameUsers.findOne({
+        gameId: secondGameId,
+        userId: secondUserId,
+      });
+
+      expect(gameUser?.isPlaying).toBe(false);
+      expect(secondGameUser?.isPlaying).toBe(true);
+    });
+
+    it('存在しないユーザーIDでもエラーが発生しない', async () => {
+      const nonExistentUserId = new mongoose.Types.ObjectId().toString();
+      await expect(
+        GameUsers.leaveGame(gameId.toString(), nonExistentUserId),
+      ).resolves.not.toThrow();
+    });
+
+    it('存在しないゲームIDでもエラーが発生しない', async () => {
+      const nonExistentGameId = new mongoose.Types.ObjectId().toString();
+      await expect(
+        GameUsers.leaveGame(nonExistentGameId, userId.toString()),
+      ).resolves.not.toThrow();
+    });
+
+    it('複数のユーザーがいる場合、指定されたユーザーのみが影響を受ける', async () => {
+      await GameUsers.create([
+        { gameId, userId, role: 'villager', isPlaying: true },
+        { gameId, userId: secondUserId, role: 'seer', isPlaying: true },
+      ]);
+
+      await GameUsers.leaveGame(gameId.toString(), userId.toString());
+
+      const gameUser = await GameUsers.findOne({ gameId, userId });
+      const secondGameUser = await GameUsers.findOne({
+        gameId,
+        userId: secondUserId,
+      });
+
+      expect(gameUser?.isPlaying).toBe(false);
+      expect(secondGameUser?.isPlaying).toBe(true);
     });
   });
 

@@ -1,5 +1,5 @@
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
+import AppError from '../../utils/AppError';
+import { errors } from '../../config/messages';
 import { Role } from '../classTypes';
 import PhaseManager from '../PhaseManager';
 import PlayerManager from '../PlayerManager';
@@ -24,13 +24,6 @@ export abstract class BaseRoleManager<T> {
   public getResult(userId: string): T {
     this.playerManager.validatePlayerByRole(userId, this.roleName);
     return this.history;
-  }
-
-  protected decideTarget(): string {
-    const targetId =
-      this.request || this.playerManager.getRandomTarget(this.roleName);
-    this.request = null;
-    return targetId;
   }
 
   protected validateNightPhase(): void {
@@ -61,6 +54,13 @@ export abstract class BaseRoleManager<T> {
     this.validateNightPhase();
     this.validatePlayer(playerId, expectedRole);
     this.validateTarget(targetId, expectedRole);
+  }
+
+  protected decideTarget(): string {
+    const targetId =
+      this.request || this.playerManager.getRandomTarget(this.roleName);
+    this.request = null;
+    return targetId;
   }
 
   protected getLivingPlayers(role: Role): any[] {

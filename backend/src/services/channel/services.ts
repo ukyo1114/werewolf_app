@@ -1,19 +1,24 @@
-import { TransactionHelper } from '@/utils/TransactionHelper';
-import Users from '@/models/Users';
-import Channels from '@/models/Channels';
-import ChannelUsers from '@/models/ChannelUsers';
-import BlockedUsers from '@/models/BlockedUsers';
-import Messages from '@/models/Messages';
-import { IUser } from '@/models/Users/UserTypes';
-import { IChannel } from '@/models/Channels/ChannelTypes';
-import { IChannelParticipant } from '@/models/ChannelUsers/ChannelUserTypes';
+import Users from '../../models/Users';
+import Channels from '../../models/Channels';
+import ChannelUsers from '../../models/ChannelUsers';
+import BlockedUsers from '../../models/BlockedUsers';
+import Messages from '../../models/Messages';
+import { IChannel } from '../../models/Channels/ChannelTypes';
 import {
   IChannelList,
   IChannelService,
   ICreateChannelData,
+  IJoinChannelData,
 } from './interfaces';
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
+import AppError from '../../utils/AppError';
+import { errors } from '../../config/messages';
+import { IUpdateChannelSetingsData } from '../../config/types';
+import { appState, Events } from '../../config/appState';
+import ChannelManager from '../../classes/ChannelManager';
+import EntryManager from '../../classes/EntryManager';
+
+const { channelManagers, entryManagers } = appState;
+const { channelEvents, entryEvents } = Events;
 
 export class ChannelService implements IChannelService {
   async createChannel(
@@ -23,32 +28,24 @@ export class ChannelService implements IChannelService {
     const isGuest = await Users.isGuest(userId);
     if (isGuest) throw new AppError(400, errors.GUEST_CREATE_CHANNEL_DENIED);
 
-    return TransactionHelper.withTransaction(async (session) => {
-      const newChannel = await Channels.create([channelData], { session });
-      await ChannelUsers.create(
-        [
-          {
-            channelId: newChannel[0]._id,
-            userId,
-          },
-        ],
-        { session },
-      );
+    // NOTE: トランザクション検討
+    const newChannel = await Channels.create(channelData);
+    const newChannelId = newChannel._id.toString();
+    await ChannelUsers.create({ channelId: newChannelId, userId });
 
-      await session.commitTransaction();
-      return newChannel[0]._id.toString();
-    });
+    channelManagers[newChannelId] = new ChannelManager(newChannelId);
+    entryManagers[newChannelId] = new EntryManager(
+      newChannelId,
+      channelData.numberOfPlayers,
+    );
+    return newChannelId;
   }
 
   async joinChannel(
     userId: string,
     channelId: string,
     password?: string,
-  ): Promise<{
-    channel: IChannel;
-    channelUsers: IChannelParticipant[];
-    user: IUser;
-  }> {
+  ): Promise<IJoinChannelData> {
     const channel = await Channels.findActiveChannelById(channelId);
 
     await this.authJoinChannel(channel, userId, password);
@@ -58,34 +55,50 @@ export class ChannelService implements IChannelService {
       Users.findById(userId).select('_id userName pic isGuest').lean(),
     ]);
 
-    return { channel, channelUsers, user: user as IUser };
+    channelEvents.emit('userJoined', { channelId, user });
+
+    return {
+      channelName: channel.channelName,
+      channelDescription: channel.channelDescription,
+      channelAdmin: channel.channelAdmin.toString(),
+      numberOfPlayers: channel.numberOfPlayers,
+      channelUsers,
+    };
   }
 
   async leaveChannel(channelId: string, userId: string): Promise<void> {
     const isChannelAdmin = await Channels.isChannelAdmin(channelId, userId);
     if (isChannelAdmin) throw new AppError(400, errors.ADMIN_LEAVE_DENIED);
     await ChannelUsers.deleteOne({ channelId, userId });
+
+    channelEvents.emit('userLeft', { channelId, userId });
   }
 
   async deleteChannel(channelId: string, userId: string): Promise<void> {
     await Channels.checkChannelAdmin(channelId, userId);
-    return TransactionHelper.withTransaction(async (session) => {
-      await Promise.all([
-        ChannelUsers.deleteMany({ channelId }, { session }),
-        BlockedUsers.deleteMany({ channelId }, { session }),
-        Messages.deleteMany({ channelId }, { session }),
-        Channels.deleteChannel(channelId, userId, session),
-      ]);
 
-      await session.commitTransaction();
-    });
+    // NOTE: トランザクション検討
+    await Promise.all([
+      ChannelUsers.deleteMany({ channelId }),
+      BlockedUsers.deleteMany({ channelId }),
+      Messages.deleteMany({ channelId }),
+      Channels.deleteChannel(channelId, userId),
+    ]);
+
+    channelEvents.emit('channelDeleted', channelId);
+    entryEvents.emit('channelDeleted', channelId);
+    delete channelManagers[channelId];
+    delete entryManagers[channelId];
   }
 
   async getChannelList(userId: string): Promise<IChannelList> {
-    const channelList = await Channels.getChannelList();
-    const participatingChannels =
-      await ChannelUsers.getParticipantingChannels(userId);
-    const blockedChannels = await BlockedUsers.getBlockedChannels(userId);
+    const [channelList, participatingChannels, blockedChannels] =
+      await Promise.all([
+        Channels.getChannelList(),
+        ChannelUsers.getParticipantingChannels(userId),
+        BlockedUsers.getBlockedChannels(userId),
+      ]);
+
     return { channelList, participatingChannels, blockedChannels };
   }
 
@@ -112,7 +125,22 @@ export class ChannelService implements IChannelService {
       await ChannelUsers.create({ channelId, userId });
     }
   }
+
+  async updateChannelSettings(
+    userId: string,
+    channelId: string,
+    data: IUpdateChannelSetingsData,
+  ): Promise<void> {
+    const result = await Channels.updateChannelSettings(
+      userId,
+      channelId,
+      data,
+    );
+
+    const entryManager = entryManagers[channelId];
+    if (entryManager) entryManager.MAX_USERS = data.numberOfPlayers;
+    channelEvents.emit('channelSettingsUpdated', { channelId, ...result });
+  }
 }
 
-// デフォルトエクスポート用のインスタンス
 export const channelService = new ChannelService();

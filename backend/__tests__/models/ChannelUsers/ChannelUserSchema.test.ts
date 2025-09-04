@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import ChannelUsers from '@/models/ChannelUsers';
-import Users from '@/models/Users';
+import ChannelUsers from '../../../src/models/ChannelUsers';
+import Users from '../../../src/models/Users';
 
 describe('ChannelUserSchema', () => {
   const channelId = new mongoose.Types.ObjectId();

@@ -1,7 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import AppError from '../utils/AppError';
-import { validation } from '../config/messages';
+import { validation, errors } from '../config/messages';
 import validateRequest from '../middleware/validateRequest';
 import {
   registerUser,
@@ -11,17 +10,15 @@ import {
   changePassword,
   resetPassword,
   loginAsGuest,
-} from '../controllers/userController/controller';
+  deleteUser,
+} from '../controllers/userController';
 import protect from '../middleware/protect';
 
 const router = express.Router();
 
 const validateUserName = (isOptional: boolean) => {
   let validator = body('userName').trim();
-
-  if (isOptional) {
-    validator = validator.optional({ nullable: true });
-  }
+  if (isOptional) validator = validator.optional();
 
   return validator
     .isLength({ min: 1, max: 20 })
@@ -35,8 +32,13 @@ const validateEmail = body('email')
   .trim()
   .normalizeEmail();
 
+const validateToken = body('token')
+  .isString()
+  .withMessage(errors.INVALID_TOKEN)
+  .trim();
+
 const validatePic = body('pic')
-  .optional({ nullable: true })
+  .optional()
   .custom((value) => {
     if (!value) return true;
 
@@ -63,7 +65,7 @@ const validatePassword = (password: string) =>
 
 router.post(
   '/register',
-  [validateUserName(false), validatePassword('password')],
+  [validateUserName(false), validateToken, validatePassword('password')],
   validateRequest,
   registerUser,
 );
@@ -97,9 +99,11 @@ router.put(
 
 router.put(
   '/reset-password',
-  [validatePassword('password')],
+  [validateToken, validatePassword('password')],
   validateRequest,
   resetPassword,
 );
+
+router.delete('/delete', protect, deleteUser);
 
 export default router;

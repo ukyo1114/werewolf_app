@@ -1,126 +1,55 @@
 import _ from 'lodash';
 
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
-import { appState } from '@/app';
-import { IChannelUser, MessageType } from '@/config/types';
-import GameManager from './GameManager';
-import ChannelUserManager from './ChannelUserManager';
-import Channels from '@/models/Channels';
-import Games from '@/models/Games';
-
-const { channelManagers, gameManagers } = appState;
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
+import { IChannelUser, MessageType } from '../config/types';
 
 export default class ChannelManager {
-  channelId: string;
-  users: Record<string, ChannelUserManager>;
-  game: GameManager | undefined;
+  protected ChannelUserManager = class {
+    userId: string;
+    socketId: string;
+    status: MessageType;
 
-  constructor(channelId: string, game?: GameManager) {
+    constructor({ userId, socketId, status }: IChannelUser) {
+      this.userId = userId;
+      this.socketId = socketId;
+      this.status = status;
+    }
+
+    kill(): void {
+      this.status = 'spectator';
+    }
+  };
+
+  channelId: string;
+  users: Record<string, InstanceType<typeof this.ChannelUserManager>>;
+
+  constructor(channelId: string) {
     this.channelId = channelId;
     this.users = {};
-    this.game = game;
-  }
-
-  static async createChannelInstance(
-    channelId: string,
-  ): Promise<ChannelManager> {
-    const [isChannel, isGame] = await Promise.all([
-      !!Channels.exists({ _id: channelId }),
-      !!Games.exists({ _id: channelId }),
-    ]);
-    if (!isChannel && !isGame) throw new Error();
-
-    if (isChannel) {
-      return (channelManagers[channelId] = new ChannelManager(channelId));
-    } else {
-      const game = gameManagers[channelId];
-      if (!game) throw new Error();
-      return (channelManagers[channelId] = new ChannelManager(channelId, game));
-    }
   }
 
   userJoined(userId: string, socketId: string): void {
-    const game = this.game;
     const user: IChannelUser = { userId, socketId, status: 'normal' };
-
-    if (game) {
-      const player = game.playerManager.players[userId];
-      const isSpectator = !player || player.status !== 'alive';
-      if (isSpectator) {
-        user.status = 'spectator';
-      } else if (player.role === 'werewolf') {
-        user.status = 'werewolf';
-      } else if (player.role === 'freemason') {
-        user.status = 'freemason';
-      }
-    }
-
-    this.users[userId] = new ChannelUserManager(user);
+    this.users[userId] = new this.ChannelUserManager(user);
   }
 
-  userLeft(userId: string) {
+  userLeft(userId: string): void {
     delete this.users[userId];
-    if (Object.keys(this.users).length === 0)
-      delete channelManagers[this.channelId];
   }
 
-  getSendMessageType(userId: string) {
-    try {
-      this.checkCanUserAccessChannel(userId);
-      const user = this.users[userId];
-
-      const game = this.game;
-      if (!game) return 'normal';
-      const { currentPhase } = game.phaseManager;
-
-      if (currentPhase === 'finished') return 'normal';
-      if (user.status === 'spectator') return 'spectator';
-      if (currentPhase !== 'night') {
-        return 'normal';
-      } else if (user.status === 'werewolf') {
-        return 'werewolf';
-      } else if (user.status === 'freemason') {
-        return 'freemason';
-      }
-
-      throw new Error();
-    } catch {
-      throw new AppError(403, errors.MESSAGE_SENDING_FORBIDDEN);
-    }
+  getSendMessageType(userId: string): MessageType {
+    this.checkCanUserAccessChannel(userId);
+    return 'normal';
   }
 
-  getMessageReceivers(messageType: MessageType): string[] {
-    if (messageType === 'normal' || messageType === 'system') return [];
-    const spectators = this.getUsersByStatus('spectator');
-    if (messageType === 'spectator') return spectators;
-    if (messageType === 'freemason') {
-      const freemasons = this.getUsersByStatus('freemason');
-      return _.union(spectators, freemasons);
-    } else {
-      const werewolves = this.getUsersByStatus('werewolf');
-      return _.union(spectators, werewolves);
-    }
-  }
-
-  getUsersByStatus(status: MessageType): string[] {
-    return Object.values(this.users)
-      .filter((user) => user.status === status)
-      .map((user) => user.socketId);
+  getMessageReceivers(messageType?: MessageType): string[] {
+    return [];
   }
 
   getReceiveMessageType(userId: string): MessageType[] | undefined {
     this.checkCanUserAccessChannel(userId);
-    const user = this.users[userId];
-
-    const game = this.game;
-    if (!game) return;
-    const { currentPhase } = game.phaseManager;
-
-    if (currentPhase === 'finished' || user.status === 'spectator') return;
-    if (user.status === 'normal') return ['normal'];
-    if (user.status === 'freemason') return ['normal', 'freemason'];
-    return ['normal', 'werewolf'];
+    return;
   }
 
   checkCanUserAccessChannel(userId: string) {

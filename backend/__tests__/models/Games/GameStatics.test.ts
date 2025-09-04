@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import Games from '@/models/Games';
-import Channels from '@/models/Channels';
+import Games from '../../../src/models/Games';
+import Channels from '../../../src/models/Channels';
 
 describe('GameStatics', () => {
   const channelId = new mongoose.Types.ObjectId();

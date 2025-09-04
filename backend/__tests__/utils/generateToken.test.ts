@@ -47,7 +47,6 @@ describe('generateToken', () => {
 
   describe('genVerificationToken', () => {
     const mockPayload: IVerificationTokenPayload = {
-      userId: null,
       email: mockEmail,
       action: 'registerUser',
     };

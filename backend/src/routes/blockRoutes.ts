@@ -7,7 +7,7 @@ import {
   getBlockUserList,
   registerBlockUser,
   cancelBlock,
-} from '../controllers/blockController/controller';
+} from '../controllers/blockController';
 import protect from '../middleware/protect';
 
 const validateChannelId = param('channelId')

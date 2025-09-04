@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
-import BlockedUsers from '@/models/BlockedUsers';
-import Users from '@/models/Users';
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
+import BlockedUsers from '../../../src/models/BlockedUsers';
+import Users from '../../../src/models/Users';
+import AppError from '../../../src/utils/AppError';
+import { errors } from '../../../src/config/messages';
 
 describe('BlockedUserStatics', () => {
   const channelId = new mongoose.Types.ObjectId();

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import BlockedUsers from '@/models/BlockedUsers';
-import Users from '@/models/Users';
+import BlockedUsers from '../../../src/models/BlockedUsers';
+import Users from '../../../src/models/Users';
 
 describe('BlockedUserSchema', () => {
   const channelId = new mongoose.Types.ObjectId();

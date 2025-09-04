@@ -1,4 +1,4 @@
-import { IMessageIndex, IMessage } from '@/models/Messages/MessageTypes';
+import { IMessageIndex, IMessage } from '../../models/Messages/MessageTypes';
 
 export interface IMessageService {
   getIndex(channelId: string, userId: string): Promise<IMessageIndex[]>;
@@ -7,4 +7,10 @@ export interface IMessageService {
     userId: string,
     index: string[],
   ): Promise<IMessage[]>;
+  sendMessage(
+    channelId: string,
+    userId: string,
+    message: string,
+    replyTo?: string,
+  ): Promise<void>;
 }

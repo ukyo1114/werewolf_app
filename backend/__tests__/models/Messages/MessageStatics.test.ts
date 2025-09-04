@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import Messages from '@/models/Messages';
+import Messages from '../../../src/models/Messages';
 
 describe('MessageStatics', () => {
   const channelId = new mongoose.Types.ObjectId();
@@ -27,7 +27,7 @@ describe('MessageStatics', () => {
         replyTo: message1._id,
       });
 
-      const result = await Messages.getIndex(channelId.toString());
+      const result = await Messages.getIndex(channelId.toString(), 3000);
 
       expect(result).toHaveLength(2);
       expect(result[0]._id.toString()).toBe(message2._id.toString());
@@ -55,28 +55,33 @@ describe('MessageStatics', () => {
       });
 
       // normalタイプのみ取得
-      const normalMessages = await Messages.getIndex(channelId.toString(), [
-        'normal',
-      ]);
+      const normalMessages = await Messages.getIndex(
+        channelId.toString(),
+        3000,
+        ['normal'],
+      );
       expect(normalMessages).toHaveLength(1);
 
       // systemタイプのみ取得
-      const systemMessages = await Messages.getIndex(channelId.toString(), [
-        'system',
-      ]);
+      const systemMessages = await Messages.getIndex(
+        channelId.toString(),
+        3000,
+        ['system'],
+      );
       expect(systemMessages).toHaveLength(1);
 
       // 複数タイプを指定
-      const multiTypeMessages = await Messages.getIndex(channelId.toString(), [
-        'normal',
-        'system',
-      ]);
+      const multiTypeMessages = await Messages.getIndex(
+        channelId.toString(),
+        3000,
+        ['normal', 'system'],
+      );
       expect(multiTypeMessages).toHaveLength(2);
     });
 
     it('空のチャンネルで空配列を返す', async () => {
       const emptyChannelId = new mongoose.Types.ObjectId();
-      const result = await Messages.getIndex(emptyChannelId.toString());
+      const result = await Messages.getIndex(emptyChannelId.toString(), 3000);
 
       expect(result).toHaveLength(0);
     });
@@ -95,7 +100,7 @@ describe('MessageStatics', () => {
 
       await Messages.insertMany(messages);
 
-      const result = await Messages.getIndex(channelId.toString());
+      const result = await Messages.getIndex(channelId.toString(), 3000);
 
       expect(result).toHaveLength(3000);
     });

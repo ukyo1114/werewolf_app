@@ -1,7 +1,7 @@
 import { IGame, IGameInfo, IGameStatics } from './GameTypes';
-import { GameResult } from '@/config/types';
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
+import { GameResult } from '../../config/types';
+import AppError from '../../utils/AppError';
+import { errors } from '../../config/messages';
 
 export const GameStatics = {
   async getGameInfo(this: IGameStatics, gameId: string): Promise<IGameInfo> {

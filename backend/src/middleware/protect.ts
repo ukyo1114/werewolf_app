@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import asyncHandler from 'express-async-handler';
 
-import Users from '@/models/Users';
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
-import { decodeToken } from '@/utils/decodeToken';
+import Users from '../models/Users';
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
+import { decodeToken } from '../utils/decodeToken';
 
 interface CustomRequest extends Request {
   userId?: string;

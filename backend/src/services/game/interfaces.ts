@@ -1,5 +1,5 @@
-import { IGameUser } from '@/models/GameUsers/GameUserTypes';
-import GameManager from '@/classes/GameManager';
+import { IGameUser } from '../../models/GameUsers/GameUserTypes';
+import GameManager from '../../classes/GameManager';
 
 export const actionMap: Record<
   string,
@@ -9,16 +9,16 @@ export const actionMap: Record<
   vote: (game, userId, selectedUser) =>
     game.voteManager.receiveVote(userId, selectedUser),
   devineRequest: (game, userId, selectedUser) =>
-    game.devineManager.receiveDevineRequest(userId, selectedUser),
+    game.devineManager.receiveRequest(userId, selectedUser),
   guardRequest: (game, userId, selectedUser) =>
-    game.guardManager.receiveGuradRequest(userId, selectedUser),
+    game.guardManager.receiveRequest(userId, selectedUser),
   attackRequest: (game, userId, selectedUser) =>
-    game.attackManager.receiveAttackRequest(userId, selectedUser),
+    game.attackManager.receiveRequest(userId, selectedUser),
   voteHistory: (game) => game.voteManager.voteHistory,
-  devineResult: (game, userId) => game.devineManager.getDevineResult(userId),
-  mediumResult: (game, userId) => game.mediumManager.getMediumResult(userId),
-  guardHistory: (game, userId) => game.guardManager.getGuardHistory(userId),
-  attackHistory: (game, userId) => game.attackManager.getAttackHistory(userId),
+  devineResult: (game, userId) => game.devineManager.getResult(userId),
+  mediumResult: (game, userId) => game.mediumManager.getResult(userId),
+  guardHistory: (game, userId) => game.guardManager.getResult(userId),
+  attackHistory: (game, userId) => game.attackManager.getResult(userId),
 };
 
 export interface IGameInfo {

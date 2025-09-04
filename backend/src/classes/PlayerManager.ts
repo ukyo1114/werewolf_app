@@ -1,29 +1,25 @@
 import _ from 'lodash';
 
-import GameUsers from '@/models/GameUsers';
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
-import { appState } from '@/app';
-import { roleConfig, teammateMapping } from '@/config/roles';
+import GameUsers from '../models/GameUsers';
+import AppError from '../utils/AppError';
+import { errors } from '../config/messages';
+import { appState } from '../config/appState';
+import { roleConfig, teammateMapping } from '../config/roles';
 import ChannelManager from './ChannelManager';
-import { Role, Status, IUser, IPlayer, IPlayerState } from './classTypes';
+import { Role, IUser, IPlayer, IPlayerState } from './classTypes';
 
 const { channelManagers } = appState;
 
 export default class PlayerManager {
   public gameId: string;
   public players: Record<string, IPlayer> = {};
-  protected channelManager: ChannelManager;
+  protected channelManager?: ChannelManager;
 
   constructor(gameId: string, users: IUser[]) {
     this.gameId = gameId;
     this.setPlayers(users);
     this.setTeammates();
-    this.channelManager = (() => {
-      const channelManager = channelManagers[gameId];
-      if (!channelManager) throw new Error();
-      return channelManager;
-    })();
+    this.setChannelManager();
   }
 
   setPlayers(users: IUser[]): void {
@@ -58,19 +54,20 @@ export default class PlayerManager {
     });
   }
 
+  setChannelManager(): void {
+    this.channelManager = (() => {
+      const channelManager = channelManagers[this.gameId];
+      if (!channelManager) throw new Error();
+      return channelManager;
+    })();
+  }
+
   async kill(userId: string): Promise<void> {
     const player = this.players[userId];
     player.status = 'dead';
     this.channelManager?.users[userId]?.kill();
 
-    try {
-      await GameUsers.updateOne(
-        { gameId: this.gameId, userId },
-        { isPlaying: false },
-      );
-    } catch (error) {
-      console.error(`Failed to update game user ${userId}:`, error);
-    }
+    await GameUsers.leaveGame(this.gameId, userId);
   }
 
   getPlayerState(userId: string): IPlayerState {
@@ -103,7 +100,7 @@ export default class PlayerManager {
     return players;
   }
 
-  getRandomTarget(excludedRole: Role | undefined): string {
+  getRandomTarget(excludedRole?: Role): string {
     const players = this.players;
     const randomTargets = Object.values(players)
       .filter(

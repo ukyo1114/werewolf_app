@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
-import Channels from '@/models/Channels';
-import Users from '@/models/Users';
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
+import Channels from '../../../src/models/Channels';
+import Users from '../../../src/models/Users';
+import AppError from '../../../src/utils/AppError';
+import { errors } from '../../../src/config/messages';
 
 describe('ChannelStatics', () => {
   const adminId = new mongoose.Types.ObjectId();

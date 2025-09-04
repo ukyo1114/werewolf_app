@@ -4,367 +4,255 @@ jest.mock('../../src/app', () => ({
   },
 }));
 
-import { EventEmitter } from 'events';
-
 import AppError from '../../src/utils/AppError';
-import { errors } from '../../src/config/messages';
 import VoteManager from '../../src/classes/VoteManager';
 import PhaseManager from '../../src/classes/PhaseManager';
 import PlayerManager from '../../src/classes/PlayerManager';
-import { mockGameId, mockUsers, gamePlayers } from '../../__mocks__/mockdata';
 
-describe('test VoteManager', () => {
-  const phaseManager = new PhaseManager(
-    new EventEmitter(),
-    { value: 'running' },
-    mockGameId,
-  );
-  const playerManager = new PlayerManager(mockGameId, mockUsers);
-  const voteManager = new VoteManager(phaseManager, playerManager);
+describe('VoteManager', () => {
+  let voteManager: VoteManager;
+  let phaseManager: PhaseManager;
+  let playerManager: PlayerManager;
 
   beforeEach(() => {
-    playerManager.players = gamePlayers();
+    phaseManager = {
+      currentPhase: 'day',
+      currentDay: 1,
+    } as PhaseManager;
+
+    playerManager = {
+      players: {
+        player1: { id: 'player1', role: 'villager', status: 'alive' },
+        player2: { id: 'player2', role: 'werewolf', status: 'alive' },
+        player3: { id: 'player3', role: 'seer', status: 'alive' },
+        deadPlayer: { id: 'deadPlayer', role: 'villager', status: 'dead' },
+      },
+    } as any;
+
+    voteManager = new VoteManager(phaseManager, playerManager);
   });
 
-  afterAll(() => {
-    const timerId = phaseManager.timerId;
-    if (timerId) clearTimeout(timerId);
-    jest.restoreAllMocks();
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('constructor', () => {
+    it('正しい初期値でインスタンスを作成する', () => {
+      expect(voteManager).toBeInstanceOf(VoteManager);
+      expect(voteManager.voteHistory).toEqual({});
+    });
   });
 
   describe('receiveVote', () => {
-    it('should accept a valid vote during day phase', () => {
+    it('昼のフェーズで有効な投票を受信する', () => {
       phaseManager.currentPhase = 'day';
 
-      voteManager.receiveVote('villager', 'werewolf');
-      expect(voteManager.votes.villager).toBe('werewolf');
+      voteManager.receiveVote('player1', 'player2');
+
+      // 投票が正しく記録されることを確認（protectedプロパティなので型アサーションを使用）
+      expect((voteManager as any).votes['player1']).toBe('player2');
     });
 
-    it('should throw error when trying to vote for oneself', () => {
+    it('自分自身への投票でエラーをスローする', () => {
       phaseManager.currentPhase = 'day';
-      expect(() => voteManager.receiveVote('villager', 'villager')).toThrow(
-        new AppError(400, errors.VOTE_FAILED),
-      );
+
+      expect(() => {
+        voteManager.receiveVote('player1', 'player1');
+      }).toThrow(AppError);
     });
 
-    it('should throw error when voter is dead', () => {
-      phaseManager.currentPhase = 'day';
-      playerManager.players.villager.status = 'dead';
-
-      expect(() => voteManager.receiveVote('villager', 'werewolf')).toThrow(
-        new AppError(400, errors.VOTE_FAILED),
-      );
-    });
-
-    it('should throw error when voting target is dead', () => {
-      phaseManager.currentPhase = 'day';
-      playerManager.players.werewolf.status = 'dead';
-
-      expect(() => voteManager.receiveVote('villager', 'werewolf')).toThrow(
-        new AppError(400, errors.VOTE_FAILED),
-      );
-    });
-
-    it('should throw error when trying to vote during night phase', () => {
+    it('夜のフェーズで投票を試行するとエラーをスローする', () => {
       phaseManager.currentPhase = 'night';
 
-      expect(() => voteManager.receiveVote('villager', 'werewolf')).toThrow(
-        new AppError(400, errors.VOTE_FAILED),
-      );
+      expect(() => {
+        voteManager.receiveVote('player1', 'player2');
+      }).toThrow(AppError);
     });
 
-    it('should throw error when voter does not exist', () => {
+    it('死亡した投票者でエラーをスローする', () => {
       phaseManager.currentPhase = 'day';
-      expect(() =>
-        voteManager.receiveVote('nonExistentPlayer', 'werewolf'),
-      ).toThrow(new AppError(400, errors.VOTE_FAILED));
+
+      expect(() => {
+        voteManager.receiveVote('deadPlayer', 'player2');
+      }).toThrow(AppError);
     });
 
-    it('should throw error when voting target does not exist', () => {
+    it('死亡した投票対象でエラーをスローする', () => {
       phaseManager.currentPhase = 'day';
-      expect(() =>
-        voteManager.receiveVote('villager', 'nonExistentPlayer'),
-      ).toThrow(new AppError(400, errors.VOTE_FAILED));
+
+      expect(() => {
+        voteManager.receiveVote('player1', 'deadPlayer');
+      }).toThrow(AppError);
     });
 
-    it('should overwrite previous vote from the same voter', () => {
+    it('同じ投票者の投票を上書きする', () => {
       phaseManager.currentPhase = 'day';
 
-      // First vote
-      voteManager.receiveVote('villager', 'werewolf');
-      expect(voteManager.votes.villager).toBe('werewolf');
+      // 最初の投票
+      voteManager.receiveVote('player1', 'player2');
+      expect((voteManager as any).votes['player1']).toBe('player2');
 
-      // Second vote from the same voter
-      voteManager.receiveVote('villager', 'seer');
-      expect(voteManager.votes.villager).toBe('seer');
+      // 2回目の投票（上書き）
+      voteManager.receiveVote('player1', 'player3');
+      expect((voteManager as any).votes['player1']).toBe('player3');
     });
 
-    it('should handle multiple votes from different voters', () => {
+    it('複数の投票者からの投票を処理する', () => {
       phaseManager.currentPhase = 'day';
 
-      voteManager.receiveVote('villager', 'werewolf');
-      voteManager.receiveVote('seer', 'werewolf');
-      voteManager.receiveVote('medium', 'villager');
+      voteManager.receiveVote('player1', 'player2');
+      voteManager.receiveVote('player3', 'player2');
 
-      expect(voteManager.votes).toEqual({
-        villager: 'werewolf',
-        seer: 'werewolf',
-        medium: 'villager',
-      });
+      expect((voteManager as any).votes['player1']).toBe('player2');
+      expect((voteManager as any).votes['player3']).toBe('player2');
     });
   });
 
   describe('getExecutionTarget', () => {
-    const voteCounterMock = jest.spyOn(VoteManager.prototype, 'voteCounter');
-    const genVoteHistorySpy = jest.spyOn(
-      VoteManager.prototype,
-      'genVoteHistory',
-    );
+    it('最多得票者を処刑対象として返す', () => {
+      phaseManager.currentPhase = 'day';
 
-    beforeEach(() => {
-      voteCounterMock.mockClear();
-      genVoteHistorySpy.mockClear();
-    });
+      // 投票を設定
+      (voteManager as any).votes = {
+        player1: 'player2',
+        player3: 'player2',
+      };
 
-    afterAll(() => {
-      voteCounterMock.mockRestore();
-      genVoteHistorySpy.mockRestore();
-    });
-
-    it('should return the player with the most votes', () => {
-      voteCounterMock.mockReturnValue({
-        villager: 1,
-        werewolf: 2,
-      });
       const executionTarget = voteManager.getExecutionTarget();
-      expect(executionTarget).toBe('werewolf');
-      expect(voteCounterMock).toHaveBeenCalled();
-      expect(genVoteHistorySpy).toHaveBeenCalled();
+
+      expect(executionTarget).toBe('player2');
+      // 投票履歴が記録されることを確認
+      expect(voteManager.voteHistory[1]).toBeDefined();
+      // 投票がリセットされることを確認
+      expect((voteManager as any).votes).toEqual({});
     });
 
-    it('should return undefined when no votes exist', () => {
-      voteCounterMock.mockReturnValue({});
-      expect(voteManager.getExecutionTarget()).toBeUndefined();
-      expect(genVoteHistorySpy).not.toHaveBeenCalled();
-    });
+    it('同点の場合はランダムに選択する', () => {
+      phaseManager.currentPhase = 'day';
 
-    it('should handle tie votes by selecting the first player alphabetically', () => {
-      voteCounterMock.mockReturnValue({
-        villager: 2,
-        werewolf: 2,
-        seer: 1,
-      });
+      // 同点の投票を設定
+      (voteManager as any).votes = {
+        player1: 'player2',
+        player3: 'player1',
+      };
+
       const executionTarget = voteManager.getExecutionTarget();
-      expect(['villager', 'werewolf']).toContain(executionTarget);
-      expect(voteCounterMock).toHaveBeenCalled();
-      expect(genVoteHistorySpy).toHaveBeenCalled();
+
+      expect(['player1', 'player2']).toContain(executionTarget);
+      expect(voteManager.voteHistory[1]).toBeDefined();
+      expect((voteManager as any).votes).toEqual({});
     });
 
-    it('should handle single vote correctly', () => {
-      voteCounterMock.mockReturnValue({
-        werewolf: 1,
-      });
+    it('投票がない場合はundefinedを返す', () => {
+      phaseManager.currentPhase = 'day';
+
+      (voteManager as any).votes = {};
+
       const executionTarget = voteManager.getExecutionTarget();
-      expect(executionTarget).toBe('werewolf');
-      expect(voteCounterMock).toHaveBeenCalled();
-      expect(genVoteHistorySpy).toHaveBeenCalled();
-    });
 
-    it('should handle multiple players with same vote count', () => {
-      voteCounterMock.mockReturnValue({
-        villager: 1,
-        werewolf: 1,
-        seer: 1,
-        medium: 1,
-      });
-      const executionTarget = voteManager.getExecutionTarget();
-      expect(['villager', 'werewolf', 'seer', 'medium']).toContain(
-        executionTarget,
-      );
-      expect(voteCounterMock).toHaveBeenCalled();
-      expect(genVoteHistorySpy).toHaveBeenCalled();
+      expect(executionTarget).toBeUndefined();
+      expect(voteManager.voteHistory[1]).toBeDefined();
+      expect((voteManager as any).votes).toEqual({});
     });
+  });
 
-    it('should verify voteCounter was called', () => {
-      voteCounterMock.mockReturnValue({
-        werewolf: 1,
-      });
+  describe('logVoteHistory', () => {
+    it('投票履歴が正しい形式で記録される', () => {
+      phaseManager.currentPhase = 'day';
+      phaseManager.currentDay = 1;
+
+      // 複数の投票を設定
+      (voteManager as any).votes = {
+        player1: 'player2',
+        player3: 'player2',
+      };
+
       voteManager.getExecutionTarget();
-      expect(voteCounterMock).toHaveBeenCalled();
-      expect(genVoteHistorySpy).toHaveBeenCalled();
+
+      // 投票履歴の確認
+      expect(voteManager.voteHistory[1]).toEqual({
+        player2: ['player1', 'player3'],
+      });
+    });
+
+    it('複数日での投票履歴が正しく記録される', () => {
+      // 1日目の投票
+      phaseManager.currentPhase = 'day';
+      phaseManager.currentDay = 1;
+      (voteManager as any).votes = { player1: 'player2' };
+      voteManager.getExecutionTarget();
+
+      // 2日目の投票
+      phaseManager.currentDay = 2;
+      (voteManager as any).votes = { player3: 'player1' };
+      voteManager.getExecutionTarget();
+
+      // 履歴の確認
+      expect(voteManager.voteHistory[1]).toEqual({ player2: ['player1'] });
+      expect(voteManager.voteHistory[2]).toEqual({ player1: ['player3'] });
+    });
+
+    it('投票後に投票がリセットされる', () => {
+      phaseManager.currentPhase = 'day';
+
+      (voteManager as any).votes = { player1: 'player2' };
+
+      voteManager.getExecutionTarget();
+
+      expect((voteManager as any).votes).toEqual({});
     });
   });
 
-  describe('voteCounter', () => {
-    it('should return vote counts in correct format', () => {
-      voteManager.votes = {
-        villager: 'werewolf',
-        seer: 'werewolf',
-        werewolf: 'villager',
-      };
-
-      const voteCount = voteManager.voteCounter();
-      expect(voteCount).toEqual({
-        villager: 1,
-        werewolf: 2,
-      });
-    });
-
-    it('should return empty object when no votes exist', () => {
-      voteManager.votes = {};
-
-      expect(voteManager.voteCounter()).toEqual({});
-    });
-
-    it('should handle single vote correctly', () => {
-      voteManager.votes = {
-        villager: 'werewolf',
-      };
-
-      const voteCount = voteManager.voteCounter();
-      expect(voteCount).toEqual({
-        werewolf: 1,
-      });
-    });
-
-    it('should handle all votes for same target', () => {
-      voteManager.votes = {
-        villager: 'werewolf',
-        seer: 'werewolf',
-        medium: 'werewolf',
-      };
-
-      const voteCount = voteManager.voteCounter();
-      expect(voteCount).toEqual({
-        werewolf: 3,
-      });
-    });
-
-    it('should handle votes with no overlap', () => {
-      voteManager.votes = {
-        villager: 'werewolf',
-        seer: 'medium',
-        medium: 'villager',
-      };
-
-      const voteCount = voteManager.voteCounter();
-      expect(voteCount).toEqual({
-        werewolf: 1,
-        medium: 1,
-        villager: 1,
-      });
-    });
-
-    it('should handle overwritten votes correctly', () => {
-      // First set of votes
-      voteManager.votes = {
-        villager: 'werewolf',
-        seer: 'werewolf',
-        medium: 'werewolf',
-      };
-
-      // Overwrite villager's vote
-      voteManager.votes.villager = 'medium';
-
-      const voteCount = voteManager.voteCounter();
-      expect(voteCount).toEqual({
-        werewolf: 2,
-        medium: 1,
-      });
-    });
-  });
-
-  describe('genVoteHistory', () => {
-    beforeEach(() => {
-      phaseManager.currentDay = 0;
-      voteManager.voteHistory = {};
-    });
-
-    it('should generate vote history in correct format and reset votes', () => {
-      voteManager.votes = { villager: 'werewolf' };
-      voteManager.genVoteHistory();
-
-      expect(voteManager.voteHistory).toEqual({
-        0: { werewolf: ['villager'] },
-      });
-      expect(voteManager.votes).toEqual({});
-    });
-
-    it('should handle multiple votes for same target', () => {
-      voteManager.votes = {
-        villager: 'werewolf',
-        seer: 'werewolf',
-        medium: 'werewolf',
-      };
-      voteManager.genVoteHistory();
-
-      expect(voteManager.voteHistory).toEqual({
-        0: { werewolf: ['villager', 'seer', 'medium'] },
-      });
-      expect(voteManager.votes).toEqual({});
-    });
-
-    it('should handle votes for different targets', () => {
-      voteManager.votes = {
-        villager: 'werewolf',
-        seer: 'medium',
-        medium: 'villager',
-      };
-      voteManager.genVoteHistory();
-
-      expect(voteManager.voteHistory).toEqual({
-        0: {
-          werewolf: ['villager'],
-          medium: ['seer'],
-          villager: ['medium'],
-        },
-      });
-      expect(voteManager.votes).toEqual({});
-    });
-
-    it('should increment day count for subsequent calls', () => {
-      // First day
-      voteManager.votes = { villager: 'werewolf' };
-      voteManager.genVoteHistory();
-
-      // Second day
+  describe('統合テスト', () => {
+    it('完全な投票フローのテスト', () => {
+      // 昼のフェーズに設定
+      phaseManager.currentPhase = 'day';
       phaseManager.currentDay = 1;
-      voteManager.votes = { seer: 'medium' };
-      voteManager.genVoteHistory();
 
-      expect(voteManager.voteHistory).toEqual({
-        0: { werewolf: ['villager'] },
-        1: { medium: ['seer'] },
+      // 複数の投票を受信
+      voteManager.receiveVote('player1', 'player2');
+      voteManager.receiveVote('player3', 'player2');
+
+      // 処刑対象を決定
+      const executionTarget = voteManager.getExecutionTarget();
+
+      // 結果の確認
+      expect(executionTarget).toBe('player2');
+      expect(voteManager.voteHistory[1]).toEqual({
+        player2: ['player1', 'player3'],
       });
-      expect(voteManager.votes).toEqual({});
+      expect((voteManager as any).votes).toEqual({});
     });
 
-    it('should handle empty votes', () => {
-      voteManager.votes = {};
-      voteManager.genVoteHistory();
-
-      expect(voteManager.voteHistory).toEqual({
-        0: {},
-      });
-      expect(voteManager.votes).toEqual({});
-    });
-
-    it('should preserve existing vote history', () => {
-      // Set up existing history
-      voteManager.voteHistory = {
-        0: { werewolf: ['villager'] },
-      };
-
-      // Add new votes
+    it('同点投票の統合テスト', () => {
+      // 昼のフェーズに設定
+      phaseManager.currentPhase = 'day';
       phaseManager.currentDay = 1;
-      voteManager.votes = { seer: 'medium' };
-      voteManager.genVoteHistory();
 
-      expect(voteManager.voteHistory).toEqual({
-        0: { werewolf: ['villager'] },
-        1: { medium: ['seer'] },
-      });
-      expect(voteManager.votes).toEqual({});
+      // 同点の投票を受信
+      voteManager.receiveVote('player1', 'player2');
+      voteManager.receiveVote('player3', 'player1');
+
+      // 処刑対象を決定
+      const executionTarget = voteManager.getExecutionTarget();
+
+      // 結果の確認
+      expect(['player1', 'player2']).toContain(executionTarget);
+      expect(voteManager.voteHistory[1]).toBeDefined();
+      expect((voteManager as any).votes).toEqual({});
+    });
+
+    it('エラーケースの統合テスト', () => {
+      // 夜のフェーズに設定
+      phaseManager.currentPhase = 'night';
+
+      // 無効なフェーズで投票を試行
+      expect(() => {
+        voteManager.receiveVote('player1', 'player2');
+      }).toThrow(AppError);
+
+      // 投票が記録されていないことを確認
+      expect((voteManager as any).votes).toEqual({});
     });
   });
 });

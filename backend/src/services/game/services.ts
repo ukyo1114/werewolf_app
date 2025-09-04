@@ -1,18 +1,18 @@
-import { appState, Events } from '@/app';
+import { appState, Events } from '../../config/appState';
 import { IGameService, actionMap, IGameInfo } from './interfaces';
-import { IGameUser } from '@/models/GameUsers/GameUserTypes';
-import Users from '@/models/Users';
-import ChannelUsers from '@/models/ChannelUsers';
-import Games from '@/models/Games';
-import GameUsers from '@/models/GameUsers';
-import AppError from '@/utils/AppError';
-import { errors } from '@/config/messages';
-import GameManager from '@/classes/GameManager';
+import { IGameUser } from '../../models/GameUsers/GameUserTypes';
+import Users from '../../models/Users';
+import ChannelUsers from '../../models/ChannelUsers';
+import Games from '../../models/Games';
+import GameUsers from '../../models/GameUsers';
+import AppError from '../../utils/AppError';
+import { errors } from '../../config/messages';
+import GameManager from '../../classes/GameManager';
+
+const { gameManagers } = appState;
+const { channelEvents } = Events;
 
 export class GameService implements IGameService {
-  private readonly gameManagers = appState.gameManagers;
-  private readonly channelEvents = Events.channelEvents;
-
   async joinGame(
     gameId: string,
     userId: string,
@@ -38,7 +38,7 @@ export class GameService implements IGameService {
     channelId: string,
     userId: string,
   ): Promise<void> {
-    const isGameExists = !!this.gameManagers[gameId];
+    const isGameExists = !!gameManagers[gameId];
     const isUserInChannel = await ChannelUsers.isUserInChannel(
       channelId,
       userId,
@@ -51,7 +51,7 @@ export class GameService implements IGameService {
     const user = await Users.findById(userId)
       .select('_id userName pic isGuest')
       .lean();
-    this.channelEvents.emit('userJoined', {
+    channelEvents.emit('userJoined', {
       channelId: gameId,
       user,
     });
@@ -72,7 +72,7 @@ export class GameService implements IGameService {
     gameId: string,
     userId: string,
   ): Promise<GameManager> {
-    const game = this.gameManagers[gameId];
+    const game = gameManagers[gameId];
     const isUserInGame = await GameUsers.exists({ gameId, userId });
     if (!game || !isUserInGame)
       throw new AppError(403, errors.GAME_ACCESS_FORBIDDEN);
@@ -107,3 +107,5 @@ export class GameService implements IGameService {
     );
   }
 }
+
+export const gameService = new GameService();

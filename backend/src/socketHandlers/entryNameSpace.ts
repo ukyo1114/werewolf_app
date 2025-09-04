@@ -1,7 +1,6 @@
 import { Namespace, Socket } from 'socket.io';
-import { appState, Events } from '@/app';
-import EntryManager from '@/classes/EntryManager';
-import { authSocketUser } from '@/middleware/authSocketUser';
+import { appState, Events } from '../config/appState';
+import { authSocketUser } from '../middleware/authSocketUser';
 
 const { entryManagers } = appState;
 const { entryEvents } = Events;
@@ -20,7 +19,8 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
     const socketId = socket.id;
 
     try {
-      const entryManager = await EntryManager.createEntryManager(channelId);
+      const entryManager = entryManagers[channelId];
+      if (!entryManager) throw new Error();
       const users = entryManager.getUserList();
       socket.join(channelId);
       socket.emit('connect_response', { success: true, users });
@@ -68,16 +68,16 @@ export const entryNameSpaceHandler = (entryNameSpace: Namespace) => {
       entryNameSpace.to(channelId).emit('entryUpdate', userList);
     });
 
-    entryEvents.on('gameStart', (data) => {
+    entryEvents.on('gameStart', (data: { users: string[]; gameId: string }) => {
       const { users, gameId } = data;
 
-      users.forEach((socketId: string) => {
-        const socket = entryNameSpace.sockets.get(socketId);
-        if (socket) {
-          socket.emit('gameStart', gameId);
-          socket.leave(channelId);
-        }
+      users.forEach((socketId) => {
+        entryNameSpace.to(socketId).emit('gameStart', gameId);
       });
+    });
+
+    entryEvents.on('channelDeleted', (channelId: string) => {
+      entryNameSpace.to(channelId).emit('channelDeleted');
     });
   });
 };
