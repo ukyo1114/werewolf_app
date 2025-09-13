@@ -147,7 +147,7 @@ const BlockButton = ({
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
 
-      await axios.put(
+      await axios.post(
         `api/block/register/${channelId}`,
         { selectedUser },
         config

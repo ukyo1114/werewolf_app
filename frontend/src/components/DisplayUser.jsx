@@ -25,10 +25,7 @@ const DisplayUser = ({ children, user, ...props }) => {
       />
       <Stack flexDir="column" overflow="hidden" gap={isMobile ? 0 : 2} w="100%">
         <EllipsisText fontSize="lg">{user.userName}</EllipsisText>
-        <Flex gap={4}>
-          {children}
-          {/* {user.isGuest && <GuestBadge />} */}
-        </Flex>
+        <Flex gap={4}>{children}</Flex>
       </Stack>
     </Flex>
   );

@@ -6,6 +6,7 @@ import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
 import ChannelUsers from '../../models/ChannelUsers';
 import { Events } from '../../config/appState';
+import { TransactionHelper } from '../../utils/TransactionHelper';
 
 const { channelEvents } = Events;
 
@@ -29,9 +30,15 @@ export class BlockService implements IBlockService {
       throw new AppError(400, errors.DENIED_SELF_BLOCK);
     await Channels.checkChannelAdmin(channelId, userId);
 
-    // NOTE: トランザクション検討
-    await ChannelUsers.deleteOne({ channelId, userId: selectedUser });
-    await BlockedUsers.create({ channelId, userId: selectedUser });
+    await TransactionHelper.withTransaction(async (session) => {
+      await Promise.all([
+        ChannelUsers.deleteOne(
+          { channelId, userId: selectedUser },
+          { session },
+        ),
+        BlockedUsers.create({ channelId, userId: selectedUser }, { session }),
+      ]);
+    });
 
     channelEvents.emit('registerBlock', {
       channelId,

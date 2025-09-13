@@ -1,6 +1,7 @@
 import { IUser, IUserStatics } from './UserTypes';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
+import { ClientSession } from 'mongoose';
 
 export const UserStatics = {
   async isGuest(this: IUserStatics, userId: string): Promise<boolean> {
@@ -64,11 +65,15 @@ export const UserStatics = {
     await user.resetPassword(password);
   },
 
-  async softDelete(this: IUserStatics, userId: string): Promise<void> {
+  async softDelete(
+    this: IUserStatics,
+    userId: string,
+    session?: ClientSession,
+  ): Promise<void> {
     const user = await this.findActiveUserById(userId);
 
     user.deletedAt = new Date();
-    await user.save();
+    await user.save({ session });
   },
 
   async findActiveUserById(this: IUserStatics, userId: string): Promise<IUser> {

@@ -143,7 +143,7 @@ export interface IResetPassword {
 export interface IBlockedUserList {
   _id: Types.ObjectId;
   userName: string;
-  pic: string | null;
+  pic?: string;
   isGuest: boolean;
 }
 

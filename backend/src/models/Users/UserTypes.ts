@@ -1,4 +1,5 @@
 import { Document, Types, Model } from 'mongoose';
+import { ClientSession } from 'mongoose';
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
@@ -31,7 +32,7 @@ export interface IUserStatics extends Model<IUser> {
   ): Promise<void>; // パスワード変更
   resetPassword(email: string, password: string): Promise<void>; // パスワードリセット
   findActiveUserById(userId: string): Promise<IUser>; // アクティブユーザー検索
-  softDelete(userId: string): Promise<void>; // ユーザーソフトデリート
+  softDelete(userId: string, session?: ClientSession): Promise<void>; // ユーザーソフトデリート
   checkEmailRecentlyDeleted(email: string): Promise<void>; // 削除済みメールアドレスチェック
   checkEmailAvailable(email: string): Promise<void>; // メールアドレス利用可能チェック
   checkEmailRegisterd(email: string): Promise<void>; // メールアドレス登録済みチェック

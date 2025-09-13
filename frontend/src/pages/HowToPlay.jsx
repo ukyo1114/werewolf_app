@@ -7,12 +7,6 @@ import {
   HStack,
   Icon,
   useColorModeValue,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
   List,
   ListItem,
   ListIcon,
@@ -41,147 +35,167 @@ const HowToPlay = () => {
   const borderColor = useColorModeValue("gray.200", "gray.700");
   const iconBg = useColorModeValue("blue.50", "blue.900");
   const headingColor = useColorModeValue("gray.700", "white");
+  const roleBoxBg = useColorModeValue("gray.50", "gray.700");
   const [isOpen, setIsOpen] = useState(false);
   const [isOpen2, setIsOpen2] = useState(false);
   const [isOpen3, setIsOpen3] = useState(false);
 
+  const getRoleColor = (role) => {
+    const roleColors = {
+      村人: "blue.500",
+      占い師: "purple.500",
+      霊能者: "green.500",
+      狩人: "teal.500",
+      共有者: "cyan.500",
+      人狼: "red.500",
+      狂人: "orange.500",
+      妖狐: "pink.500",
+      背徳者: "gray.500",
+    };
+    return roleColors[role] || "gray.500";
+  };
+
   const steps = [
     {
-      title: "1. アカウント作成またはゲストログイン",
-      description:
-        "新規の方はアカウントを作成、またはゲストとしてログインできます。",
+      title: "1. ログイン",
+      description: "ゲストログインまたはアカウント登録でログインします。",
       icon: FaUserFriends,
       content: (
         <VStack spacing={6} align="stretch" mt={4}>
           <Box>
             <Heading size="md" mb={4}>
-              ゲストモードとメンバーの違い
+              ゲストユーザーとして参加
             </Heading>
-            <Text color={textColor} mb={4}>
-              どちらのモードでも無料でプレイできます。メンバーになると、より多くの機能が利用可能になります。
+            <List spacing={3}>
+              <ListItem>
+                <ListIcon as={FaInfoCircle} color="blue.500" />
+                ゲストログインを選択
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaInfoCircle} color="blue.500" />
+                ユーザー名を入力（最大20文字）
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaInfoCircle} color="blue.500" />
+                すぐにゲームに参加可能
+              </ListItem>
+            </List>
+            <Text mt={4} color={textColor} fontWeight="bold">
+              ゲストユーザーの制限:
             </Text>
-            <Table variant="simple">
-              <Thead>
-                <Tr>
-                  <Th>機能</Th>
-                  <Th isNumeric>ゲスト</Th>
-                  <Th isNumeric>メンバー</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {[
-                  {
-                    feature: "完全無料",
-                    guest: true,
-                    registered: true,
-                  },
-                  {
-                    feature: "チャンネル作成",
-                    guest: false,
-                    registered: true,
-                  },
-                  {
-                    feature: "ゲスト禁止チャンネルへの入室",
-                    guest: false,
-                    registered: true,
-                  },
-                ].map((type, index) => (
-                  <Tr key={index}>
-                    <Td>{type.feature}</Td>
-                    <Td isNumeric>
-                      {type.guest ? (
-                        <Icon as={FaCheck} color="green.500" />
-                      ) : (
-                        <Icon as={FaTimes} color="red.500" />
-                      )}
-                    </Td>
-                    <Td isNumeric>
-                      {type.registered ? (
-                        <Icon as={FaCheck} color="green.500" />
-                      ) : (
-                        <Icon as={FaTimes} color="red.500" />
-                      )}
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
+            <List spacing={2} mt={2}>
+              <ListItem>
+                <ListIcon as={FaTimes} color="red.500" />
+                チャンネル作成は不可
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaTimes} color="red.500" />
+                ゲーム統計の記録はされない
+              </ListItem>
+            </List>
           </Box>
 
           <Box>
             <Heading size="md" mb={4}>
-              アカウント作成の流れ
+              アカウント登録
             </Heading>
             <List spacing={3}>
-              {[
-                "メールアドレスを入力して送信",
-                "確認メールが届くまでお待ちください",
-                "メール内のリンクをクリックしてアカウント作成ページへ",
-                "パスワードとユーザー名を設定して完了",
-              ].map((step, index) => (
-                <ListItem key={index}>
-                  <ListIcon as={FaInfoCircle} color="blue.500" />
-                  {step}
-                </ListItem>
-              ))}
+              <ListItem>
+                <ListIcon as={FaInfoCircle} color="blue.500" />
+                新規登録を選択
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaInfoCircle} color="blue.500" />
+                ユーザー名、メールアドレス、パスワードを入力
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaInfoCircle} color="blue.500" />
+                メール認証（必要に応じて）
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaInfoCircle} color="blue.500" />
+                ログイン完了
+              </ListItem>
             </List>
-            <Text mt={4} color={textColor}>
-              ※ アカウント作成は完全無料です。課金要素は一切ありません。
+            <Text mt={4} color={textColor} fontWeight="bold">
+              登録ユーザーの特典:
             </Text>
+            <List spacing={2} mt={2}>
+              <ListItem>
+                <ListIcon as={FaCheck} color="green.500" />
+                チャンネル作成・管理が可能
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaCheck} color="green.500" />
+                プロフィール画像の設定
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaCheck} color="green.500" />
+                ゲーム統計の記録・確認
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaCheck} color="green.500" />
+                より多くの機能にアクセス可能
+              </ListItem>
+            </List>
           </Box>
         </VStack>
       ),
     },
     {
-      title: "2. チャンネル入室",
-      description: "チャンネルを作成したり、チャンネルを探したりできます。",
+      title: "2. チャンネル選択",
+      description: "チャンネル一覧から参加したいチャンネルを選択します。",
       icon: FaUserSecret,
       content: (
         <VStack spacing={6} align="stretch" mt={4}>
           <Box>
             <Heading size="md" mb={4}>
-              チャンネル入室の流れ
+              チャンネル一覧の確認
             </Heading>
             <List spacing={3}>
               <ListItem>
                 <ListIcon as={FaInfoCircle} color="blue.500" />
-                チャンネル一覧から入室したいチャンネルを選択
+                メイン画面でチャンネル一覧を確認
               </ListItem>
               <ListItem>
                 <ListIcon as={FaInfoCircle} color="blue.500" />
-                チャンネルの詳細情報を確認（プレイヤー数、ルール設定など）
+                参加可能なチャンネルを選択
               </ListItem>
               <ListItem>
                 <ListIcon as={FaInfoCircle} color="blue.500" />
-                入室ボタンをクリック
-              </ListItem>
-              <ListItem>
-                <ListIcon as={FaInfoCircle} color="blue.500" />
-                パスワードが設定されている場合は入力が必要
+                パスワードが必要な場合は入力
               </ListItem>
             </List>
-            <Text mt={4} color={textColor}>
-              ※
-              ゲストモードの場合は、ゲスト入室を許可しているチャンネルのみ入室可能です。
-            </Text>
           </Box>
 
           <Box>
             <Heading size="md" mb={4}>
-              チャンネル作成（メンバーのみ）
+              チャンネル作成（登録ユーザーのみ）
             </Heading>
             <List spacing={3}>
               <ListItem>
                 <ListIcon as={FaInfoCircle} color="blue.500" />
-                チャンネル名を設定
+                チャンネル作成ボタンをクリック
               </ListItem>
               <ListItem>
                 <ListIcon as={FaInfoCircle} color="blue.500" />
-                ゲストの入室を許可するか選択
+                チャンネル名（最大50文字）を設定
               </ListItem>
               <ListItem>
                 <ListIcon as={FaInfoCircle} color="blue.500" />
-                チャンネルの説明を追加（任意）
+                説明（最大2000文字）を追加
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaInfoCircle} color="blue.500" />
+                プレイヤー数（5〜20人）を設定
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaInfoCircle} color="blue.500" />
+                パスワード設定（任意）
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaInfoCircle} color="blue.500" />
+                ゲスト参加の許可/拒否を選択
               </ListItem>
             </List>
           </Box>
@@ -189,27 +203,31 @@ const HowToPlay = () => {
       ),
     },
     {
-      title: "3. ゲーム開始までの流れ",
-      description: "チャンネルに入室したら、ゲーム開始までの準備をしましょう。",
+      title: "3. エントリー",
+      description: "チャンネル内でエントリーボタンを押してゲームに参加します。",
       icon: FaClock,
       content: (
         <VStack spacing={6} align="stretch" mt={4}>
           <Box>
             <Heading size="md" mb={4}>
-              エントリー手順
+              エントリー機能
             </Heading>
             <List spacing={3}>
               <ListItem>
                 <ListIcon as={FaInfoCircle} color="blue.500" />
-                チャンネル内の「エントリー」ボタンをクリック
+                エントリーボタン：チャンネル内でゲームに参加するために押すボタン
               </ListItem>
               <ListItem>
                 <ListIcon as={FaInfoCircle} color="blue.500" />
-                エントリーすると、プレイヤーリストに表示されます
+                自動開始：設定されたプレイヤー数に達すると自動的にゲームが開始される
               </ListItem>
               <ListItem>
                 <ListIcon as={FaInfoCircle} color="blue.500" />
-                現在のエントリー数が表示されているので、ゲーム開始まであと何人必要か確認できます
+                エントリー解除：ゲーム開始前であればエントリーを解除可能
+              </ListItem>
+              <ListItem>
+                <ListIcon as={FaInfoCircle} color="blue.500" />
+                待機状態：エントリー後、他のプレイヤーの参加を待機
               </ListItem>
             </List>
           </Box>
@@ -221,15 +239,11 @@ const HowToPlay = () => {
             <List spacing={3}>
               <ListItem>
                 <ListIcon as={FaInfoCircle} color="blue.500" />
-                必要な人数が集まると自動的にゲームが開始されます
+                役職が配布される
               </ListItem>
               <ListItem>
                 <ListIcon as={FaInfoCircle} color="blue.500" />
-                ゲーム開始まで待機中は、チャットで他のプレイヤーと会話できます
-              </ListItem>
-              <ListItem>
-                <ListIcon as={FaInfoCircle} color="blue.500" />
-                エントリーをキャンセルする場合は、再度エントリーボタンをクリックしてください
+                人狼ゲームが開始される
               </ListItem>
             </List>
           </Box>
@@ -256,7 +270,7 @@ const HowToPlay = () => {
               wordBreak="keep-all"
               overflowWrap="break-word"
             >
-              人狼ゲームのはじめかた
+              あそびかた
             </Heading>
             <Text
               fontSize={{ base: "lg", md: "xl" }}
@@ -478,6 +492,247 @@ const HowToPlay = () => {
                 </Text>
               </VStack>
             </Box>
+          </Box>
+
+          <Box
+            mt={8}
+            p={6}
+            bg={cardBg}
+            rounded="xl"
+            shadow="md"
+            border="1px"
+            borderColor={borderColor}
+          >
+            <Heading size="md" mb={6} color={headingColor}>
+              プレイ人数ごとの配役
+            </Heading>
+            <VStack align="stretch" spacing={4}>
+              {[
+                {
+                  players: 5,
+                  roles: ["村人", "村人", "村人", "人狼", "占い師"],
+                },
+                {
+                  players: 6,
+                  roles: ["村人", "村人", "村人", "村人", "人狼", "占い師"],
+                },
+                {
+                  players: 7,
+                  roles: [
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "人狼",
+                    "占い師",
+                    "狂人",
+                  ],
+                },
+                {
+                  players: 8,
+                  roles: [
+                    "村人",
+                    "人狼",
+                    "人狼",
+                    "占い師",
+                    "狂人",
+                    "狩人",
+                    "共有者",
+                    "共有者",
+                  ],
+                },
+                {
+                  players: 9,
+                  roles: [
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "人狼",
+                    "占い師",
+                    "妖狐",
+                    "背徳者",
+                    "背徳者",
+                  ],
+                },
+                {
+                  players: 10,
+                  roles: [
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "人狼",
+                    "人狼",
+                    "占い師",
+                    "霊能者",
+                    "狂人",
+                    "狩人",
+                  ],
+                },
+                {
+                  players: 11,
+                  roles: [
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "人狼",
+                    "人狼",
+                    "占い師",
+                    "霊能者",
+                    "狂人",
+                    "狩人",
+                  ],
+                },
+                {
+                  players: 12,
+                  roles: [
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "人狼",
+                    "人狼",
+                    "占い師",
+                    "霊能者",
+                    "狂人",
+                    "狩人",
+                    "妖狐",
+                  ],
+                },
+                {
+                  players: 13,
+                  roles: [
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "人狼",
+                    "人狼",
+                    "占い師",
+                    "霊能者",
+                    "狂人",
+                    "狩人",
+                    "妖狐",
+                    "背徳者",
+                  ],
+                },
+                {
+                  players: 14,
+                  roles: [
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "占い師",
+                    "霊能者",
+                    "狩人",
+                    "人狼",
+                    "人狼",
+                    "人狼",
+                    "共有者",
+                    "共有者",
+                  ],
+                },
+                {
+                  players: 15,
+                  roles: [
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "人狼",
+                    "人狼",
+                    "人狼",
+                    "占い師",
+                    "霊能者",
+                    "狂人",
+                    "狩人",
+                    "共有者",
+                    "共有者",
+                    "妖狐",
+                    "背徳者",
+                  ],
+                },
+                {
+                  players: 16,
+                  roles: [
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "人狼",
+                    "人狼",
+                    "人狼",
+                    "占い師",
+                    "霊能者",
+                    "狂人",
+                    "狩人",
+                    "共有者",
+                    "共有者",
+                    "妖狐",
+                  ],
+                },
+                {
+                  players: 17,
+                  roles: [
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "村人",
+                    "人狼",
+                    "人狼",
+                    "人狼",
+                    "占い師",
+                    "霊能者",
+                    "狂人",
+                    "狩人",
+                    "共有者",
+                    "共有者",
+                    "妖狐",
+                  ],
+                },
+              ].map((config, index) => (
+                <Box key={index} p={4} bg={roleBoxBg} rounded="md">
+                  <HStack justify="space-between" mb={3}>
+                    <Heading size="sm" color={headingColor}>
+                      {config.players}人ゲーム
+                    </Heading>
+                    <Text fontSize="sm" color={textColor}>
+                      {config.roles.length}役職
+                    </Text>
+                  </HStack>
+                  <HStack wrap="wrap" spacing={2}>
+                    {config.roles.map((role, roleIndex) => (
+                      <Box
+                        key={roleIndex}
+                        px={3}
+                        py={1}
+                        bg={getRoleColor(role)}
+                        color="white"
+                        rounded="full"
+                        fontSize="sm"
+                        fontWeight="bold"
+                      >
+                        {role}
+                      </Box>
+                    ))}
+                  </HStack>
+                </Box>
+              ))}
+            </VStack>
           </Box>
 
           <Box mt={8} textAlign="center">

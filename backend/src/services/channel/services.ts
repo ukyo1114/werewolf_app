@@ -16,6 +16,7 @@ import { IUpdateChannelSetingsData } from '../../config/types';
 import { appState, Events } from '../../config/appState';
 import ChannelManager from '../../classes/ChannelManager';
 import EntryManager from '../../classes/EntryManager';
+import { TransactionHelper } from '../../utils/TransactionHelper';
 
 const { channelManagers, entryManagers } = appState;
 const { channelEvents, entryEvents } = Events;
@@ -28,17 +29,24 @@ export class ChannelService implements IChannelService {
     const isGuest = await Users.isGuest(userId);
     if (isGuest) throw new AppError(400, errors.GUEST_CREATE_CHANNEL_DENIED);
 
-    // NOTE: トランザクション検討
-    const newChannel = await Channels.create(channelData);
-    const newChannelId = newChannel._id.toString();
-    await ChannelUsers.create({ channelId: newChannelId, userId });
+    const channelId = await TransactionHelper.withTransaction(
+      async (session) => {
+        const newChannel = await Channels.create([channelData], { session });
+        const newChannelId = newChannel[0]._id.toString();
+        await ChannelUsers.create(
+          { channelId: newChannelId, userId },
+          { session },
+        );
+        return newChannelId;
+      },
+    );
 
-    channelManagers[newChannelId] = new ChannelManager(newChannelId);
-    entryManagers[newChannelId] = new EntryManager(
-      newChannelId,
+    channelManagers[channelId] = new ChannelManager(channelId);
+    entryManagers[channelId] = new EntryManager(
+      channelId,
       channelData.numberOfPlayers,
     );
-    return newChannelId;
+    return channelId;
   }
 
   async joinChannel(
@@ -77,13 +85,14 @@ export class ChannelService implements IChannelService {
   async deleteChannel(channelId: string, userId: string): Promise<void> {
     await Channels.checkChannelAdmin(channelId, userId);
 
-    // NOTE: トランザクション検討
-    await Promise.all([
-      ChannelUsers.deleteMany({ channelId }),
-      BlockedUsers.deleteMany({ channelId }),
-      Messages.deleteMany({ channelId }),
-      Channels.deleteChannel(channelId, userId),
-    ]);
+    await TransactionHelper.withTransaction(async (session) => {
+      await Promise.all([
+        ChannelUsers.deleteMany({ channelId }, { session }),
+        BlockedUsers.deleteMany({ channelId }, { session }),
+        Messages.deleteMany({ channelId }, { session }),
+        Channels.deleteChannel(channelId, userId, session),
+      ]);
+    });
 
     channelEvents.emit('channelDeleted', channelId);
     entryEvents.emit('channelDeleted', channelId);

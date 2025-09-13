@@ -5,6 +5,7 @@ import {
   IUpdateChannelSetingsData,
   IChannelStatics,
 } from './ChannelTypes';
+import { ClientSession } from 'mongoose';
 
 export const ChannelStatics = {
   async findActiveChannelById(
@@ -77,9 +78,10 @@ export const ChannelStatics = {
     this: IChannelStatics,
     channelId: string,
     userId: string,
+    session?: ClientSession,
   ): Promise<void> {
     const channel = await this.getChannelAsAdmin(channelId, userId);
     channel.deletedAt = new Date();
-    await channel.save();
+    await channel.save({ session });
   },
 };

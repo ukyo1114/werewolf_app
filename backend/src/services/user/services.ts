@@ -14,6 +14,8 @@ import { uploadPicture } from '../../utils/uploadPicture';
 import { Events } from '../../config/appState';
 import AppError from '../../utils/AppError';
 import { errors } from '../../config/messages';
+import { TransactionHelper } from '../../utils/TransactionHelper';
+import { ClientSession } from 'mongoose';
 
 const { channelEvents } = Events;
 
@@ -60,9 +62,11 @@ export class UserService implements IUserService {
   async deleteUser(userId: string): Promise<void> {
     await GameUsers.checkUserPlaying(userId);
 
-    await this.deleteUserRelations(userId);
-    await this.deleteUserChannels(userId);
-    await Users.softDelete(userId);
+    await TransactionHelper.withTransaction(async (session) => {
+      await this.deleteUserRelations(userId, session);
+      await this.deleteUserChannels(userId, session);
+      await Users.softDelete(userId, session);
+    });
   }
 
   async updateProfile({
@@ -96,23 +100,29 @@ export class UserService implements IUserService {
     await Users.resetPassword(email, password);
   }
 
-  private async deleteUserRelations(userId: string): Promise<void> {
+  private async deleteUserRelations(
+    userId: string,
+    session?: ClientSession,
+  ): Promise<void> {
     await Promise.all([
-      ChannelUsers.deleteMany({ userId }),
-      BlockedUsers.deleteMany({ userId }),
+      ChannelUsers.deleteMany({ userId }, { session }),
+      BlockedUsers.deleteMany({ userId }, { session }),
     ]);
   }
 
-  private async deleteUserChannels(userId: string): Promise<void> {
+  private async deleteUserChannels(
+    userId: string,
+    session?: ClientSession,
+  ): Promise<void> {
     const channels = await Channels.find({ channelAdmin: userId });
     await Promise.all([
       channels.map((channel) => {
         const channelId = channel._id.toString();
         return Promise.all([
-          ChannelUsers.deleteMany({ channelId }),
-          BlockedUsers.deleteMany({ channelId }),
-          Messages.deleteMany({ channelId }),
-          Channels.deleteChannel(channelId, userId),
+          ChannelUsers.deleteMany({ channelId }, { session }),
+          BlockedUsers.deleteMany({ channelId }, { session }),
+          Messages.deleteMany({ channelId }, { session }),
+          Channels.deleteChannel(channelId, userId, session),
         ]);
       }),
     ]);

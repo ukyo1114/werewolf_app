@@ -27,6 +27,7 @@ import Channels from '../../src/models/Channels';
 import ChannelUsers from '../../src/models/ChannelUsers';
 import BlockedUsers from '../../src/models/BlockedUsers';
 import Messages from '../../src/models/Messages';
+import { TransactionHelper } from '../../src/utils/TransactionHelper';
 
 describe('ChannelService', () => {
   let channelService: ChannelService;
@@ -49,11 +50,21 @@ describe('ChannelService', () => {
         denyGuests: false,
         channelAdmin: mockUserId,
       };
-      const mockNewChannel = { _id: mockChannelId };
+      const mockNewChannel = [{ _id: mockChannelId }];
+      const mockSession = {} as mongoose.ClientSession;
 
       (Users.isGuest as jest.Mock).mockResolvedValue(false);
       (Channels.create as jest.Mock).mockResolvedValue(mockNewChannel);
       (ChannelUsers.create as jest.Mock).mockResolvedValue(undefined);
+
+      // TransactionHelperのモック設定
+      (TransactionHelper.withTransaction as jest.Mock).mockImplementation(
+        async (
+          operation: (session: mongoose.ClientSession) => Promise<string>,
+        ) => {
+          return await operation(mockSession);
+        },
+      );
 
       const result = await channelService.createChannel(
         mockUserId,
@@ -62,11 +73,14 @@ describe('ChannelService', () => {
 
       expect(result).toBe(mockChannelId);
       expect(Users.isGuest).toHaveBeenCalledWith(mockUserId);
-      expect(Channels.create).toHaveBeenCalledWith(mockChannelData);
-      expect(ChannelUsers.create).toHaveBeenCalledWith({
-        channelId: mockChannelId,
-        userId: mockUserId,
+      expect(TransactionHelper.withTransaction).toHaveBeenCalled();
+      expect(Channels.create).toHaveBeenCalledWith([mockChannelData], {
+        session: mockSession,
       });
+      expect(ChannelUsers.create).toHaveBeenCalledWith(
+        { channelId: mockChannelId, userId: mockUserId },
+        { session: mockSession },
+      );
     });
   });
 
@@ -180,11 +194,22 @@ describe('ChannelService', () => {
 
   describe('deleteChannel', () => {
     it('チャンネルを正常に削除する', async () => {
+      const mockSession = {} as mongoose.ClientSession;
+
       (Channels.checkChannelAdmin as jest.Mock).mockResolvedValue(undefined);
       (ChannelUsers.deleteMany as jest.Mock).mockResolvedValue(undefined);
       (BlockedUsers.deleteMany as jest.Mock).mockResolvedValue(undefined);
       (Messages.deleteMany as jest.Mock).mockResolvedValue(undefined);
       (Channels.deleteChannel as jest.Mock).mockResolvedValue(undefined);
+
+      // TransactionHelperのモック設定
+      (TransactionHelper.withTransaction as jest.Mock).mockImplementation(
+        async (
+          operation: (session: mongoose.ClientSession) => Promise<void>,
+        ) => {
+          return await operation(mockSession);
+        },
+      );
 
       await expect(
         channelService.deleteChannel(mockChannelId, mockUserId),
@@ -194,18 +219,23 @@ describe('ChannelService', () => {
         mockChannelId,
         mockUserId,
       );
-      expect(ChannelUsers.deleteMany).toHaveBeenCalledWith({
-        channelId: mockChannelId,
-      });
-      expect(BlockedUsers.deleteMany).toHaveBeenCalledWith({
-        channelId: mockChannelId,
-      });
-      expect(Messages.deleteMany).toHaveBeenCalledWith({
-        channelId: mockChannelId,
-      });
+      expect(TransactionHelper.withTransaction).toHaveBeenCalled();
+      expect(ChannelUsers.deleteMany).toHaveBeenCalledWith(
+        { channelId: mockChannelId },
+        { session: mockSession },
+      );
+      expect(BlockedUsers.deleteMany).toHaveBeenCalledWith(
+        { channelId: mockChannelId },
+        { session: mockSession },
+      );
+      expect(Messages.deleteMany).toHaveBeenCalledWith(
+        { channelId: mockChannelId },
+        { session: mockSession },
+      );
       expect(Channels.deleteChannel).toHaveBeenCalledWith(
         mockChannelId,
         mockUserId,
+        mockSession,
       );
     });
   });

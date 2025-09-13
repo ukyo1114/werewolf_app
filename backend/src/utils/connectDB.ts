@@ -20,8 +20,7 @@ const connectDB = async (): Promise<void> => {
     };
 
     await mongoose.connect(mongoURI, options);
-    console.log('DB接続成功');
-    console.log(`接続先: ${mongoURI}`);
+    console.log(`DB接続成功: ${mongoURI}`);
   } catch (err) {
     console.error(`Error: ${err instanceof Error ? err.message : err}`);
     process.exit(1);
