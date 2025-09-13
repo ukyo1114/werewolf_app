@@ -19,7 +19,7 @@ const validateChannelId = param('channelId')
 
 const validateChannelName = (isOptional: boolean) => {
   let validator = body('channelName').trim();
-  if (isOptional) validator = validator.optional({ nullable: true });
+  if (isOptional) validator = validator.optional();
 
   return validator
     .isString()
@@ -30,7 +30,7 @@ const validateChannelName = (isOptional: boolean) => {
 
 const validateChannelDescription = (isOptional: boolean) => {
   let validator = body('channelDescription').trim();
-  if (isOptional) validator = validator.optional({ nullable: true });
+  if (isOptional) validator = validator.optional();
 
   return validator
     .isString()
@@ -46,7 +46,7 @@ const validatePasswordEnabled = body('passwordEnabled')
 
 const validatePassword = body('password')
   .trim()
-  .optional({ nullable: true })
+  .optional()
   .isString()
   .isLength({ min: 8, max: 64 })
   .withMessage(validation.PASSWORD_LENGTH);
@@ -57,7 +57,7 @@ const validateDenyGuests = body('denyGuests')
   .toBoolean();
 
 const validateNumberOfPlayers = body('numberOfPlayers')
-  .isInt({ min: 5, max: 20 })
+  .isInt({ min: 5, max: 17 })
   .withMessage(validation.NUMBER_OF_PLAYERS);
 
 const router = express.Router();

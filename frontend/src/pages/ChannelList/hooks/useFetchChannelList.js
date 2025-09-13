@@ -19,17 +19,17 @@ const useFetchChannelList = ({
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
 
       const {
-        data: { channelList, joinedChannels, blockedChannels },
+        data: { channelList, participatingChannels, blockedChannels },
       } = await axios.get("/api/channel/list", config);
       if (
         !Array.isArray(channelList) ||
-        !Array.isArray(joinedChannels) ||
+        !Array.isArray(participatingChannels) ||
         !Array.isArray(blockedChannels)
       )
         throw new Error();
 
       setChannelList(channelList);
-      setJoinedChannels(joinedChannels || []);
+      setJoinedChannels(participatingChannels || []);
       setBlockedChannels(blockedChannels || []);
     } catch (error) {
       showToast(

@@ -57,9 +57,9 @@ const CreateChannel = ({ isOpen, onClose }) => {
     if (
       !vals.numberOfPlayers ||
       vals.numberOfPlayers < 5 ||
-      vals.numberOfPlayers > 20
+      vals.numberOfPlayers > 17
     ) {
-      errs.numberOfPlayers = "5～20人で指定してください";
+      errs.numberOfPlayers = "5～17人で指定してください";
     }
     if (
       vals.isPasswordEnabled &&
@@ -198,7 +198,7 @@ const CreateChannel = ({ isOpen, onClose }) => {
               </FormLabel>
               <NumberInput
                 min={5}
-                max={20}
+                max={17}
                 size="lg"
                 value={values.numberOfPlayers}
                 onChange={handleNumberChange}

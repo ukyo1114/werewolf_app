@@ -24,7 +24,7 @@ export const useJoinChannel = () => {
           },
         } = await axios.put(
           `/api/channel/join/${channelId}`,
-          { password: password || null },
+          { password: password || undefined },
           config
         );
 

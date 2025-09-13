@@ -96,8 +96,8 @@ const ChannelSettingsModal = ({ isOpen, onClose }) => {
         ) {
           errors.password = "パスワードは4文字以上必要です";
         }
-        if (formData.numberOfPlayers < 5 || formData.numberOfPlayers > 20) {
-          errors.numberOfPlayers = "5～20人で指定してください";
+        if (formData.numberOfPlayers < 5 || formData.numberOfPlayers > 17) {
+          errors.numberOfPlayers = "5～17人で指定してください";
         }
         return errors;
       };
@@ -212,7 +212,7 @@ const ChannelSettingsModal = ({ isOpen, onClose }) => {
               </FormLabel>
               <NumberInput
                 min={5}
-                max={20}
+                max={17}
                 value={formData.numberOfPlayers}
                 onChange={handleNumberChange}
               >
