@@ -236,7 +236,7 @@ const UnblockButton = ({
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
 
-      await axios.put(
+      await axios.delete(
         `api/block/cancel/${channelId}`,
         { selectedUser: selectedBUser },
         config
