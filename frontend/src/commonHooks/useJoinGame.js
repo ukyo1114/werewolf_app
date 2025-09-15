@@ -14,17 +14,17 @@ const useJoinGame = () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
         const {
-          data: { game, users },
+          data: { channelId, channelName, channelDescription, gameUsers },
         } = await axios.get(`/api/game/join/${gameId}`, config);
 
         const payload = {
-          _id: game._id,
+          _id: gameId,
           channel: {
-            _id: game.channelId._id,
-            channelName: game.channelId.channelName,
-            channelDescription: game.channelId.channelDescription,
+            _id: channelId,
+            channelName: channelName,
+            channelDescription: channelDescription,
           },
-          users,
+          users: gameUsers,
         };
         chDispatch({ type: "JOIN_GAME", payload });
       } catch (error) {
